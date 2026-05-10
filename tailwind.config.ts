@@ -7,45 +7,74 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+      padding: "1.5rem",
+      screens: { "2xl": "1400px" },
     },
     extend: {
+      fontFamily: {
+        display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+        sans: ['"Inter Tight"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        deva: ['"Tiro Devanagari Hindi"', 'serif'],
+      },
+      fontSize: {
+        display: ['56px', { lineHeight: '1.05', letterSpacing: '-0.02em', fontWeight: '500' }],
+        h1: ['36px', { lineHeight: '1.15', letterSpacing: '-0.01em', fontWeight: '500' }],
+        h2: ['24px', { lineHeight: '1.25', fontWeight: '500' }],
+        h3: ['18px', { lineHeight: '1.4', fontWeight: '600' }],
+        body: ['15px', { lineHeight: '1.6' }],
+        sm: ['13px', { lineHeight: '1.5' }],
+        xs: ['11px', { lineHeight: '1.4', letterSpacing: '0.04em' }],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+        canvas: "hsl(var(--bg-canvas))",
+        surface: "hsl(var(--bg-surface))",
+        elevated: "hsl(var(--bg-elevated))",
+        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+        popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
+        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+        text: {
+          primary: "hsl(var(--text-primary))",
+          secondary: "hsl(var(--text-secondary))",
+          tertiary: "hsl(var(--text-tertiary))",
+          muted: "hsl(var(--text-muted))",
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+        brand: {
+          saffron: "hsl(var(--brand-saffron))",
+          "saffron-hover": "hsl(var(--brand-saffron-hover))",
+          maroon: "hsl(var(--brand-maroon))",
+          gold: "hsl(var(--brand-gold))",
         },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+        semantic: {
+          positive: "hsl(var(--semantic-positive))",
+          negative: "hsl(var(--semantic-negative))",
+          neutral: "hsl(var(--semantic-neutral))",
+          info: "hsl(var(--semantic-info))",
         },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+        hairline: {
+          subtle: "hsl(var(--border-subtle))",
+          DEFAULT: "hsl(var(--border-default))",
+          strong: "hsl(var(--border-strong))",
         },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+        planet: {
+          sun: "hsl(var(--planet-sun))",
+          moon: "hsl(var(--planet-moon))",
+          mars: "hsl(var(--planet-mars))",
+          mercury: "hsl(var(--planet-mercury))",
+          jupiter: "hsl(var(--planet-jupiter))",
+          venus: "hsl(var(--planet-venus))",
+          saturn: "hsl(var(--planet-saturn))",
+          rahu: "hsl(var(--planet-rahu))",
+          ketu: "hsl(var(--planet-ketu))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -63,29 +92,22 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        sm: "0 1px 2px hsl(20 13% 9% / 0.04)",
+        md: "0 2px 8px hsl(20 13% 9% / 0.06), 0 1px 2px hsl(20 13% 9% / 0.04)",
+        lg: "0 8px 24px hsl(20 13% 9% / 0.08), 0 2px 6px hsl(20 13% 9% / 0.04)",
+      },
       keyframes: {
-        "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
-        },
-        "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
-        },
+        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
+        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
+        "fade-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.5s ease-out",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config;
