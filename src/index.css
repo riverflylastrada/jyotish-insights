@@ -2,95 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Jyotish Sage — Light Editorial design system. All colors are HSL. */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Backgrounds */
+    --bg-canvas: 40 33% 97%;
+    --bg-surface: 0 0% 100%;
+    --bg-elevated: 40 25% 94%;
+    --bg-muted: 40 22% 91%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Text */
+    --text-primary: 20 13% 9%;
+    --text-secondary: 28 13% 26%;
+    --text-tertiary: 28 11% 45%;
+    --text-muted: 35 17% 67%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Brand */
+    --brand-saffron: 28 64% 48%;
+    --brand-saffron-hover: 31 70% 39%;
+    --brand-maroon: 351 55% 27%;
+    --brand-gold: 40 51% 48%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Semantic */
+    --semantic-positive: 154 41% 30%;
+    --semantic-negative: 7 54% 39%;
+    --semantic-neutral: 225 14% 42%;
+    --semantic-info: 213 35% 37%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Borders */
+    --border-subtle: 40 28% 87%;
+    --border-default: 38 28% 80%;
+    --border-strong: 35 17% 67%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Planets */
+    --planet-sun: 28 64% 48%;
+    --planet-moon: 38 8% 51%;
+    --planet-mars: 7 54% 39%;
+    --planet-mercury: 154 41% 30%;
+    --planet-jupiter: 40 51% 48%;
+    --planet-venus: 326 32% 54%;
+    --planet-saturn: 24 9% 21%;
+    --planet-rahu: 273 18% 36%;
+    --planet-ketu: 32 19% 35%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* shadcn token mapping → editorial palette */
+    --background: var(--bg-canvas);
+    --foreground: var(--text-primary);
+    --card: var(--bg-surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-surface);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--brand-maroon);
+    --primary-foreground: 40 33% 97%;
+    --secondary: var(--bg-elevated);
+    --secondary-foreground: var(--text-primary);
+    --muted: var(--bg-muted);
+    --muted-foreground: var(--text-tertiary);
+    --accent: var(--brand-saffron);
+    --accent-foreground: 40 33% 97%;
+    --destructive: var(--semantic-negative);
+    --destructive-foreground: 40 33% 97%;
+    --border: var(--border-subtle);
+    --input: var(--border-default);
+    --ring: var(--brand-saffron);
+    --radius: 0.375rem;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: var(--bg-elevated);
+    --sidebar-foreground: var(--text-secondary);
+    --sidebar-primary: var(--brand-maroon);
+    --sidebar-primary-foreground: 40 33% 97%;
+    --sidebar-accent: var(--bg-muted);
+    --sidebar-accent-foreground: var(--text-primary);
+    --sidebar-border: var(--border-subtle);
+    --sidebar-ring: var(--brand-saffron);
   }
 }
 
@@ -98,8 +83,40 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+    font-feature-settings: "ss01";
+  }
+}
+
+@layer utilities {
+  .font-deva { font-family: 'Tiro Devanagari Hindi', serif; }
+  .text-eyebrow {
+    font-size: 11px;
+    line-height: 1.4;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .hairline { border-color: hsl(var(--border-subtle)); }
+
+  .yantra-bg {
+    background-image:
+      radial-gradient(circle at 50% 50%, hsl(var(--brand-gold) / 0.04) 0%, transparent 60%),
+      repeating-linear-gradient(45deg, hsl(var(--brand-gold) / 0.025) 0 1px, transparent 1px 24px),
+      repeating-linear-gradient(-45deg, hsl(var(--brand-gold) / 0.025) 0 1px, transparent 1px 24px);
+  }
+
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(to right, transparent, hsl(var(--brand-gold) / 0.6), transparent);
   }
 }

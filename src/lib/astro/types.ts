@@ -1,0 +1,144 @@
+export type PlanetName =
+  | 'sun' | 'moon' | 'mars' | 'mercury' | 'jupiter' | 'venus' | 'saturn' | 'rahu' | 'ketu' | 'ascendant';
+
+export interface BirthDetails {
+  fullName: string;
+  dateOfBirth: string;
+  timeOfBirth: string;
+  placeOfBirth: {
+    name: string;
+    latitude: number;
+    longitude: number;
+    timezone: string;
+    timezoneOffset: number;
+  };
+  gender?: 'male' | 'female' | 'other';
+  ayanamsa: 'lahiri' | 'raman' | 'krishnamurti' | 'yukteshwar';
+  houseSystem: 'whole_sign' | 'placidus' | 'koch' | 'equal';
+}
+
+export interface PlanetPosition {
+  planet: PlanetName;
+  longitude: number;
+  signNumber: number;
+  signName: string;
+  signDegree: number;
+  nakshatra: string;
+  nakshatraPada: 1 | 2 | 3 | 4;
+  houseNumber: number;
+  isRetrograde: boolean;
+  isCombust: boolean;
+  speed?: number;
+  dignity?: 'exalted' | 'debilitated' | 'own_sign' | 'mooltrikona' | 'friend' | 'neutral' | 'enemy';
+}
+
+export type VargaCode =
+  | 'D1' | 'D2' | 'D3' | 'D4' | 'D7' | 'D9' | 'D10' | 'D12'
+  | 'D16' | 'D20' | 'D24' | 'D27' | 'D30' | 'D40' | 'D45' | 'D60';
+
+export interface DivisionalChart {
+  varga: VargaCode;
+  vargaName: string;
+  significance: string;
+  ascendantSign: number;
+  planets: PlanetPosition[];
+}
+
+export interface DashaPeriod {
+  level: 'maha' | 'antar' | 'pratyantar' | 'sookshma' | 'prana';
+  planet: string;
+  startDate: string;
+  endDate: string;
+  durationYears: number;
+  children?: DashaPeriod[];
+}
+
+export interface DashaSystem {
+  system: 'vimshottari' | 'yogini' | 'char' | 'ashtottari' | 'kalachakra';
+  currentMahaDasha: DashaPeriod;
+  timeline: DashaPeriod[];
+}
+
+export interface Remedy {
+  type: 'gemstone' | 'mantra' | 'yantra' | 'donation' | 'ritual' | 'lifestyle';
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface Dosha {
+  name: 'mangal' | 'kaal_sarp' | 'sade_sati' | 'pitra' | 'guru_chandal' | 'shakat';
+  isPresent: boolean;
+  severity?: 'low' | 'medium' | 'high' | 'cancelled';
+  explanation: string;
+  affectedAreas: string[];
+  remedies: Remedy[];
+}
+
+export interface Yoga {
+  name: string;
+  category: 'raja' | 'dhana' | 'pancha_mahapurusha' | 'nabhasa' | 'chandra' | 'sun' | 'other';
+  isPresent: boolean;
+  strength: 'weak' | 'moderate' | 'strong';
+  formedBy: string[];
+  explanation: string;
+  effects: string[];
+}
+
+export interface AshtakavargaData {
+  bhinna: Record<string, number[]>;
+  sarva: number[];
+}
+
+export interface KundliData {
+  id: string;
+  birthDetails: BirthDetails;
+  generatedAt: string;
+  ascendant: PlanetPosition;
+  panchang: {
+    tithi: string;
+    vara: string;
+    nakshatra: string;
+    yoga: string;
+    karana: string;
+    sunrise: string;
+    sunset: string;
+  };
+  divisionalCharts: DivisionalChart[];
+  dashas: DashaSystem[];
+  doshas: Dosha[];
+  yogas: Yoga[];
+  ashtakavarga: AshtakavargaData;
+  shadbala?: Record<string, number>;
+  raw: unknown;
+}
+
+export interface AstroProvider {
+  name: string;
+  generateKundli(details: BirthDetails): Promise<KundliData>;
+  getCurrentTransits(latitude: number, longitude: number): Promise<PlanetPosition[]>;
+  isHealthy(): Promise<boolean>;
+}
+
+export const SIGN_NAMES = [
+  'Mesha', 'Vrishabha', 'Mithuna', 'Karka', 'Simha', 'Kanya',
+  'Tula', 'Vrischika', 'Dhanu', 'Makara', 'Kumbha', 'Meena',
+] as const;
+
+export const SIGN_NAMES_DEVA = [
+  'मेष', 'वृषभ', 'मिथुन', 'कर्क', 'सिंह', 'कन्या',
+  'तुला', 'वृश्चिक', 'धनु', 'मकर', 'कुम्भ', 'मीन',
+] as const;
+
+export const PLANET_LABELS: Record<PlanetName, { short: string; full: string; deva: string }> = {
+  sun:       { short: 'Su', full: 'Sun',       deva: 'सूर्य' },
+  moon:      { short: 'Mo', full: 'Moon',      deva: 'चंद्र' },
+  mars:      { short: 'Ma', full: 'Mars',      deva: 'मंगल' },
+  mercury:   { short: 'Me', full: 'Mercury',   deva: 'बुध' },
+  jupiter:   { short: 'Ju', full: 'Jupiter',   deva: 'गुरु' },
+  venus:     { short: 'Ve', full: 'Venus',     deva: 'शुक्र' },
+  saturn:    { short: 'Sa', full: 'Saturn',    deva: 'शनि' },
+  rahu:      { short: 'Ra', full: 'Rahu',      deva: 'राहु' },
+  ketu:      { short: 'Ke', full: 'Ketu',      deva: 'केतु' },
+  ascendant: { short: 'As', full: 'Ascendant', deva: 'लग्न' },
+};
