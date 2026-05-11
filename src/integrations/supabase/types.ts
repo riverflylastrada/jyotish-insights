@@ -14,13 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      charts: {
+        Row: {
+          birth_details: Json
+          created_at: string
+          id: string
+          name: string
+          share_token: string
+          snapshot: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_details: Json
+          created_at?: string
+          id?: string
+          name: string
+          share_token?: string
+          snapshot?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_details?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          share_token?: string
+          snapshot?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          ayanamsa: string
+          chart_style: string
+          created_at: string
+          display_name: string | null
+          house_system: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ayanamsa?: string
+          chart_style?: string
+          created_at?: string
+          display_name?: string | null
+          house_system?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ayanamsa?: string
+          chart_style?: string
+          created_at?: string
+          display_name?: string | null
+          house_system?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_chart_by_share_token: {
+        Args: { _token: string }
+        Returns: {
+          birth_details: Json
+          created_at: string
+          id: string
+          name: string
+          share_token: string
+          snapshot: Json | null
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "charts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       [_ in never]: never
