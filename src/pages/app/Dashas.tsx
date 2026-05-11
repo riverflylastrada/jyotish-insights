@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -124,8 +124,8 @@ export default function Dashas() {
               const key = p.planet + p.startDate;
               const isOpen = openMaha === key;
               return (
-                <>
-                  <tr key={key} onClick={() => { setOpenMaha(isOpen ? null : key); setOpenAntar(null); }}
+                <Fragment key={key}>
+                  <tr onClick={() => { setOpenMaha(isOpen ? null : key); setOpenAntar(null); }}
                     className={`cursor-pointer hover:bg-elevated/60 ${active ? 'bg-brand-saffron/5' : ''}`}>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-2">
@@ -150,8 +150,8 @@ export default function Dashas() {
                     const aOpen = openAntar === aKey;
                     const prats = buildPratyantar(a);
                     return (
-                      <>
-                        <tr key={aKey} onClick={(ev) => { ev.stopPropagation(); setOpenAntar(aOpen ? null : aKey); }}
+                      <Fragment key={aKey}>
+                        <tr onClick={(ev) => { ev.stopPropagation(); setOpenAntar(aOpen ? null : aKey); }}
                           className={`cursor-pointer bg-canvas hover:bg-elevated/40 ${aActive ? 'bg-brand-saffron/5' : ''}`}>
                           <td className="py-2 pl-10 pr-4">
                             <span className="inline-flex items-center gap-2 text-text-secondary">
@@ -180,10 +180,10 @@ export default function Dashas() {
                             </tr>
                           );
                         })}
-                      </>
+                      </Fragment>
                     );
                   })}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
