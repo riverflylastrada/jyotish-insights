@@ -1,18 +1,24 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useKundli } from '@/hooks/useKundli';
 import { useChartStore } from '@/stores/useChartStore';
 import { KundliChart, KundliFrame } from '@/components/kundli/KundliChart';
 import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type PlanetPosition } from '@/lib/astro/types';
 import { Download, Share2, RefreshCcw, Save, MessageSquare, Loader2 } from 'lucide-react';
 import dayjs from 'dayjs';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/components/ui/sonner';
 
 export default function ChartDetail() {
   const { id = 'demo' } = useParams();
-  const { data, isLoading } = useKundli(id);
+  const nav = useNavigate();
+  const qc = useQueryClient();
+  const { data, isLoading, refetch } = useKundli(id);
   const chartStyle = useChartStore((s) => s.chartStyle);
   const setChartStyle = useChartStore((s) => s.setChartStyle);
   const [tab, setTab] = useState<'overview' | 'houses' | 'planets'>('overview');
+  const [busy, setBusy] = useState<null | 'save' | 'share' | 'recalc'>(null);
 
   if (isLoading || !data) {
     return (
@@ -29,6 +35,69 @@ export default function ChartDetail() {
 
   const md = data.dashas[0].currentMahaDasha;
   const ad = md.children?.find(c => new Date(c.startDate).getTime() <= Date.now() && new Date(c.endDate).getTime() > Date.now()) ?? md.children?.[0];
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  const onSave = async () => {
+    setBusy('save');
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) { toast.error('Sign in to save charts'); nav('/login'); return; }
+      if (isUuid) {
+        const { error } = await supabase.from('charts')
+          .update({ snapshot: data as unknown as never, birth_details: data.birthDetails as unknown as never })
+          .eq('id', id);
+        if (error) throw error;
+        toast.success('Chart updated');
+      } else {
+        const { data: row, error } = await supabase.from('charts').insert({
+          user_id: u.user.id,
+          name: data.birthDetails.fullName || 'Untitled chart',
+          birth_details: data.birthDetails as unknown as never,
+          snapshot: data as unknown as never,
+        }).select('id').single();
+        if (error) throw error;
+        toast.success('Chart saved to your library');
+        nav(`/app/chart/${row.id}`, { replace: true });
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Save failed');
+    } finally { setBusy(null); }
+  };
+
+  const onShare = async () => {
+    setBusy('share');
+    try {
+      let token: string | null = null;
+      if (isUuid) {
+        const { data: row, error } = await supabase.from('charts').select('share_token').eq('id', id).single();
+        if (error) throw error;
+        token = row.share_token;
+      }
+      const url = token
+        ? `${window.location.origin}/app/chart/${id}?share=${token}`
+        : `${window.location.origin}/app/chart/${id}`;
+      await navigator.clipboard.writeText(url);
+      toast.success('Share link copied to clipboard');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not create share link. Save the chart first.');
+    } finally { setBusy(null); }
+  };
+
+  const onRecalc = async () => {
+    setBusy('recalc');
+    try {
+      if (isUuid) {
+        // Clear cached snapshot so next fetch regenerates
+        await supabase.from('charts').update({ snapshot: null as unknown as never }).eq('id', id);
+      }
+      await qc.invalidateQueries({ queryKey: ['chart', id] });
+      await refetch();
+      toast.success('Chart recomputed');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Recompute failed');
+    } finally { setBusy(null); }
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
@@ -48,10 +117,10 @@ export default function ChartDetail() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ActionBtn icon={Save} label="Save" />
+            <ActionBtn icon={Save} label={isUuid ? 'Update' : 'Save'} onClick={onSave} loading={busy === 'save'} />
             <ActionBtn icon={Download} label="PDF" to={`/app/chart/${id}/report`} />
-            <ActionBtn icon={Share2} label="Share" />
-            <ActionBtn icon={RefreshCcw} label="Recalculate" />
+            <ActionBtn icon={Share2} label="Share" onClick={onShare} loading={busy === 'share'} />
+            <ActionBtn icon={RefreshCcw} label="Recalculate" onClick={onRecalc} loading={busy === 'recalc'} />
             <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-3 py-2 text-sm text-primary-foreground hover:bg-brand-maroon/90">
               <MessageSquare className="h-4 w-4" /> Open Debate
             </Link>
@@ -152,10 +221,15 @@ export default function ChartDetail() {
   );
 }
 
-function ActionBtn({ icon: Icon, label, to }: { icon: React.ElementType; label: string; to?: string }) {
-  const cls = 'inline-flex items-center gap-2 rounded-sm border border-hairline-subtle bg-surface px-3 py-2 text-sm text-text-secondary hover:bg-elevated';
+function ActionBtn({ icon: Icon, label, to, onClick, loading }: { icon: React.ElementType; label: string; to?: string; onClick?: () => void; loading?: boolean }) {
+  const cls = 'inline-flex items-center gap-2 rounded-sm border border-hairline-subtle bg-surface px-3 py-2 text-sm text-text-secondary hover:bg-elevated disabled:opacity-50';
   if (to) return <Link to={to} className={cls}><Icon className="h-4 w-4" />{label}</Link>;
-  return <button className={cls}><Icon className="h-4 w-4" />{label}</button>;
+  return (
+    <button onClick={onClick} disabled={loading} className={cls}>
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+      {label}
+    </button>
+  );
 }
 
 function Chip({ label, value, color }: { label: string; value: string; color: 'maroon' | 'moon' | 'sun' }) {
