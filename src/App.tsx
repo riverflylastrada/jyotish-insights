@@ -21,6 +21,9 @@ import Transits from "./pages/app/Transits";
 import Report from "./pages/app/Report";
 import Remedies from "./pages/app/Remedies";
 import Muhurta from "./pages/app/Muhurta";
+import Library from "./pages/app/Library";
+import Settings from "./pages/app/Settings";
+import { RequireAuth } from "./components/auth/RequireAuth";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 60, refetchOnWindowFocus: false } },
@@ -37,11 +40,11 @@ const App = () => (
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/signup" element={<AuthPage mode="signup" />} />
 
-          <Route path="/app" element={<AppLayout />}>
+          <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
             <Route index element={<Dashboard />} />
             <Route path="new" element={<NewChart />} />
-            <Route path="library" element={<Placeholder title="Your Chart Library" kicker="Library" description="A searchable library of all charts you've cast. Saves require Lovable Cloud, which ships in the next phase." />} />
-            <Route path="settings" element={<Placeholder title="Preferences" kicker="Settings" description="Default Ayanamsa, chart style, house system, and language preferences." />} />
+            <Route path="library" element={<Library />} />
+            <Route path="settings" element={<Settings />} />
             <Route path="chart/:id" element={<ChartDetail />} />
             <Route path="chart/:id/charts" element={<DivisionalCharts />} />
             <Route path="chart/:id/dashas" element={<Dashas />} />
