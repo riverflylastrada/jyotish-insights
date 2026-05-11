@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
     const pdfResp = await fetch("https://api.pdfshift.io/v3/convert/pdf", {
       method: "POST",
       headers: {
-        "Authorization": "Basic " + btoa("api:" + PDFSHIFT_API_KEY),
+        "X-API-Key": PDFSHIFT_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
