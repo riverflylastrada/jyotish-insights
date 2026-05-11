@@ -37,6 +37,8 @@ export default function ChartDetail() {
   const ad = md.children?.find(c => new Date(c.startDate).getTime() <= Date.now() && new Date(c.endDate).getTime() > Date.now()) ?? md.children?.[0];
 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const shareToken = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('share') : null;
+  const readOnly = !!shareToken;
 
   const onSave = async () => {
     setBusy('save');
@@ -101,6 +103,12 @@ export default function ChartDetail() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
+      {readOnly && (
+        <div className="mb-4 rounded-md border border-brand-maroon/30 bg-elevated px-4 py-3 text-sm text-text-secondary">
+          <span className="text-eyebrow text-brand-maroon">Shared view</span>
+          <span className="ml-3">You're viewing a chart shared with you. Save and edit actions are disabled.</span>
+        </div>
+      )}
       {/* Header */}
       <div className="rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -117,10 +125,10 @@ export default function ChartDetail() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ActionBtn icon={Save} label={isUuid ? 'Update' : 'Save'} onClick={onSave} loading={busy === 'save'} />
-            <ActionBtn icon={Download} label="PDF" to={`/app/chart/${id}/report`} />
-            <ActionBtn icon={Share2} label="Share" onClick={onShare} loading={busy === 'share'} />
-            <ActionBtn icon={RefreshCcw} label="Recalculate" onClick={onRecalc} loading={busy === 'recalc'} />
+            {!readOnly && <ActionBtn icon={Save} label={isUuid ? 'Update' : 'Save'} onClick={onSave} loading={busy === 'save'} />}
+            <ActionBtn icon={Download} label="PDF" to={`/app/chart/${id}/report${shareToken ? `?share=${shareToken}` : ''}`} />
+            {!readOnly && <ActionBtn icon={Share2} label="Share" onClick={onShare} loading={busy === 'share'} />}
+            {!readOnly && <ActionBtn icon={RefreshCcw} label="Recalculate" onClick={onRecalc} loading={busy === 'recalc'} />}
             <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-3 py-2 text-sm text-primary-foreground hover:bg-brand-maroon/90">
               <MessageSquare className="h-4 w-4" /> Open Debate
             </Link>
