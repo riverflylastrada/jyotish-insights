@@ -8,9 +8,20 @@ const isUuid = (s: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
 export function useKundli(chartId: string, details: BirthDetails = DEMO_BIRTH) {
+  const shareToken = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('share')
+    : null;
   return useQuery<KundliData>({
-    queryKey: ['chart', chartId, 'kundli'],
+    queryKey: ['chart', chartId, 'kundli', shareToken ?? ''],
     queryFn: async () => {
+      // Public share link
+      if (shareToken && isUuid(shareToken)) {
+        const { data, error } = await supabase.rpc('get_chart_by_share_token', { _token: shareToken });
+        if (error) throw error;
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row?.snapshot) return row.snapshot as unknown as KundliData;
+        if (row?.birth_details) return getAstroProvider().generateKundli(row.birth_details as unknown as BirthDetails);
+      }
       // Saved chart in DB
       if (isUuid(chartId)) {
         const { data, error } = await supabase
