@@ -130,7 +130,7 @@ export default function ChartDetail() {
       </div>
 
       {/* Sub-nav links */}
-      <div className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-9">
         {[
           ['charts', 'Divisional'],
           ['dashas', 'Dashas'],
@@ -138,6 +138,8 @@ export default function ChartDetail() {
           ['yogas', 'Yogas'],
           ['ashtakvarga', 'Ashtakavarga'],
           ['transits', 'Transits'],
+          ['remedies', 'Remedies'],
+          ['muhurta', 'Muhurta'],
           ['report', 'Report'],
         ].map(([slug, label]) => (
           <Link key={slug} to={`/app/chart/${id}/${slug}`}
