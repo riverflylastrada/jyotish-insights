@@ -16,6 +16,9 @@ import Dashas from "./pages/app/Dashas";
 import Doshas from "./pages/app/Doshas";
 import Yogas from "./pages/app/Yogas";
 import Debate from "./pages/app/Debate";
+import Ashtakavarga from "./pages/app/Ashtakavarga";
+import Transits from "./pages/app/Transits";
+import Report from "./pages/app/Report";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 60, refetchOnWindowFocus: false } },
@@ -42,10 +45,10 @@ const App = () => (
             <Route path="chart/:id/dashas" element={<Dashas />} />
             <Route path="chart/:id/doshas" element={<Doshas />} />
             <Route path="chart/:id/yogas" element={<Yogas />} />
-            <Route path="chart/:id/ashtakvarga" element={<Placeholder title="Ashtakavarga" kicker="Bhinna & Sarvashtakavarga" />} />
-            <Route path="chart/:id/transits" element={<Placeholder title="Current Transits" kicker="Sky vs natal" />} />
+            <Route path="chart/:id/ashtakvarga" element={<Ashtakavarga />} />
+            <Route path="chart/:id/transits" element={<Transits />} />
             <Route path="chart/:id/debate" element={<Debate />} />
-            <Route path="chart/:id/report" element={<Placeholder title="Full Report" kicker="Print-ready" description="Long-form, print-optimized PDF report. Ships once the report layout is wired." />} />
+            <Route path="chart/:id/report" element={<Report />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

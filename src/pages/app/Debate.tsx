@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebateStore } from '@/stores/useDebateStore';
+import { useKundli } from '@/hooks/useKundli';
+import { toast } from '@/components/ui/sonner';
 
 type GuruKey = 'parashara' | 'varahamihira' | 'raman' | 'rao' | 'krishnamurti';
 
@@ -31,27 +33,63 @@ const SAMPLE_QUESTIONS = [
   'Which yogas are actively shaping this lifetime, and which are dormant?',
 ];
 
-// Mock argument generator — produces a deterministic, classically-flavored response per guru.
-function generateResponse(g: Guru, q: string): string {
-  const base: Record<GuruKey, string> = {
-    parashara:    `Reading the Lagna and its lord first, as ordained in the Hora Sastra: the ascendant is Vrischika, ruled by Mangal placed in the 11th from Lagna in Kanya. Where Mangal occupies a friend's sign in an upachaya, the matter improves with time. The 9th lord Chandra in the 9th in Karka is a dignified placement, and the Atmakaraka here speaks plainly to the question.`,
-    varahamihira: `Per Brihat Jataka, the strength of the karaka must be weighed against the strength of the bhava. Guru aspecting the 10th, while Surya and Budha conjoin therein (Budhaditya), produces a luminous tenth house. The matter posed will not unfold suddenly, but through repeated, well-considered exertion across two Antardashas.`,
-    raman:        `Practically speaking, the Dasamsa supports what the Rasi suggests — Surya in the 10th is a public vocation, not a private one. The current Mahadasha lord is functionally benefic for this Lagna, so I would interpret the question optimistically, with the caveat that a Saturn transit through the natal 10th will demand patience around 2026–2028.`,
-    rao:          `I judge by Dasha first. The running Maha-Antar combination shows the lord of the 10th influencing the lord of the 11th — a clear period for results from labour, particularly recognition. Pratyantar of Guru within this period, when it arrives, will be the operative window. Apply double-transit: when Saturn and Jupiter both touch a single bhava, that bhava fructifies.`,
-    krishnamurti: `Stellar analysis: the cuspal sub-lord of the 10th house signifies houses 2, 6, 10, 11 — the matter is promised. The ruling planets at the moment of judgment include the Moon's star-lord, which corroborates a positive verdict. The timing will be governed by the Dasha-Bhukti-Antara of the significators of 10 and 11.`,
-  };
-  const tail = q ? `\n\nDirected to your question — "${q}" — my reading stands.` : '';
-  return base[g.key] + tail;
-}
+const DEBATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/guru-debate`;
 
-function generateVerdict(q: string): string {
-  return `Across five readings the consensus is clear: the chart supports an affirmative outcome, conditioned on patience through the closing Sade Sati window. Parashara and Varahamihira agree on the underlying yoga; Raman tempers the timing; Rao isolates the operative Antardasha; Krishnamurti confirms via cuspal sub-lord. The dissent is primarily about timing, not direction.${q ? `\n\nOn "${q}" — proceed, with the major commitment timed to the Jupiter Pratyantar inside the current Mahadasha.` : ''}`;
+async function streamFromEdge(
+  payload: Record<string, unknown>,
+  onDelta: (chunk: string) => void,
+): Promise<string> {
+  const resp = await fetch(DEBATE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!resp.ok || !resp.body) {
+    let msg = 'Failed to start stream';
+    try { const j = await resp.json(); if (j?.error) msg = j.error; } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let full = '';
+  let done = false;
+
+  while (!done) {
+    const { done: rd, value } = await reader.read();
+    if (rd) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buffer.indexOf('\n')) !== -1) {
+      let line = buffer.slice(0, nl);
+      buffer = buffer.slice(nl + 1);
+      if (line.endsWith('\r')) line = line.slice(0, -1);
+      if (!line.startsWith('data: ')) continue;
+      const json = line.slice(6).trim();
+      if (json === '[DONE]') { done = true; break; }
+      try {
+        const parsed = JSON.parse(json);
+        const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (delta) { full += delta; onDelta(full); }
+      } catch {
+        buffer = line + '\n' + buffer;
+        break;
+      }
+    }
+  }
+  return full;
 }
 
 type GuruState = { status: 'idle' | 'thinking' | 'streaming' | 'done'; text: string };
 
 export default function Debate() {
   const { id = 'demo' } = useParams();
+  const { data: chart } = useKundli(id);
   const { question, setQuestion } = useDebateStore();
   const [running, setRunning] = useState(false);
   const [states, setStates] = useState<Record<GuruKey, GuruState>>(() =>
@@ -64,35 +102,34 @@ export default function Debate() {
     setVerdict({ status: 'idle', text: '' });
   };
 
-  const streamText = (full: string, onChunk: (t: string) => void): Promise<void> =>
-    new Promise((resolve) => {
-      const words = full.split(' ');
-      let i = 0;
-      const tick = () => {
-        i += Math.max(2, Math.floor(Math.random() * 4));
-        onChunk(words.slice(0, i).join(' '));
-        if (i < words.length) setTimeout(tick, 35 + Math.random() * 50);
-        else resolve();
-      };
-      tick();
-    });
-
   const runDebate = async () => {
     setRunning(true);
     reset();
-    for (const g of GURUS) {
-      setStates((s) => ({ ...s, [g.key]: { status: 'thinking', text: '' } }));
-      await new Promise((r) => setTimeout(r, 500 + Math.random() * 400));
-      setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: '' } }));
-      const full = generateResponse(g, question);
-      await streamText(full, (t) => setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: t } })));
-      setStates((s) => ({ ...s, [g.key]: { status: 'done', text: full } }));
+    const readings: Array<{ guru: string; text: string }> = [];
+    try {
+      for (const g of GURUS) {
+        setStates((s) => ({ ...s, [g.key]: { status: 'thinking', text: '' } }));
+        await new Promise((r) => setTimeout(r, 250));
+        setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: '' } }));
+        const full = await streamFromEdge(
+          { mode: 'guru', guru: g.key, question, chart },
+          (t) => setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: t } })),
+        );
+        setStates((s) => ({ ...s, [g.key]: { status: 'done', text: full } }));
+        readings.push({ guru: g.name, text: full });
+      }
+      setVerdict({ status: 'streaming', text: '' });
+      const v = await streamFromEdge(
+        { mode: 'verdict', question, chart, priorReadings: readings },
+        (t) => setVerdict({ status: 'streaming', text: t }),
+      );
+      setVerdict({ status: 'done', text: v });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Debate failed';
+      toast.error(msg);
+    } finally {
+      setRunning(false);
     }
-    setVerdict({ status: 'streaming', text: '' });
-    const v = generateVerdict(question);
-    await streamText(v, (t) => setVerdict({ status: 'streaming', text: t }));
-    setVerdict({ status: 'done', text: v });
-    setRunning(false);
   };
 
   return (
@@ -124,7 +161,7 @@ export default function Debate() {
           ))}
         </div>
         <div className="mt-5 flex items-center justify-between">
-          <div className="text-xs text-text-tertiary">Demo mode · responses are mock-generated for the reference chart.</div>
+          <div className="text-xs text-text-tertiary">Live · responses streamed from the AI gateway against this chart.</div>
           <button
             onClick={runDebate}
             disabled={running || !question.trim()}

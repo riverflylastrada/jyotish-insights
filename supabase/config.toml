@@ -1,0 +1,4 @@
+project_id = "gmrewvtnpzzdqghlmucr"
+
+[functions.guru-debate]
+verify_jwt = false
