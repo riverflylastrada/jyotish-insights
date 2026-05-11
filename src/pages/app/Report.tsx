@@ -1,15 +1,61 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Printer } from 'lucide-react';
+import { ArrowLeft, Loader2, Download, Printer } from 'lucide-react';
+import { useState } from 'react';
 import dayjs from 'dayjs';
 import { useKundli } from '@/hooks/useKundli';
 import { KundliChart } from '@/components/kundli/KundliChart';
 import { useChartStore } from '@/stores/useChartStore';
 import { PLANET_LABELS, SIGN_NAMES } from '@/lib/astro/types';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/sonner';
 
 export default function Report() {
   const { id = 'demo' } = useParams();
   const { data, isLoading } = useKundli(id);
   const chartStyle = useChartStore((s) => s.chartStyle);
+  const [downloading, setDownloading] = useState(false);
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const shareToken = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('share') : null;
+
+  const downloadPdf = async () => {
+    if (!data) return;
+    setDownloading(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (sess.session?.access_token) headers.Authorization = `Bearer ${sess.session.access_token}`;
+      const body: Record<string, unknown> = {};
+      if (shareToken) body.shareToken = shareToken;
+      else if (isUuid) body.chartId = id;
+      else body.snapshot = data; // demo / unsaved chart
+
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/render-report`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) {
+        const j = await resp.json().catch(() => ({}));
+        throw new Error(j.error ?? `Failed (${resp.status})`);
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `jyotish-sage-${(data.birthDetails.fullName || 'report').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('PDF downloaded');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'PDF generation failed — try Print instead.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (isLoading || !data) {
     return <div className="mx-auto max-w-7xl px-6 py-24 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-saffron" /></div>;
@@ -33,10 +79,16 @@ export default function Report() {
           <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
             <ArrowLeft className="h-4 w-4" /> Back to chart
           </Link>
-          <div className="text-xs text-text-tertiary">Print-optimised · A4 portrait · use your browser's "Save as PDF"</div>
-          <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-3 py-1.5 text-sm text-primary-foreground hover:bg-brand-maroon/90">
-            <Printer className="h-4 w-4" /> Print / Save PDF
-          </button>
+          <div className="text-xs text-text-tertiary">Server-rendered · A4 portrait</div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-sm border border-hairline-subtle bg-surface px-3 py-1.5 text-sm text-text-secondary hover:bg-elevated">
+              <Printer className="h-4 w-4" /> Print
+            </button>
+            <button onClick={downloadPdf} disabled={downloading} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-3 py-1.5 text-sm text-primary-foreground hover:bg-brand-maroon/90 disabled:opacity-60">
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {downloading ? 'Generating…' : 'Download PDF'}
+            </button>
+          </div>
         </div>
       </div>
 
