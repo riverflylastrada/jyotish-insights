@@ -136,7 +136,7 @@ export default function ChartDetail() {
           ['dashas', 'Dashas'],
           ['doshas', 'Doshas'],
           ['yogas', 'Yogas'],
-          ['ashtakvarga', 'Ashtakavarga'],
+          ['ashtakavarga', 'Ashtakavarga'],
           ['transits', 'Transits'],
           ['remedies', 'Remedies'],
           ['muhurta', 'Muhurta'],
