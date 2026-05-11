@@ -202,7 +202,7 @@ export default function Muhurta() {
           {recommended.map((h, i) => {
             const inAvoid = isOverlap(h, avoidWindows);
             return (
-              <div key={i} className={`rounded-md border bg-surface p-4 shadow-sm ${inAvoid ? 'border-semantic-warning/40' : 'border-semantic-positive/40'}`}>
+              <div key={i} className={`rounded-md border bg-surface p-4 shadow-sm ${inAvoid ? 'border-brand-saffron/40' : 'border-semantic-positive/40'}`}>
                 <div className="flex items-center justify-between">
                   <div className="font-display text-h3 text-text-primary">{h.label}</div>
                   <Tone tone={inAvoid ? 'mixed' : h.tone} />
@@ -210,7 +210,7 @@ export default function Muhurta() {
                 <div className="mt-1 font-mono text-sm text-text-secondary">{h.from} → {h.to}</div>
                 <div className="mt-2 text-sm text-text-tertiary">{h.sub}</div>
                 {inAvoid && (
-                  <div className="mt-2 inline-flex items-center gap-1 text-xs text-semantic-warning">
+                  <div className="mt-2 inline-flex items-center gap-1 text-xs text-brand-saffron">
                     <AlertTriangle className="h-3.5 w-3.5" /> Overlaps an inauspicious slice — pick the part outside Rahu/Yama/Gulika.
                   </div>
                 )}
@@ -301,7 +301,7 @@ function Row({ s }: { s: Slice }) {
 function Tone({ tone }: { tone: Slice['tone'] }) {
   const map = {
     auspicious:   { cls: 'border-semantic-positive/40 text-semantic-positive', label: 'Auspicious' },
-    mixed:        { cls: 'border-semantic-warning/40 text-semantic-warning',   label: 'Mixed' },
+    mixed:        { cls: 'border-brand-saffron/40 text-brand-saffron',   label: 'Mixed' },
     inauspicious: { cls: 'border-semantic-negative/40 text-semantic-negative', label: 'Avoid' },
   } as const;
   const m = map[tone];
