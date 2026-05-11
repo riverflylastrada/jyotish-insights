@@ -19,6 +19,8 @@ import Debate from "./pages/app/Debate";
 import Ashtakavarga from "./pages/app/Ashtakavarga";
 import Transits from "./pages/app/Transits";
 import Report from "./pages/app/Report";
+import Remedies from "./pages/app/Remedies";
+import Muhurta from "./pages/app/Muhurta";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 60, refetchOnWindowFocus: false } },
@@ -49,6 +51,8 @@ const App = () => (
             <Route path="chart/:id/transits" element={<Transits />} />
             <Route path="chart/:id/debate" element={<Debate />} />
             <Route path="chart/:id/report" element={<Report />} />
+            <Route path="chart/:id/remedies" element={<Remedies />} />
+            <Route path="chart/:id/muhurta" element={<Muhurta />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
