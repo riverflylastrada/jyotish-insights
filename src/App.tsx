@@ -9,7 +9,6 @@ import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/app/Dashboard";
 import NewChart from "./pages/app/NewChart";
 import ChartDetail from "./pages/app/ChartDetail";
-import Placeholder from "./pages/app/Placeholder";
 import { AuthPage } from "./pages/app/Auth";
 import DivisionalCharts from "./pages/app/DivisionalCharts";
 import Dashas from "./pages/app/Dashas";
