@@ -19,10 +19,10 @@ export function useKundli(chartId: string, details: BirthDetails = DEMO_BIRTH) {
           .eq('id', chartId)
           .maybeSingle();
         if (error) throw error;
-        if (data?.snapshot) return data.snapshot as KundliData;
-        const fresh = await getAstroProvider().generateKundli((data?.birth_details as BirthDetails) ?? details);
+        if (data?.snapshot) return data.snapshot as unknown as KundliData;
+        const fresh = await getAstroProvider().generateKundli((data?.birth_details as unknown as BirthDetails) ?? details);
         // cache snapshot back to DB (best-effort, don't block)
-        supabase.from('charts').update({ snapshot: fresh as unknown as Record<string, unknown> }).eq('id', chartId).then(() => {});
+        void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', chartId);
         return fresh;
       }
       // Demo / fallback
