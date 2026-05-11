@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Loader2, MapPin } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/sonner';
 
 const cities = [
   { name: 'Ahmedabad, Gujarat, India', lat: 23.0225, lng: 72.5714, tz: 'Asia/Kolkata', off: 5.5 },
@@ -55,13 +57,38 @@ export default function NewChart() {
     if (ok) setStep(2);
   };
 
-  const onSubmit = async (_data: Form) => {
+  const onSubmit = async (data: Form) => {
     setSubmitting(true);
     for (let i = 0; i < stages.length; i++) {
       setStageIdx(i);
       await new Promise(r => setTimeout(r, 700));
     }
-    nav('/app/chart/demo');
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) { nav('/app/chart/demo'); return; }
+      const city = cities.find(c => c.name === data.city);
+      const birth_details = {
+        fullName: data.fullName,
+        dateOfBirth: data.dateOfBirth,
+        timeOfBirth: data.timeOfBirth,
+        gender: data.gender,
+        ayanamsa: data.ayanamsa,
+        houseSystem: data.houseSystem,
+        placeOfBirth: city
+          ? { name: city.name, latitude: city.lat, longitude: city.lng, timezone: city.tz, timezoneOffset: city.off }
+          : { name: data.city, latitude: 0, longitude: 0, timezone: 'UTC', timezoneOffset: 0 },
+      };
+      const { data: row, error } = await supabase.from('charts').insert({
+        user_id: u.user.id,
+        name: data.fullName,
+        birth_details: birth_details as unknown as never,
+      }).select('id').single();
+      if (error) throw error;
+      nav(`/app/chart/${row.id}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not save chart');
+      nav('/app/chart/demo');
+    }
   };
 
   if (submitting) {
