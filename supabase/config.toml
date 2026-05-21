@@ -1,4 +1,10 @@
-project_id = "gmrewvtnpzzdqghlmucr"
+project_id = "bkdfseyhusoxiruhuhbs"
 
 [functions.guru-debate]
+verify_jwt = false
+
+[functions.render-report]
+verify_jwt = false
+
+[functions.calculate-kundli]
 verify_jwt = false
