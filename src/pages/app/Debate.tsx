@@ -6,7 +6,7 @@ import { useDebateStore } from '@/stores/useDebateStore';
 import { useKundli } from '@/hooks/useKundli';
 import { toast } from '@/components/ui/sonner';
 
-type GuruKey = 'parashara' | 'varahamihira' | 'raman' | 'rao' | 'krishnamurti';
+type GuruKey = 'parashara' | 'varahamihira' | 'raman' | 'rao' | 'krishnamurti' | 'jaimini' | 'mantreshwara' | 'kalyanavarman';
 
 interface Guru {
   key: GuruKey;
@@ -24,6 +24,9 @@ const GURUS: Guru[] = [
   { key: 'raman',        name: 'Dr. B. V. Raman',     deva: '\u092C\u0940. \u0935\u0940. \u0930\u092E\u0923', era: '20th c.',    school: 'Modern Hindu Astrology',       signature: 'BR', accent: 'hsl(var(--planet-mars))' },
   { key: 'rao',          name: 'K. N. Rao',           deva: '\u0915\u0947. \u090F\u0928. \u0930\u093E\u0935', era: '20th c.',    school: 'Dasha-led judgment',           signature: 'KR', accent: 'hsl(var(--planet-saturn))' },
   { key: 'krishnamurti', name: 'K. S. Krishnamurti',  deva: '\u0915\u0943\u0937\u094D\u0923\u092E\u0942\u0930\u094D\u0924\u093F',  era: '20th c.',    school: 'KP / Stellar Astrology',       signature: 'KP', accent: 'hsl(var(--planet-mercury))' },
+  { key: 'jaimini',      name: 'Maharishi Jaimini',   deva: '\u091C\u0948\u092E\u093F\u0928\u093F', era: '~3rd c. BCE',  school: 'Jaimini Sutras / Dasha', signature: 'JM', accent: 'hsl(180, 70%, 35%)' },
+  { key: 'mantreshwara', name: 'Mantreshwara',        deva: '\u092E\u0928\u094D\u0924\u094D\u0930\u0947\u0936\u094D\u0935\u0930', era: '16th c. CE',  school: 'Phaladeepika (Practical)',     signature: 'MP', accent: 'hsl(var(--brand-saffron))' },
+  { key: 'kalyanavarman', name: 'Kalyanavarman',      deva: '\u0915\u0932\u094D\u092F\u093E\u0923\u0935\u0930\u094D\u092E\u0928', era: '10th c. CE',  school: 'Saravali (Poetic Descriptive)', signature: 'KV', accent: 'hsl(280, 60%, 45%)' },
 ];
 
 const SAMPLE_QUESTIONS = [
@@ -128,10 +131,15 @@ export default function Debate() {
   const { data: chart } = useKundli(id);
   const { question, setQuestion, followUp, setFollowUp, addToHistory } = useDebateStore();
   const [running, setRunning] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Record<GuruKey, boolean>>(() =>
+    Object.fromEntries(GURUS.map((g) => [g.key, true])) as Record<GuruKey, boolean>,
+  );
   const [states, setStates] = useState<Record<GuruKey, GuruState>>(() =>
     Object.fromEntries(GURUS.map((g) => [g.key, { status: 'idle', text: '' }])) as Record<GuruKey, GuruState>,
   );
   const [verdict, setVerdict] = useState<{ status: 'idle' | 'thinking' | 'streaming' | 'done' | 'error'; text: string; error?: string }>({ status: 'idle', text: '' });
+
+  const activeGurus = GURUS.filter((g) => selectedKeys[g.key]);
 
   // Playback mode
   const [playbackMode, setPlaybackMode] = useState(false);
@@ -143,13 +151,18 @@ export default function Debate() {
   };
 
   const runDebate = async () => {
+    if (activeGurus.length === 0) {
+      toast.error('Please select at least one Guru to convene the tribunal.');
+      return;
+    }
+
     setRunning(true);
     setPlaybackMode(false);
     reset();
     const readings: Array<{ guru: string; text: string }> = [];
     const failedGurus: string[] = [];
 
-    for (const g of GURUS) {
+    for (const g of activeGurus) {
       try {
         setStates((s) => ({ ...s, [g.key]: { status: 'thinking', text: '' } }));
         await new Promise((r) => setTimeout(r, 250));
@@ -192,7 +205,7 @@ export default function Debate() {
         toast.error('Acharya verdict failed: ' + msg);
       }
     } else {
-      toast.error('All gurus failed. Please try again.');
+      toast.error('All selected gurus failed. Please try again.');
     }
 
     setRunning(false);
@@ -208,11 +221,11 @@ export default function Debate() {
   const startPlayback = async () => {
     setPlaybackMode(true);
     setPlaybackIndex(-1);
-    for (let i = 0; i < GURUS.length; i++) {
+    for (let i = 0; i < activeGurus.length; i++) {
       setPlaybackIndex(i);
       await new Promise((r) => setTimeout(r, 2000));
     }
-    setPlaybackIndex(GURUS.length); // reveal verdict
+    setPlaybackIndex(activeGurus.length); // reveal verdict
   };
 
   return (
@@ -220,14 +233,72 @@ export default function Debate() {
       <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
-      <div className="mt-3 text-eyebrow text-brand-saffron">Tribunal · Five voices, one verdict</div>
+      <div className="mt-3 text-eyebrow text-brand-saffron">Tribunal · Selected voices, one verdict</div>
       <h1 className="mt-1 font-display text-h1 text-text-primary">The Guru Debate</h1>
       <p className="mt-2 max-w-2xl text-body text-text-secondary">
-        Pose a single, focused question. Five classical and modern voices read the chart in their own idiom; the Acharya synthesises a final judgment.
+        Pose a single, focused question. Choose your custom panel of classical and modern Gurus to read the chart in their own idiom; the Acharya synthesises their insights into a final judgment.
       </p>
 
+      {/* Guru Selection Panel */}
+      <div className="mt-6 rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-text-tertiary">Select Astrological Gurus</h3>
+            <p className="text-xs text-text-muted">Choose which traditions and lineages should join this debate</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedKeys(Object.fromEntries(GURUS.map(g => [g.key, true])) as Record<GuruKey, boolean>)}
+              className="text-xs text-brand-saffron hover:underline"
+            >
+              Select All
+            </button>
+            <span className="text-xs text-text-muted">|</span>
+            <button
+              onClick={() => setSelectedKeys(Object.fromEntries(GURUS.map(g => [g.key, false])) as Record<GuruKey, boolean>)}
+              className="text-xs text-text-tertiary hover:underline"
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {GURUS.map((g) => {
+            const isSelected = selectedKeys[g.key];
+            return (
+              <button
+                key={g.key}
+                disabled={running}
+                onClick={() => setSelectedKeys(prev => ({ ...prev, [g.key]: !prev[g.key] }))}
+                className={`flex items-center gap-3 rounded-sm border px-3 py-2.5 text-left transition-all hover:bg-elevated ${
+                  isSelected
+                    ? 'border-brand-saffron/40 bg-brand-saffron/5 shadow-sm'
+                    : 'border-hairline-subtle bg-canvas opacity-65 hover:opacity-90'
+                } disabled:opacity-50`}
+              >
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border font-display text-xs transition-all"
+                  style={{
+                    color: g.accent,
+                    borderColor: isSelected ? g.accent : 'var(--border-hairline)',
+                    backgroundColor: isSelected ? `${g.accent}0a` : 'transparent',
+                  }}
+                >
+                  {g.signature}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate font-display text-sm text-text-primary">{g.name}</div>
+                  <div className="truncate text-xxs font-mono text-text-tertiary">{g.school}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Question input */}
-      <div className="mt-8 rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
+      <div className="mt-6 rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
         <label className="text-eyebrow text-text-tertiary">Your question</label>
         <textarea
           value={question}
@@ -258,7 +329,7 @@ export default function Debate() {
 
       {/* Guru responses */}
       <div className="mt-8 space-y-4">
-        {GURUS.map((g, guruIdx) => {
+        {activeGurus.map((g, guruIdx) => {
           const st = states[g.key];
           const inactive = st.status === 'idle';
 
@@ -316,7 +387,7 @@ export default function Debate() {
       </div>
 
       {/* Verdict */}
-      {verdict.status !== 'idle' && (!playbackMode || playbackIndex >= GURUS.length) && (
+      {verdict.status !== 'idle' && (!playbackMode || playbackIndex >= activeGurus.length) && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-8 rounded-md border border-brand-maroon/40 bg-surface p-6 shadow-sm yantra-bg">
           <div className="flex items-center gap-3">
             <Gavel className="h-5 w-5 text-brand-maroon" />
