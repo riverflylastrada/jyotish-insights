@@ -21,6 +21,7 @@ import Report from "./pages/app/Report";
 import Remedies from "./pages/app/Remedies";
 import Muhurta from "./pages/app/Muhurta";
 import Library from "./pages/app/Library";
+import Compatibility from "./pages/app/Compatibility";
 import Settings from "./pages/app/Settings";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { RequireAdmin } from "./components/auth/RequireAdmin";
@@ -49,6 +50,7 @@ const App = () => (
             <Route index element={<Dashboard />} />
             <Route path="new" element={<NewChart />} />
             <Route path="library" element={<Library />} />
+            <Route path="compatibility" element={<Compatibility />} />
             <Route path="settings" element={<Settings />} />
             <Route path="chart/:id" element={<ChartDetail />} />
             <Route path="chart/:id/charts" element={<DivisionalCharts />} />

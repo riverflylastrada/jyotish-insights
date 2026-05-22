@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield } from 'lucide-react';
+import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/app/new', label: 'New Chart', icon: PlusCircle },
   { to: '/app/library', label: 'Library', icon: Library },
+  { to: '/app/compatibility', label: 'Compatibility', icon: Users },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 

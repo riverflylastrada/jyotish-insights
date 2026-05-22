@@ -272,10 +272,12 @@ export default function Report() {
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          body, html { background: white !important; }
-          .report { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
-          .page { break-inside: avoid; page-break-inside: avoid; }
-          .page + .page { page-break-before: always; }
+          body, html { background: white !important; color: #111111 !important; }
+          .report { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; background: transparent !important; }
+          .page { page-break-after: always; break-after: page; page-break-inside: avoid; break-inside: avoid; padding-top: 8mm; }
+          .page:last-child { page-break-after: avoid; break-after: avoid; }
+          h1, h2, h3 { page-break-after: avoid; break-after: avoid; }
+          table, tr, td, th { page-break-inside: avoid; break-inside: avoid; }
         }
         .kundli-print svg { width: 100%; height: auto; }
         @page { size: A4; margin: 16mm; }

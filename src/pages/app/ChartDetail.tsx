@@ -4,7 +4,7 @@ import { useKundli } from '@/hooks/useKundli';
 import { useChartStore } from '@/stores/useChartStore';
 import { KundliChart, KundliFrame } from '@/components/kundli/KundliChart';
 import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type PlanetPosition } from '@/lib/astro/types';
-import { Download, Share2, RefreshCcw, Save, MessageSquare, Loader2 } from 'lucide-react';
+import { Download, Share2, RefreshCcw, Save, MessageSquare, Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import dayjs from 'dayjs';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -104,9 +104,20 @@ export default function ChartDetail() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
       {readOnly && (
-        <div className="mb-4 rounded-md border border-brand-maroon/30 bg-elevated px-4 py-3 text-sm text-text-secondary">
-          <span className="text-eyebrow text-brand-maroon">Shared view</span>
-          <span className="ml-3">You're viewing a chart shared with you. Save and edit actions are disabled.</span>
+        <div className="mb-6 rounded-md border border-brand-gold/30 bg-surface/80 backdrop-blur p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in duration-500">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-brand-saffron/10 rounded-full text-brand-saffron">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div>
+              <span className="text-eyebrow text-brand-gold">Jyotish Insights Terminal</span>
+              <h3 className="font-display text-h3 text-text-primary mt-1">This Vedic Chart was shared with you</h3>
+              <p className="text-xs text-text-secondary mt-1">Unlock live transits, relationship compatibility matching, and personal dasha feeds.</p>
+            </div>
+          </div>
+          <Link to="/signup" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-sm bg-brand-maroon px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-brand-maroon/90 transition-colors shadow">
+            Cast Your Own Chart <ArrowRight className="h-4 w-4 text-brand-gold animate-bounce" />
+          </Link>
         </div>
       )}
       {/* Header */}
