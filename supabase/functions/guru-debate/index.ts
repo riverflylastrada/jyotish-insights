@@ -1,3 +1,10 @@
+// NOTE: This function uses LOVABLE_API_KEY to call ai.gateway.lovable.dev.
+// After migrating away from Lovable, you need to either:
+//   1. Get the key from your Lovable workspace (Settings → API Keys), or
+//   2. Replace the gateway call below with a direct AI provider (e.g.
+//      OpenAI, Google Gemini) using your own API key set via:
+//        supabase secrets set OPENAI_API_KEY=<key>
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
