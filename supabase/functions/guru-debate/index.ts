@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildChartDossier } from "./dossier.ts";
+import { calculateTransits } from "../calculate-kundli/engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,25 +56,13 @@ async function getLlmConfig() {
 
 const VERDICT_PROMPT = "You are the Acharya, presiding over a tribunal of gurus. You have just heard their readings on a single chart and question. Synthesise a final, balanced verdict in 2-3 paragraphs: name the consensus, name the dissent, then deliver one operative recommendation. Cite the gurus by surname when they made a key point. No bullet points. Calm, judicial tone.";
 
-function chartContext(chart: any): string {
-  if (!chart) return "Chart data not provided.";
-  const d1 = chart.divisionalCharts?.find((c: any) => c.varga === "D1");
-  const planets = d1?.planets ?? [];
-  const lines = planets
-    .filter((p: any) => p.planet !== "ascendant")
-    .map((p: any) => `${p.planet}: ${p.signName} ${p.signDegree.toFixed(1)}° in H${p.houseNumber} (${p.nakshatra})${p.isRetrograde ? " ℞" : ""}`);
-  const md = chart.dashas?.[0]?.currentMahaDasha;
-  const yogas = (chart.yogas ?? []).filter((y: any) => y.isPresent).map((y: any) => y.name).join(", ");
-  const doshas = (chart.doshas ?? []).filter((d: any) => d.isPresent).map((d: any) => d.name).join(", ");
-  return [
-    `Native: ${chart.birthDetails?.fullName ?? "Unknown"}`,
-    `Born: ${chart.birthDetails?.dateOfBirth} ${chart.birthDetails?.timeOfBirth} at ${chart.birthDetails?.placeOfBirth?.name}`,
-    `Lagna: ${chart.ascendant?.signName} ${chart.ascendant?.signDegree?.toFixed(1)}°`,
-    `Planets:\n${lines.join("\n")}`,
-    md ? `Current Mahadasha: ${md.planet} until ${md.endDate}` : "",
-    yogas ? `Active yogas: ${yogas}` : "",
-    doshas ? `Active doshas: ${doshas}` : "",
-  ].filter(Boolean).join("\n");
+const GROUNDING_INSTRUCTION = `IMPORTANT: Reason ONLY from the CHART DOSSIER and CURRENT TRANSITS provided below. Never invent or assume planetary positions, the current date, dasha periods, or divisional placements. Today's date is provided in the dossier; use the provided CURRENT TRANSITS section for all gochara/Sade Sati/timing reasoning. If your method requires data that is not provided (e.g. KP cuspal sub-lords, Jaimini Arudha padas), state briefly that it is unavailable rather than fabricating it.`;
+
+function genderPronoun(chart: any): string {
+  const g = chart?.birthDetails?.gender;
+  if (g === 'male') return 'he/him/his';
+  if (g === 'female') return 'she/her/her';
+  return 'they/them/their';
 }
 
 Deno.serve(async (req) => {
@@ -87,6 +77,22 @@ Deno.serve(async (req) => {
     const priorReadings = body.priorReadings as Array<{ guru: string; text: string }> | undefined;
     const missingVoices = body.missingVoices as string[] | undefined;
 
+    // Compute live transits and build full chart dossier
+    const now = new Date();
+    let transits: any[] = [];
+    try {
+      if (chart?.birthDetails) {
+        transits = calculateTransits(chart.birthDetails);
+      }
+    } catch (e) {
+      console.warn("Transit calculation failed, proceeding without:", e);
+    }
+    // Accept client-supplied transits as fallback
+    if ((!transits || transits.length === 0) && body.transits) {
+      transits = body.transits;
+    }
+    const dossier = buildChartDossier(chart, transits, now);
+
     const dbConfig = await getLlmConfig();
     const apiKey = dbConfig?.apiKey || Deno.env.get("GOOGLE_AI_KEY");
     const endpoint = dbConfig?.endpoint || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
@@ -97,12 +103,12 @@ Deno.serve(async (req) => {
     }
 
     let systemPrompt: string;
-    let messages: Array<{ role: string; content: string }> = [];
+    const messages: Array<{ role: string; content: string }> = [];
 
     if (mode === "verdict") {
-      systemPrompt = VERDICT_PROMPT;
+      systemPrompt = GROUNDING_INSTRUCTION + "\n\n" + VERDICT_PROMPT;
       const readingsText = (priorReadings ?? []).map(r => `--- ${r.guru.toUpperCase()} ---\n${r.text}`).join("\n\n");
-      let userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nPRIOR READINGS:\n${readingsText}`;
+      let userContent = `QUESTION: ${question}\n\n${dossier}\n\nPRIOR READINGS:\n${readingsText}`;
       if (missingVoices?.length) {
         userContent += `\n\nNOTE: The following gurus were unable to provide their reading: ${missingVoices.join(", ")}. Acknowledge this gap in your synthesis.`;
       }
@@ -116,8 +122,8 @@ Deno.serve(async (req) => {
       if (!guru || !GURU_PROMPTS[guru]) {
         return new Response(JSON.stringify({ error: "invalid guru" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      systemPrompt = GURU_PROMPTS[guru];
-      const userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nGive your reading now, in character.`;
+      systemPrompt = GROUNDING_INSTRUCTION + "\n\n" + GURU_PROMPTS[guru];
+      const userContent = `QUESTION: ${question}\n\n${dossier}\n\nGive your reading now, in character. Address the native using ${genderPronoun(chart)} pronouns.`;
       
       messages.push({ role: "system", content: systemPrompt });
       if (chatHistory && chatHistory.length > 0) {
@@ -132,6 +138,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model,
         stream: true,
+        max_tokens: 1800,
         messages: messages,
       }),
     });
