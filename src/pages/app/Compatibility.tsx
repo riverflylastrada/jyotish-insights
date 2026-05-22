@@ -289,18 +289,17 @@ export default function Compatibility() {
     };
     const gVasya = getVasyaType(gRashiNum);
     const bVasya = getVasyaType(bRashiNum);
-    let vasyaPoints = 0;
-    if (gVasya.type === bVasya.type) {
-      vasyaPoints = 2;
-    } else {
-      // General friendliness approximation
-      const combat = [
-        [1, 2, 2.0], [1, 3, 1.0], [1, 4, 1.0], [1, 5, 0.0],
-        [2, 2, 2.0], [2, 3, 1.5], [2, 4, 1.0], [2, 5, 0.5]
-      ];
-      const match = combat.find(c => (c[0] === gVasya.type && c[1] === bVasya.type) || (c[0] === bVasya.type && c[1] === gVasya.type));
-      vasyaPoints = match ? match[2] : 1;
-    }
+    // Vasya matrix: Bride (rows) \ Groom (columns)
+    // 1 = Chatushpada, 2 = Manushya, 3 = Jalachara, 4 = Vanachara, 5 = Keeta
+    const VASYA_MATRIX: Record<number, Record<number, number>> = {
+      1: { 1: 2, 2: 1,   3: 1,   4: 1.5, 5: 1 }, // Row 1: Bride Chatushpada
+      2: { 1: 1, 2: 2,   3: 1.5, 4: 0,   5: 1 }, // Row 2: Bride Nara/Manushya
+      3: { 1: 1, 2: 1.5, 3: 2,   4: 1,   5: 1 }, // Row 3: Bride Jalachara
+      4: { 1: 0, 2: 0,   3: 0,   4: 2,   5: 0 }, // Row 4: Bride Vanachara
+      5: { 1: 1, 2: 1,   3: 1,   4: 0,   5: 2 }  // Row 5: Bride Keeta
+    };
+
+    const vasyaPoints = VASYA_MATRIX[bVasya.type]?.[gVasya.type] ?? 0;
 
     // 3. Tara (3 Points)
     // Distance from groom to bride and vice versa

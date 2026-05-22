@@ -28,6 +28,18 @@ export default function Ashtakavarga() {
   const strongest = sarva.indexOf(Math.max(...sarva));
   const weakest = sarva.indexOf(Math.min(...sarva));
 
+  // Ascendant details for dynamic house matching
+  const ascSignNum = data.ascendant.signNumber || 1;
+  const getHouseNum = (signIdx: number) => {
+    return ((signIdx + 1 - ascSignNum + 12) % 12) + 1;
+  };
+  const getSignIdxForHouse = (houseNum: number) => {
+    return (ascSignNum - 1 + houseNum - 1) % 12;
+  };
+
+  const strongestHouseNum = getHouseNum(strongest);
+  const weakestHouseNum = getHouseNum(weakest);
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
       <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
@@ -42,8 +54,8 @@ export default function Ashtakavarga() {
       {/* Summary */}
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Stat label="Total Sarva" value={String(totalSarva)} sub="Out of 337 maximum" />
-        <Stat label="Strongest house" value={SIGN_NAMES[strongest]} sub={`${sarva[strongest]} bindus · H${strongest + 1}`} />
-        <Stat label="Weakest house" value={SIGN_NAMES[weakest]} sub={`${sarva[weakest]} bindus · H${weakest + 1}`} />
+        <Stat label="Strongest house" value={SIGN_NAMES[strongest]} sub={`${sarva[strongest]} bindus · House ${strongestHouseNum}`} />
+        <Stat label="Weakest house" value={SIGN_NAMES[weakest]} sub={`${sarva[weakest]} bindus · House ${weakestHouseNum}`} />
       </div>
 
       {/* Sarva heatmap */}
@@ -63,21 +75,36 @@ export default function Ashtakavarga() {
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline-subtle">
-              {sarva.map((b, i) => (
-                <tr key={i} style={heat(b, sarvaMax)}>
-                  <td className="px-3 py-2.5 font-mono text-text-primary">H{i + 1}</td>
-                  <td className="px-3 py-2.5">
-                    <span className="text-text-primary">{SIGN_NAMES[i]}</span>
-                    <span className="ml-2 font-deva text-xs text-text-tertiary">{SIGN_NAMES_DEVA[i]}</span>
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-text-primary">{b}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-elevated">
-                      <div className="h-full bg-brand-maroon" style={{ width: `${(b / sarvaMax) * 100}%` }} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {Array.from({ length: 12 }).map((_, hIdx) => {
+                const houseNum = hIdx + 1;
+                const signIdx = getSignIdxForHouse(houseNum);
+                const b = sarva[signIdx];
+                const isLagna = houseNum === 1;
+                return (
+                  <tr key={houseNum} style={heat(b, sarvaMax)} className={isLagna ? 'bg-brand-saffron/[0.03] border-y border-brand-saffron/20' : ''}>
+                    <td className="px-3 py-2.5 font-mono text-text-primary">
+                      <span className="flex items-center gap-1.5">
+                        <span>H{houseNum}</span>
+                        {isLagna && (
+                          <span className="rounded bg-brand-saffron/10 px-1 py-0.5 text-[9px] font-bold text-brand-saffron uppercase tracking-wider">
+                            Lagna
+                          </span>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={`text-text-primary ${isLagna ? 'font-semibold' : ''}`}>{SIGN_NAMES[signIdx]}</span>
+                      <span className="ml-2 font-deva text-xs text-text-tertiary">{SIGN_NAMES_DEVA[signIdx]}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-mono text-text-primary">{b}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-elevated">
+                        <div className="h-full bg-brand-maroon" style={{ width: `${(b / sarvaMax) * 100}%` }} />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -92,12 +119,18 @@ export default function Ashtakavarga() {
             <thead className="bg-elevated text-xs uppercase tracking-wide text-text-tertiary">
               <tr>
                 <th className="px-3 py-2 text-left">Planet</th>
-                {SIGN_NAMES.map((s, i) => (
-                  <th key={i} className="px-2 py-2 text-center font-medium">
-                    <div className="font-mono">H{i + 1}</div>
-                    <div className="text-[10px] font-normal text-text-muted">{s.slice(0, 3)}</div>
-                  </th>
-                ))}
+                {SIGN_NAMES.map((s, i) => {
+                  const houseNum = getHouseNum(i);
+                  const isLagna = houseNum === 1;
+                  return (
+                    <th key={i} className={`px-1 py-2 text-center font-medium ${isLagna ? 'bg-brand-saffron/10 border-x border-brand-saffron/20 rounded-t-sm' : ''}`}>
+                      <div className={`text-xs ${isLagna ? 'text-brand-saffron font-bold' : 'text-text-primary'}`}>{s.slice(0, 3)}</div>
+                      <div className={`font-mono text-[10px] ${isLagna ? 'text-brand-saffron font-bold' : 'text-text-tertiary'}`}>
+                        {isLagna ? 'Lagna' : `H${houseNum}`}
+                      </div>
+                    </th>
+                  );
+                })}
                 <th className="px-3 py-2 text-right">Σ</th>
               </tr>
             </thead>
@@ -111,13 +144,17 @@ export default function Ashtakavarga() {
                       <span className="font-mono text-xs" style={{ color: `hsl(var(--planet-${p}))` }}>{PLANET_LABELS[p].short}</span>
                       <span className="ml-2 text-text-primary">{PLANET_LABELS[p].full}</span>
                     </td>
-                    {row.map((v, i) => (
-                      <td key={i} className="px-1 py-1 text-center font-mono">
-                        <div className="mx-auto inline-block h-7 w-7 rounded-sm leading-7" style={heat(v, bhinnaMax)}>
-                          <span className="text-text-primary">{v}</span>
-                        </div>
-                      </td>
-                    ))}
+                    {row.map((v, i) => {
+                      const houseNum = getHouseNum(i);
+                      const isLagna = houseNum === 1;
+                      return (
+                        <td key={i} className={`px-1 py-1 text-center font-mono ${isLagna ? 'bg-brand-saffron/[0.02] border-x border-brand-saffron/10' : ''}`}>
+                          <div className="mx-auto inline-block h-7 w-7 rounded-sm leading-7" style={heat(v, bhinnaMax)}>
+                            <span className="text-text-primary">{v}</span>
+                          </div>
+                        </td>
+                      );
+                    })}
                     <td className="px-3 py-2.5 text-right font-mono text-text-primary">{sum}</td>
                   </tr>
                 );
