@@ -106,7 +106,7 @@ export const ASHTAK_TABLES: Record<string, Record<string, number[]>> = {
     saturn: [3,4,5,8,9,10,11], ascendant: [1,2,3,4,5,8,9],
   },
   saturn: {
-    sun: [1,2,4,7,8,9,10,11], moon: [3,6,11],
+    sun: [1,2,4,7,8,10,11], moon: [3,6,11],
     mars: [3,5,6,10,11,12], mercury: [6,8,9,10,11,12],
     jupiter: [5,6,11,12], venus: [6,11,12],
     saturn: [3,5,6,11], ascendant: [1,3,4,6,10,11],
