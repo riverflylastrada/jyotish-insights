@@ -38,10 +38,15 @@ const SAMPLE_QUESTIONS = [
 
 const DEBATE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/guru-debate`;
 
+interface StreamResult {
+  text: string;
+  finishReason: string | null;
+}
+
 async function streamFromEdge(
   payload: Record<string, unknown>,
   onDelta: (chunk: string) => void,
-): Promise<string> {
+): Promise<StreamResult> {
   const resp = await fetch(DEBATE_URL, {
     method: 'POST',
     headers: {
@@ -63,6 +68,7 @@ async function streamFromEdge(
   let full = '';
   let done = false;
   let currentEventData = '';
+  let lastFinishReason: string | null = null;
 
   const processLine = (line: string) => {
     if (line === '') {
@@ -86,6 +92,8 @@ async function streamFromEdge(
     try {
       const parsed = JSON.parse(trimmed);
       const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
+      const fr = parsed.choices?.[0]?.finish_reason as string | undefined;
+      if (fr) lastFinishReason = fr;
       if (delta) {
         full += delta;
         onDelta(full);
@@ -120,7 +128,7 @@ async function streamFromEdge(
     }
   }
 
-  return full;
+  return { text: full, finishReason: lastFinishReason };
 }
 
 
@@ -185,25 +193,50 @@ export default function Debate() {
 
     const compiledHistory = compileChatHistory(turns);
 
-    // parallel stream all selected Gurus
+    const MAX_RETRIES = 2;
+    const MIN_READING_LENGTH = 200;
+
+    // parallel stream all selected Gurus (with per-guru retry)
     const promises = activeGurus.map(async (g) => {
-      try {
-        setStates((s) => ({ ...s, [g.key]: { status: 'thinking', text: '' } }));
-        // Slight staggered start so concurrent requests don't hit Supabase Edge Functions at the exact same millisecond
-        await new Promise((r) => setTimeout(r, Math.random() * 300));
-        
-        setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: '' } }));
-        const full = await streamFromEdge(
-          { mode: 'guru', guru: g.key, question: activeQuestion, chart, chatHistory: compiledHistory },
-          (t) => setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: t } })),
-        );
-        setStates((s) => ({ ...s, [g.key]: { status: 'done', text: full } }));
-        return { success: true, key: g.key, name: g.name, text: full };
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Reading failed';
-        setStates((s) => ({ ...s, [g.key]: { status: 'error', text: '', error: msg } }));
-        return { success: false, key: g.key, name: g.name, error: msg };
+      let attempts = 0;
+      while (attempts <= MAX_RETRIES) {
+        try {
+          if (attempts === 0) {
+            setStates((s) => ({ ...s, [g.key]: { status: 'thinking', text: '' } }));
+            await new Promise((r) => setTimeout(r, Math.random() * 300));
+          }
+          setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: '' } }));
+
+          const result = await streamFromEdge(
+            { mode: 'guru', guru: g.key, question: activeQuestion, chart, chatHistory: compiledHistory },
+            (t) => setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: t } })),
+          );
+
+          const isTruncated = result.finishReason === 'length';
+          const isTooShort = result.text.length < MIN_READING_LENGTH;
+          const noStopReason = !result.finishReason && result.text.length > 0;
+
+          if (isTruncated || isTooShort || noStopReason) {
+            attempts++;
+            if (attempts > MAX_RETRIES) {
+              setStates((s) => ({ ...s, [g.key]: { status: 'error', text: '', error: 'Reading was truncated after multiple attempts' } }));
+              return { success: false, key: g.key, name: g.name, error: 'truncated' };
+            }
+            continue;
+          }
+
+          setStates((s) => ({ ...s, [g.key]: { status: 'done', text: result.text } }));
+          return { success: true, key: g.key, name: g.name, text: result.text };
+        } catch (e) {
+          attempts++;
+          if (attempts > MAX_RETRIES) {
+            const msg = e instanceof Error ? e.message : 'Reading failed';
+            setStates((s) => ({ ...s, [g.key]: { status: 'error', text: '', error: msg } }));
+            return { success: false, key: g.key, name: g.name, error: msg };
+          }
+        }
       }
+      return { success: false, key: g.key, name: g.name, error: 'Exhausted retries' };
     });
 
     const results = await Promise.all(promises);
@@ -233,17 +266,30 @@ export default function Debate() {
           verdictPayload.missingVoices = failedGurus;
         }
 
-        const v = await streamFromEdge(
-          verdictPayload,
-          (t) => setVerdict({ status: 'streaming', text: t }),
-        );
-        setVerdict({ status: 'done', text: v });
+        let verdictAttempts = 0;
+        let verdictResult: StreamResult = { text: '', finishReason: null };
+        while (verdictAttempts <= MAX_RETRIES) {
+          setVerdict({ status: 'streaming', text: '' });
+          verdictResult = await streamFromEdge(
+            verdictPayload,
+            (t) => setVerdict({ status: 'streaming', text: t }),
+          );
+          const vTruncated = verdictResult.finishReason === 'length';
+          const vTooShort = verdictResult.text.length < MIN_READING_LENGTH;
+          if (vTruncated || vTooShort) {
+            verdictAttempts++;
+            if (verdictAttempts > MAX_RETRIES) break;
+            continue;
+          }
+          break;
+        }
+        setVerdict({ status: 'done', text: verdictResult.text });
 
         // Add this completed turn to store history
         addTurn({
           question: activeQuestion,
           readings: successfulReadings,
-          verdict: v
+          verdict: verdictResult.text
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Verdict failed';
