@@ -94,6 +94,22 @@ const YONI_ENEMIES: Record<string, string> = {
   Cow: "Tiger"
 };
 
+const YONI_UNFRIENDLY: Record<string, string[]> = {
+  Horse: ["Dog", "Cat", "Rat", "Tiger", "Lion", "Mongoose"],
+  Elephant: ["Dog", "Cat", "Rat", "Tiger", "Lion", "Mongoose"],
+  Sheep: ["Dog", "Cat", "Rat", "Tiger", "Lion", "Mongoose"],
+  Serpent: ["Dog", "Tiger", "Lion", "Mongoose"],
+  Dog: ["Horse", "Elephant", "Sheep", "Serpent", "Cow", "Buffalo", "Tiger", "Lion", "Mongoose"],
+  Cat: ["Horse", "Elephant", "Sheep", "Cow", "Buffalo", "Tiger", "Lion", "Mongoose"],
+  Rat: ["Horse", "Elephant", "Sheep", "Cow", "Buffalo", "Tiger", "Lion", "Mongoose"],
+  Cow: ["Dog", "Cat", "Rat", "Buffalo", "Tiger", "Mongoose"],
+  Buffalo: ["Dog", "Cat", "Rat", "Cow", "Tiger", "Mongoose"],
+  Tiger: ["Horse", "Elephant", "Sheep", "Serpent", "Dog", "Cat", "Rat", "Cow", "Buffalo", "Mongoose"],
+  Lion: ["Horse", "Elephant", "Sheep", "Serpent", "Dog", "Cat", "Rat", "Cow", "Buffalo", "Mongoose"],
+  Mongoose: ["Horse", "Elephant", "Sheep", "Serpent", "Dog", "Cat", "Rat", "Cow", "Buffalo", "Tiger", "Lion"]
+};
+
+
 // Planetary relationships
 const PLANET_RELATIONSHIPS: Record<string, { friends: string[], enemies: string[], neutrals: string[] }> = {
   sun: { friends: ["moon", "mars", "jupiter"], enemies: ["venus", "saturn"], neutrals: ["mercury"] },
@@ -307,6 +323,8 @@ export default function Compatibility() {
       yoniPoints = 0;
     } else if (YONI_FRIENDS[gYoni]?.includes(bYoni) || YONI_FRIENDS[bYoni]?.includes(gYoni)) {
       yoniPoints = 3;
+    } else if (YONI_UNFRIENDLY[gYoni]?.includes(bYoni) || YONI_UNFRIENDLY[bYoni]?.includes(gYoni)) {
+      yoniPoints = 1;
     } else {
       yoniPoints = 2; // Neutral
     }
