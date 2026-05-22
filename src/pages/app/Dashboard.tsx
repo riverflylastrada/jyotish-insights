@@ -194,65 +194,70 @@ export default function Dashboard() {
 
     // Dashas (dynamically calculated at runtime based on Date.now())
     if (chartData.dashas && chartData.dashas.length > 0) {
-      const tl = chartData.dashas[0].timeline;
-      const now = Date.now();
-      
-      const currentMaha = tl.find(
-        p => new Date(p.startDate).getTime() <= now && new Date(p.endDate).getTime() > now
-      ) ?? tl[0];
-      
-      activeMaha = currentMaha.planet;
+      const tl = chartData.dashas[0]?.timeline;
+      if (tl && tl.length > 0) {
+        const now = Date.now();
+        
+        const currentMaha = tl.find(
+          p => p && p.startDate && p.endDate && new Date(p.startDate).getTime() <= now && new Date(p.endDate).getTime() > now
+        ) ?? tl[0];
+        
+        if (currentMaha && currentMaha.planet) {
+          activeMaha = currentMaha.planet;
 
-      const sequence: Array<[string, number]> = [
-        ['Mercury', 17], ['Ketu', 7], ['Venus', 20], ['Sun', 6], ['Moon', 10],
-        ['Mars', 7], ['Rahu', 18], ['Jupiter', 16], ['Saturn', 19],
-      ];
-      
-      const reorderSequence = (startLord: string): Array<[string, number]> => {
-        const idx = sequence.findIndex(([p]) => p.toLowerCase() === startLord.toLowerCase());
-        if (idx === -1) return [...sequence];
-        return [...sequence.slice(idx), ...sequence.slice(0, idx)];
-      };
+          const sequence: Array<[string, number]> = [
+            ['Mercury', 17], ['Ketu', 7], ['Venus', 20], ['Sun', 6], ['Moon', 10],
+            ['Mars', 7], ['Rahu', 18], ['Jupiter', 16], ['Saturn', 19],
+          ];
+          
+          const reorderSequence = (startLord: string): Array<[string, number]> => {
+            if (!startLord) return [...sequence];
+            const idx = sequence.findIndex(([p]) => p.toLowerCase() === startLord.toLowerCase());
+            if (idx === -1) return [...sequence];
+            return [...sequence.slice(idx), ...sequence.slice(0, idx)];
+          };
 
-      const orderedAntar = reorderSequence(currentMaha.planet);
-      const total = 120;
-      const start = new Date(currentMaha.startDate).getTime();
-      const end = new Date(currentMaha.endDate).getTime();
-      const span = end - start;
-      let cursor = start;
-      
-      const children = currentMaha.children || orderedAntar.map(([planet, years]) => {
-        const slice = (years / total) * span;
-        const s = cursor;
-        cursor += slice;
-        return {
-          level: 'antar' as const,
-          planet,
-          durationYears: (years / total) * currentMaha.durationYears,
-          startDate: new Date(s).toISOString(),
-          endDate: new Date(cursor).toISOString(),
-        };
-      });
+          const orderedAntar = reorderSequence(currentMaha.planet);
+          const total = 120;
+          const start = currentMaha.startDate ? new Date(currentMaha.startDate).getTime() : now;
+          const end = currentMaha.endDate ? new Date(currentMaha.endDate).getTime() : now + 1000 * 60 * 60 * 24;
+          const span = end - start;
+          let cursor = start;
+          
+          const children = currentMaha.children || orderedAntar.map(([planet, years]) => {
+            const slice = (years / total) * span;
+            const s = cursor;
+            cursor += slice;
+            return {
+              level: 'antar' as const,
+              planet,
+              durationYears: (years / total) * (currentMaha.durationYears || 1),
+              startDate: new Date(s).toISOString(),
+              endDate: new Date(cursor).toISOString(),
+            };
+          });
 
-      const currentAntar = children.find(
-        (c: any) => new Date(c.startDate).getTime() <= now && new Date(c.endDate).getTime() > now
-      );
-      
-      activeAntar = currentAntar?.planet || children[0]?.planet || "Jupiter";
+          const currentAntar = children.find(
+            (c: any) => c && c.startDate && c.endDate && new Date(c.startDate).getTime() <= now && new Date(c.endDate).getTime() > now
+          );
+          
+          activeAntar = currentAntar?.planet || children[0]?.planet || "Jupiter";
 
-      // Tailored Vimshottari guidance
-      const dashaGuidance: Record<string, string> = {
-        Sun: "Focus on establishing professional authority, solar vitality, and claiming leadership roles. Actively stand out in your community.",
-        Moon: "A phase highly suited for emotional alignment, artistic creativity, household upgrades, and expanding family/personal relationships.",
-        Mars: "Channels high courage, mechanical work, competitive drive, physical training, and land investments. Keep rash anger in check.",
-        Mercury: "Excellent time for business growth, intellectual learning, launching a website, accounting, and writing articles.",
-        Jupiter: "Period of supreme growth, expansion, spiritual guidance, teaching, expanding wisdom, and seeking noble endeavors.",
-        Venus: "Focuses on relationship maturity, appreciation of fine arts, acquiring comforts, vehicles, and nurturing deep marriages.",
-        Saturn: "Demands meticulous discipline, structural reforms, hard persistence, dealing with delays with extreme patience, and spiritual realism.",
-        Rahu: "Unconventional growth, ambition, technological expertise, and learning through intense desire. Watch out for illusions.",
-        Ketu: "Excellent for spiritual detachment, deep meditation, yogic research, letting go of outdated patterns, and sudden insights."
-      };
-      dashaText = dashaGuidance[activeMaha] || "A major foundational shift is manifesting in your Vimshottari sequence. Focus on patience and steady self-study.";
+          // Tailored Vimshottari guidance
+          const dashaGuidance: Record<string, string> = {
+            Sun: "Focus on establishing professional authority, solar vitality, and claiming leadership roles. Actively stand out in your community.",
+            Moon: "A phase highly suited for emotional alignment, artistic creativity, household upgrades, and expanding family/personal relationships.",
+            Mars: "Channels high courage, mechanical work, competitive drive, physical training, and land investments. Keep rash anger in check.",
+            Mercury: "Excellent time for business growth, intellectual learning, launching a website, accounting, and writing articles.",
+            Jupiter: "Period of supreme growth, expansion, spiritual guidance, teaching, expanding wisdom, and seeking noble endeavors.",
+            Venus: "Focuses on relationship maturity, appreciation of fine arts, acquiring comforts, vehicles, and nurturing deep marriages.",
+            Saturn: "Demands meticulous discipline, structural reforms, hard persistence, dealing with delays with extreme patience, and spiritual realism.",
+            Rahu: "Unconventional growth, ambition, technological expertise, and learning through intense desire. Watch out for illusions.",
+            Ketu: "Excellent for spiritual detachment, deep meditation, yogic research, letting go of outdated patterns, and sudden insights."
+          };
+          dashaText = dashaGuidance[activeMaha] || "A major foundational shift is manifesting in your Vimshottari sequence. Focus on patience and steady self-study.";
+        }
+      }
     }
   }
 
