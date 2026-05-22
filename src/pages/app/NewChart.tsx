@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,19 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Loader2, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-
-const cities = [
-  { name: 'Ahmedabad, Gujarat, India', lat: 23.0225, lng: 72.5714, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'Mumbai, Maharashtra, India', lat: 19.0760, lng: 72.8777, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'New Delhi, Delhi, India', lat: 28.6139, lng: 77.2090, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'Bangalore, Karnataka, India', lat: 12.9716, lng: 77.5946, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'Chennai, Tamil Nadu, India', lat: 13.0827, lng: 80.2707, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'Kolkata, West Bengal, India', lat: 22.5726, lng: 88.3639, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'Hyderabad, Telangana, India', lat: 17.3850, lng: 78.4867, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'Pune, Maharashtra, India', lat: 18.5204, lng: 73.8567, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'Jaipur, Rajasthan, India', lat: 26.9124, lng: 75.7873, tz: 'Asia/Kolkata', off: 5.5 },
-  { name: 'Surat, Gujarat, India', lat: 21.1702, lng: 72.8311, tz: 'Asia/Kolkata', off: 5.5 },
-];
 
 const schema = z.object({
   fullName: z.string().trim().min(1, 'Required').max(80),
@@ -47,10 +34,103 @@ export default function NewChart() {
   const [submitting, setSubmitting] = useState(false);
   const [stageIdx, setStageIdx] = useState(0);
 
-  const { register, handleSubmit, formState: { errors }, trigger, watch } = useForm<Form>({
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<{
+    name: string;
+    lat: number;
+    lng: number;
+    tz: string;
+    off: number;
+  } | null>(null);
+  const [isTimezoneLoading, setIsTimezoneLoading] = useState(false);
+
+  const { register, handleSubmit, formState: { errors }, trigger, watch, setValue } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: { ayanamsa: 'lahiri', houseSystem: 'whole_sign', chartStyle: 'north' },
   });
+
+  // Debounced Place Search (Nominatim API)
+  useEffect(() => {
+    if (selectedPlace && searchQuery === selectedPlace.name) {
+      setSuggestions([]);
+      return;
+    }
+    if (!searchQuery || searchQuery.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5&addressdetails=1`,
+          {
+            headers: {
+              'Accept-Language': 'en',
+              'User-Agent': 'Jyotish-Insights-Client/1.0'
+            }
+          }
+        );
+        if (!response.ok) throw new Error('Search failed');
+        const data = await response.json();
+        setSuggestions(data || []);
+      } catch (err) {
+        console.error('Error fetching places:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedPlace]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (!val) {
+      setSelectedPlace(null);
+      setValue('city', '');
+    }
+  };
+
+  const handleSelectSuggestion = async (suggestion: any) => {
+    const lat = parseFloat(suggestion.lat);
+    const lng = parseFloat(suggestion.lon);
+    const name = suggestion.display_name;
+
+    setSearchQuery(name);
+    setShowSuggestions(false);
+    setIsTimezoneLoading(true);
+
+    try {
+      const response = await fetch(
+        `https://api.bigdatacloud.com/data/timezone-by-location?latitude=${lat}&longitude=${lng}&utcReference=0`
+      );
+      if (!response.ok) throw new Error('Timezone lookup failed');
+      const data = await response.json();
+      const tz = data.ianaDisplayName || 'UTC';
+      const off = typeof data.utcOffsetSeconds === 'number' ? data.utcOffsetSeconds / 3600 : 0;
+
+      const place = { name, lat, lng, tz, off };
+      setSelectedPlace(place);
+      setValue('city', name);
+    } catch (err) {
+      console.error('Error resolving timezone:', err);
+      const place = { name, lat, lng, tz: 'UTC', off: 0 };
+      setSelectedPlace(place);
+      setValue('city', name);
+      toast.warning('Selected place timezone defaulted to UTC.');
+    } finally {
+      setIsTimezoneLoading(false);
+    }
+  };
+
+  const handleBlur = () => {
+    setTimeout(() => setShowSuggestions(false), 200);
+  };
 
   const next = async () => {
     const ok = await trigger(['fullName', 'dateOfBirth', 'timeOfBirth']);
@@ -58,6 +138,10 @@ export default function NewChart() {
   };
 
   const onSubmit = async (data: Form) => {
+    if (!selectedPlace) {
+      toast.error('Please search and select a birthplace from the suggestions dropdown.');
+      return;
+    }
     setSubmitting(true);
     for (let i = 0; i < stages.length; i++) {
       setStageIdx(i);
@@ -66,7 +150,6 @@ export default function NewChart() {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) { nav('/app/chart/demo'); return; }
-      const city = cities.find(c => c.name === data.city);
       const birth_details = {
         fullName: data.fullName,
         dateOfBirth: data.dateOfBirth,
@@ -74,9 +157,13 @@ export default function NewChart() {
         gender: data.gender,
         ayanamsa: data.ayanamsa,
         houseSystem: data.houseSystem,
-        placeOfBirth: city
-          ? { name: city.name, latitude: city.lat, longitude: city.lng, timezone: city.tz, timezoneOffset: city.off }
-          : { name: data.city, latitude: 0, longitude: 0, timezone: 'UTC', timezoneOffset: 0 },
+        placeOfBirth: {
+          name: selectedPlace.name,
+          latitude: selectedPlace.lat,
+          longitude: selectedPlace.lng,
+          timezone: selectedPlace.tz,
+          timezoneOffset: selectedPlace.off,
+        },
       };
       const { data: row, error } = await supabase.from('charts').insert({
         user_id: u.user.id,
@@ -156,17 +243,59 @@ export default function NewChart() {
               <Field label="Place of birth" error={errors.city?.message}>
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-                  <select {...register('city')} className="input pl-9" defaultValue="">
-                    <option value="" disabled>Select a city...</option>
-                    {cities.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
-                  </select>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={handleBlur}
+                    className="input pl-9"
+                    placeholder="Search birthplace (e.g. London, Mumbai, Tokyo...)"
+                    autoComplete="off"
+                  />
+                  {isSearching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-brand-saffron" />
+                    </div>
+                  )}
+
+                  {/* Suggestions List */}
+                  {showSuggestions && searchQuery.trim().length >= 3 && (
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-sm border border-hairline-subtle bg-surface shadow-lg">
+                      {isSearching ? (
+                        <div className="flex items-center gap-2 px-4 py-3 text-xs text-text-tertiary">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-saffron" />
+                          Searching global locations...
+                        </div>
+                      ) : suggestions.length === 0 ? (
+                        <div className="px-4 py-3 text-xs text-text-tertiary">
+                          No locations found. Try typing more details.
+                        </div>
+                      ) : (
+                        suggestions.map((s, idx) => (
+                          <div
+                            key={idx}
+                            onMouseDown={() => handleSelectSuggestion(s)}
+                            className="cursor-pointer px-4 py-2.5 text-xs text-text-primary hover:bg-elevated transition-colors duration-150"
+                          >
+                            {s.display_name}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
-                {watch('city') && (
+
+                {isTimezoneLoading && (
+                  <div className="mt-2 flex items-center gap-2 rounded-sm bg-elevated p-3 font-mono text-xs text-text-tertiary">
+                    <Loader2 className="h-3 w-3 animate-spin text-brand-saffron" />
+                    Resolving coordinates and timezone offset...
+                  </div>
+                )}
+
+                {!isTimezoneLoading && selectedPlace && (
                   <div className="mt-2 rounded-sm bg-elevated p-3 font-mono text-xs text-text-tertiary">
-                    {(() => {
-                      const c = cities.find(x => x.name === watch('city'));
-                      return c ? `${c.lat.toFixed(4)}°N, ${c.lng.toFixed(4)}°E · ${c.tz} (UTC+${c.off})` : null;
-                    })()}
+                    {selectedPlace.lat.toFixed(4)}°N, {selectedPlace.lng.toFixed(4)}°E · {selectedPlace.tz} (UTC{selectedPlace.off >= 0 ? `+${selectedPlace.off}` : selectedPlace.off})
                   </div>
                 )}
               </Field>
@@ -243,3 +372,4 @@ function Field({ label, error, children }: { label: string; error?: string; chil
     </label>
   );
 }
+
