@@ -74,6 +74,33 @@ export default function Dashboard() {
       });
   }, []);
 
+  // Profile selection logic
+  const activeProfile = profiles ? (profiles.find(p => p.id === selectedProfileId) || profiles[0]) : null;
+
+  // Dynamically compute snapshot if it doesn't exist
+  useEffect(() => {
+    if (!activeProfile) return;
+    if (activeProfile.snapshot) return;
+    if (attemptedComputes[activeProfile.id]) return;
+
+    async function computeSnapshot() {
+      setAttemptedComputes((prev) => ({ ...prev, [activeProfile!.id]: true }));
+      try {
+        const fresh = await getAstroProvider().generateKundli(activeProfile!.birth_details);
+        setComputedSnapshots((prev) => ({ ...prev, [activeProfile!.id]: fresh }));
+        
+        // Cache to database
+        void supabase
+          .from('charts')
+          .update({ snapshot: fresh as unknown as never })
+          .eq('id', activeProfile!.id);
+      } catch (e) {
+        console.error("Failed to dynamically compute snapshot on dashboard:", e);
+      }
+    }
+    computeSnapshot();
+  }, [activeProfile, attemptedComputes]);
+
   if (profiles === null || loadingTransits) {
     return (
       <div className="mx-auto max-w-7xl px-6 py-24 text-center">
@@ -124,33 +151,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  // Profile selection logic
-  const activeProfile = profiles.find(p => p.id === selectedProfileId) || profiles[0];
-
-  // Dynamically compute snapshot if it doesn't exist
-  useEffect(() => {
-    if (!activeProfile) return;
-    if (activeProfile.snapshot) return;
-    if (attemptedComputes[activeProfile.id]) return;
-
-    async function computeSnapshot() {
-      setAttemptedComputes((prev) => ({ ...prev, [activeProfile!.id]: true }));
-      try {
-        const fresh = await getAstroProvider().generateKundli(activeProfile.birth_details);
-        setComputedSnapshots((prev) => ({ ...prev, [activeProfile!.id]: fresh }));
-        
-        // Cache to database
-        void supabase
-          .from('charts')
-          .update({ snapshot: fresh as unknown as never })
-          .eq('id', activeProfile.id);
-      } catch (e) {
-        console.error("Failed to dynamically compute snapshot on dashboard:", e);
-      }
-    }
-    computeSnapshot();
-  }, [activeProfile, attemptedComputes]);
 
   const chartData = activeProfile?.snapshot || computedSnapshots[activeProfile?.id] || null;
 
