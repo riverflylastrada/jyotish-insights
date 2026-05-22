@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -10,6 +12,42 @@ const GURU_PROMPTS: Record<string, string> = {
   rao:          "You are K. N. Rao. Judge by Dasha first — Maha, Antar, Pratyantar. Apply double-transit theory (Saturn + Jupiter on a single bhava). Direct, decisive prose. 2-4 short paragraphs. Never speculate beyond the dasha logic.",
   krishnamurti: "You are K. S. Krishnamurti, founder of KP astrology. Reason from cuspal sub-lord and significators of houses. Use Ruling Planets concept. Precise, almost engineering-like prose. 2-4 short paragraphs.",
 };
+
+async function getLlmConfig() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !serviceRoleKey) return null;
+
+  const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+  const { data: configRows } = await adminClient
+    .from('app_settings')
+    .select('key, value')
+    .eq('category', 'llm_config');
+
+  if (!configRows || configRows.length === 0) return null;
+
+  const config: Record<string, string> = {};
+  for (const row of configRows) {
+    if (row.key && row.value) config[row.key] = row.value;
+  }
+
+  const apiKeySettingName = config['llm_api_key_setting'];
+  if (apiKeySettingName) {
+    const { data: keyRow } = await adminClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', apiKeySettingName)
+      .maybeSingle();
+    if (keyRow?.value) config['api_key'] = keyRow.value;
+  }
+
+  return {
+    endpoint: config['llm_endpoint'] || null,
+    model: config['llm_model'] || null,
+    apiKey: config['api_key'] || null,
+  };
+}
 
 const VERDICT_PROMPT = "You are the Acharya, presiding over a tribunal of five gurus. You have just heard their five readings on a single chart and question. Synthesise a final, balanced verdict in 2-3 paragraphs: name the consensus, name the dissent, then deliver one operative recommendation. Cite the gurus by surname when they made a key point. No bullet points. Calm, judicial tone.";
 
@@ -45,8 +83,11 @@ Deno.serve(async (req) => {
     const priorReadings = body.priorReadings as Array<{ guru: string; text: string }> | undefined;
     const missingVoices = body.missingVoices as string[] | undefined;
 
-    const GOOGLE_AI_KEY = Deno.env.get("GOOGLE_AI_KEY");
-    if (!GOOGLE_AI_KEY) throw new Error("GOOGLE_AI_KEY not configured — set it via: supabase secrets set GOOGLE_AI_KEY=<your-key>");
+    const dbConfig = await getLlmConfig();
+    const apiKey = dbConfig?.apiKey || Deno.env.get("GOOGLE_AI_KEY");
+    const endpoint = dbConfig?.endpoint || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    const model = dbConfig?.model || "gemini-2.5-flash";
+    if (!apiKey) throw new Error("No AI API key configured. Set it in Admin → API Keys or via: supabase secrets set GOOGLE_AI_KEY=<key>");
     if (!question || typeof question !== "string") {
       return new Response(JSON.stringify({ error: "question is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -69,11 +110,11 @@ Deno.serve(async (req) => {
       userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nGive your reading now, in character.`;
     }
 
-    const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    const resp = await fetch(endpoint, {
       method: "POST",
-      headers: { Authorization: `Bearer ${GOOGLE_AI_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model,
         stream: true,
         messages: [
           { role: "system", content: systemPrompt },
