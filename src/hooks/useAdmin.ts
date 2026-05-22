@@ -8,7 +8,8 @@ export function useAdmin() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (sessionLoading || !user) { setLoading(false); return; }
+    if (sessionLoading) return;
+    if (!user) { setLoading(false); return; }
     (async () => {
       const { data } = await supabase
         .from('profiles')
