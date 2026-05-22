@@ -45,14 +45,13 @@ export default function NewChart() {
     tz: string;
     off: number;
   } | null>(null);
-  const [isTimezoneLoading, setIsTimezoneLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, trigger, watch, setValue } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: { ayanamsa: 'lahiri', houseSystem: 'whole_sign', chartStyle: 'north' },
   });
 
-  // Debounced Place Search (Nominatim API)
+  // Debounced Place Search (Open-Meteo Geocoding API)
   useEffect(() => {
     if (selectedPlace && searchQuery === selectedPlace.name) {
       setSuggestions([]);
@@ -67,17 +66,11 @@ export default function NewChart() {
       setIsSearching(true);
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5&addressdetails=1`,
-          {
-            headers: {
-              'Accept-Language': 'en',
-              'User-Agent': 'Jyotish-Insights-Client/1.0'
-            }
-          }
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=5&language=en&format=json`
         );
         if (!response.ok) throw new Error('Search failed');
         const data = await response.json();
-        setSuggestions(data || []);
+        setSuggestions(data.results || []);
       } catch (err) {
         console.error('Error fetching places:', err);
       } finally {
@@ -96,36 +89,22 @@ export default function NewChart() {
     }
   };
 
-  const handleSelectSuggestion = async (suggestion: any) => {
-    const lat = parseFloat(suggestion.lat);
-    const lng = parseFloat(suggestion.lon);
-    const name = suggestion.display_name;
+  const dob = watch('dateOfBirth');
+  const tob = watch('timeOfBirth');
+
+  const handleSelectSuggestion = (suggestion: any) => {
+    const lat = suggestion.latitude;
+    const lng = suggestion.longitude;
+    const name = [suggestion.name, suggestion.admin1, suggestion.country].filter(Boolean).join(', ');
+    const tz = suggestion.timezone || 'UTC';
 
     setSearchQuery(name);
     setShowSuggestions(false);
-    setIsTimezoneLoading(true);
 
-    try {
-      const response = await fetch(
-        `https://api.bigdatacloud.com/data/timezone-by-location?latitude=${lat}&longitude=${lng}&utcReference=0`
-      );
-      if (!response.ok) throw new Error('Timezone lookup failed');
-      const data = await response.json();
-      const tz = data.ianaDisplayName || 'UTC';
-      const off = typeof data.utcOffsetSeconds === 'number' ? data.utcOffsetSeconds / 3600 : 0;
-
-      const place = { name, lat, lng, tz, off };
-      setSelectedPlace(place);
-      setValue('city', name);
-    } catch (err) {
-      console.error('Error resolving timezone:', err);
-      const place = { name, lat, lng, tz: 'UTC', off: 0 };
-      setSelectedPlace(place);
-      setValue('city', name);
-      toast.warning('Selected place timezone defaulted to UTC.');
-    } finally {
-      setIsTimezoneLoading(false);
-    }
+    const off = getTimezoneOffset(tz, dob || '2000-01-01', tob || '12:00:00');
+    const place = { name, lat, lng, tz, off };
+    setSelectedPlace(place);
+    setValue('city', name);
   };
 
   const handleBlur = () => {
@@ -150,6 +129,9 @@ export default function NewChart() {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) { nav('/app/chart/demo'); return; }
+      
+      const finalOffset = getTimezoneOffset(selectedPlace.tz, data.dateOfBirth, data.timeOfBirth);
+      
       const birth_details = {
         fullName: data.fullName,
         dateOfBirth: data.dateOfBirth,
@@ -162,7 +144,7 @@ export default function NewChart() {
           latitude: selectedPlace.lat,
           longitude: selectedPlace.lng,
           timezone: selectedPlace.tz,
-          timezoneOffset: selectedPlace.off,
+          timezoneOffset: finalOffset,
         },
       };
       const { data: row, error } = await supabase.from('charts').insert({
@@ -272,28 +254,24 @@ export default function NewChart() {
                           No locations found. Try typing more details.
                         </div>
                       ) : (
-                        suggestions.map((s, idx) => (
-                          <div
-                            key={idx}
-                            onMouseDown={() => handleSelectSuggestion(s)}
-                            className="cursor-pointer px-4 py-2.5 text-xs text-text-primary hover:bg-elevated transition-colors duration-150"
-                          >
-                            {s.display_name}
-                          </div>
-                        ))
+                        suggestions.map((s, idx) => {
+                          const displayName = [s.name, s.admin1, s.country].filter(Boolean).join(', ');
+                          return (
+                            <div
+                              key={idx}
+                              onMouseDown={() => handleSelectSuggestion(s)}
+                              className="cursor-pointer px-4 py-2.5 text-xs text-text-primary hover:bg-elevated transition-colors duration-150"
+                            >
+                              {displayName}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   )}
                 </div>
 
-                {isTimezoneLoading && (
-                  <div className="mt-2 flex items-center gap-2 rounded-sm bg-elevated p-3 font-mono text-xs text-text-tertiary">
-                    <Loader2 className="h-3 w-3 animate-spin text-brand-saffron" />
-                    Resolving coordinates and timezone offset...
-                  </div>
-                )}
-
-                {!isTimezoneLoading && selectedPlace && (
+                {selectedPlace && (
                   <div className="mt-2 rounded-sm bg-elevated p-3 font-mono text-xs text-text-tertiary">
                     {selectedPlace.lat.toFixed(4)}°N, {selectedPlace.lng.toFixed(4)}°E · {selectedPlace.tz} (UTC{selectedPlace.off >= 0 ? `+${selectedPlace.off}` : selectedPlace.off})
                   </div>
@@ -371,5 +349,56 @@ function Field({ label, error, children }: { label: string; error?: string; chil
       {error && <div className="mt-1 text-xs text-semantic-negative">{error}</div>}
     </label>
   );
+}
+
+function getTimezoneOffset(timeZone: string, dateStr: string, timeStr: string): number {
+  try {
+    const [yearStr, monthStr, dayStr] = dateStr.split('-');
+    const [hourStr, minStr, secStr] = timeStr.split(':');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10) - 1;
+    const day = parseInt(dayStr, 10);
+    const hour = parseInt(hourStr, 10);
+    const minute = parseInt(minStr, 10);
+    const second = secStr ? parseInt(secStr, 10) : 0;
+
+    if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) return 0;
+
+    const utcMillis = Date.UTC(year, month, day, hour, minute, second);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false
+    });
+
+    const parts = formatter.formatToParts(new Date(utcMillis));
+    const map: Record<string, number> = {};
+    parts.forEach(p => {
+      if (p.type !== 'literal') {
+        map[p.type] = parseInt(p.value, 10);
+      }
+    });
+
+    const t1 = Date.UTC(
+      map.year,
+      map.month - 1,
+      map.day,
+      map.hour === 24 ? 0 : map.hour,
+      map.minute,
+      map.second || 0
+    );
+
+    const offsetMs = t1 - utcMillis;
+    const offsetHours = offsetMs / (1000 * 60 * 60);
+    return Math.round(offsetHours * 100) / 100;
+  } catch (e) {
+    console.error('Error calculating timezone offset:', e);
+    return 0;
+  }
 }
 
