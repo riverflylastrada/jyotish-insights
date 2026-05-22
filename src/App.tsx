@@ -23,6 +23,12 @@ import Muhurta from "./pages/app/Muhurta";
 import Library from "./pages/app/Library";
 import Settings from "./pages/app/Settings";
 import { RequireAuth } from "./components/auth/RequireAuth";
+import { RequireAdmin } from "./components/auth/RequireAdmin";
+import { AdminLayout } from "./components/layout/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminApiKeys from "./pages/admin/AdminApiKeys";
+import AdminLlmConfig from "./pages/admin/AdminLlmConfig";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 60, refetchOnWindowFocus: false } },
@@ -56,6 +62,13 @@ const App = () => (
             <Route path="chart/:id/report" element={<Report />} />
             <Route path="chart/:id/remedies" element={<Remedies />} />
             <Route path="chart/:id/muhurta" element={<Muhurta />} />
+          </Route>
+
+          <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="api-keys" element={<AdminApiKeys />} />
+            <Route path="llm-config" element={<AdminLlmConfig />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

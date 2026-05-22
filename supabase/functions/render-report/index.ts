@@ -204,10 +204,23 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
-    const PDFSHIFT_API_KEY = Deno.env.get("PDFSHIFT_API_KEY");
-    if (!PDFSHIFT_API_KEY) throw new Error("PDFSHIFT_API_KEY not configured");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Try reading PDFSHIFT_API_KEY from app_settings, fall back to env
+    let PDFSHIFT_API_KEY = Deno.env.get("PDFSHIFT_API_KEY") ?? "";
+    if (SUPABASE_URL && SERVICE_ROLE) {
+      try {
+        const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE);
+        const { data: keyRow } = await adminClient
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'PDFSHIFT_API_KEY')
+          .maybeSingle();
+        if (keyRow?.value) PDFSHIFT_API_KEY = keyRow.value;
+      } catch { /* fall back to env */ }
+    }
+    if (!PDFSHIFT_API_KEY) throw new Error("PDFSHIFT_API_KEY not configured. Set it in Admin → API Keys or via: supabase secrets set PDFSHIFT_API_KEY=<key>");
 
     const { chartId, shareToken, snapshot } = await req.json() as { chartId?: string; shareToken?: string; snapshot?: any };
 

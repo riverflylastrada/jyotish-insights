@@ -1,8 +1,9 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Library, Settings, PlusCircle, LayoutDashboard, LogOut } from 'lucide-react';
+import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
+import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from '@/components/ui/sonner';
 
 const navItems = [
@@ -15,6 +16,7 @@ const navItems = [
 export function AppLayout() {
   const nav = useNavigate();
   const { user } = useSession();
+  const { isAdmin } = useAdmin();
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) toast.error(error.message);
@@ -39,6 +41,16 @@ export function AppLayout() {
                 <span className="hidden sm:inline">{label}</span>
               </NavLink>
             ))}
+            {isAdmin && (
+              <NavLink to="/admin"
+                className={({ isActive }) => cn(
+                  'inline-flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm transition-colors',
+                  isActive ? 'bg-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary'
+                )}>
+                <Shield className="h-4 w-4" />
+                <span className="hidden sm:inline">Admin</span>
+              </NavLink>
+            )}
             {user && (
               <button onClick={signOut} title={user.email ?? 'Sign out'}
                 className="ml-2 inline-flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm text-text-tertiary hover:text-text-primary">
