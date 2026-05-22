@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useDebateStore } from '@/stores/useDebateStore';
+import { useDebateStore, type DebateTurn } from '@/stores/useDebateStore';
 import { useKundli } from '@/hooks/useKundli';
 import { toast } from '@/components/ui/sonner';
 
@@ -124,12 +124,25 @@ async function streamFromEdge(
 }
 
 
+const compileChatHistory = (turns: DebateTurn[]) => {
+  const history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  for (const turn of turns) {
+    history.push({ role: 'user', content: turn.question });
+    let assistantContent = turn.readings.map(r => `--- ${r.guru.toUpperCase()} ---\n${r.text}`).join('\n\n');
+    if (turn.verdict) {
+      assistantContent += `\n\n--- ACHARYA'S VERDICT ---\n${turn.verdict}`;
+    }
+    history.push({ role: 'assistant', content: assistantContent });
+  }
+  return history;
+};
+
 type GuruState = { status: 'idle' | 'thinking' | 'streaming' | 'done' | 'error'; text: string; error?: string };
 
 export default function Debate() {
   const { id = 'demo' } = useParams();
   const { data: chart } = useKundli(id);
-  const { question, setQuestion, followUp, setFollowUp, addToHistory } = useDebateStore();
+  const { question, setQuestion, followUp, setFollowUp, addToHistory, turns, addTurn, clearTurns } = useDebateStore();
   const [running, setRunning] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Record<GuruKey, boolean>>(() =>
     Object.fromEntries(GURUS.map((g) => [g.key, true])) as Record<GuruKey, boolean>,
@@ -150,7 +163,17 @@ export default function Debate() {
     setVerdict({ status: 'idle', text: '' });
   };
 
-  const runDebate = async () => {
+  useEffect(() => {
+    clearTurns();
+    reset();
+  }, [id]);
+
+  const runDebate = async (overrideQuestion?: string) => {
+    const activeQuestion = (overrideQuestion || question).trim();
+    if (!activeQuestion) {
+      toast.error('Please pose a question to convene the tribunal.');
+      return;
+    }
     if (activeGurus.length === 0) {
       toast.error('Please select at least one Guru to convene the tribunal.');
       return;
@@ -159,36 +182,52 @@ export default function Debate() {
     setRunning(true);
     setPlaybackMode(false);
     reset();
-    const readings: Array<{ guru: string; text: string }> = [];
-    const failedGurus: string[] = [];
 
-    for (const g of activeGurus) {
+    const compiledHistory = compileChatHistory(turns);
+
+    // parallel stream all selected Gurus
+    const promises = activeGurus.map(async (g) => {
       try {
         setStates((s) => ({ ...s, [g.key]: { status: 'thinking', text: '' } }));
-        await new Promise((r) => setTimeout(r, 250));
+        // Slight staggered start so concurrent requests don't hit Supabase Edge Functions at the exact same millisecond
+        await new Promise((r) => setTimeout(r, Math.random() * 300));
+        
         setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: '' } }));
         const full = await streamFromEdge(
-          { mode: 'guru', guru: g.key, question, chart },
+          { mode: 'guru', guru: g.key, question: activeQuestion, chart, chatHistory: compiledHistory },
           (t) => setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: t } })),
         );
         setStates((s) => ({ ...s, [g.key]: { status: 'done', text: full } }));
-        readings.push({ guru: g.name, text: full });
+        return { success: true, key: g.key, name: g.name, text: full };
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Reading failed';
         setStates((s) => ({ ...s, [g.key]: { status: 'error', text: '', error: msg } }));
-        failedGurus.push(g.name);
+        return { success: false, key: g.key, name: g.name, error: msg };
       }
-    }
+    });
 
-    // Only run verdict if at least one guru succeeded
-    if (readings.length > 0) {
+    const results = await Promise.all(promises);
+
+    const successfulReadings = results
+      .filter((r) => r.success)
+      .map((r) => ({ guru: r.name, text: r.text as string }));
+
+    const failedGurus = results
+      .filter((r) => !r.success)
+      .map((r) => r.name);
+
+    if (successfulReadings.length > 0) {
       try {
         setVerdict({ status: 'thinking', text: '' });
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 400));
         setVerdict({ status: 'streaming', text: '' });
 
         const verdictPayload: Record<string, unknown> = {
-          mode: 'verdict', question, chart, priorReadings: readings,
+          mode: 'verdict',
+          question: activeQuestion,
+          chart,
+          priorReadings: successfulReadings,
+          chatHistory: compiledHistory,
         };
         if (failedGurus.length > 0) {
           verdictPayload.missingVoices = failedGurus;
@@ -199,6 +238,13 @@ export default function Debate() {
           (t) => setVerdict({ status: 'streaming', text: t }),
         );
         setVerdict({ status: 'done', text: v });
+
+        // Add this completed turn to store history
+        addTurn({
+          question: activeQuestion,
+          readings: successfulReadings,
+          verdict: v
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Verdict failed';
         setVerdict({ status: 'error', text: '', error: msg });
@@ -212,10 +258,13 @@ export default function Debate() {
   };
 
   const handleFollowUp = () => {
+    const nextQuestion = followUp.trim();
+    if (!nextQuestion) return;
+
     addToHistory(question);
-    setQuestion(followUp);
+    setQuestion(nextQuestion);
     setFollowUp('');
-    runDebate();
+    runDebate(nextQuestion);
   };
 
   const startPlayback = async () => {
@@ -325,122 +374,195 @@ export default function Debate() {
             {running ? 'Debate in session\u2026' : 'Convene the Tribunal'}
           </button>
         </div>
-      </div>
-
-      {/* Guru responses */}
-      <div className="mt-8 space-y-4">
-        {activeGurus.map((g, guruIdx) => {
-          const st = states[g.key];
-          const inactive = st.status === 'idle';
-
-          // In playback mode, only show cards up to playbackIndex
-          if (playbackMode && guruIdx > playbackIndex) return null;
-
-          return (
-            <motion.article
-              key={g.key}
-              initial={playbackMode ? { opacity: 0, y: 20, scale: 0.97 } : false}
-              animate={{ opacity: inactive ? 0.55 : 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm"
+      </div>      {/* Historical Debates Feed (Scrollable Trial Log) */}
+      {turns.length > 0 && (
+        <div className="mt-10 space-y-8 border-t border-hairline-subtle pt-8 animate-in fade-in duration-500">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-h3 font-semibold text-text-primary flex items-center gap-2">
+              <Gavel className="h-4 w-4 text-brand-saffron" /> Debate Proceedings History
+            </h2>
+            <button
+              onClick={() => {
+                clearTurns();
+                reset();
+                toast.success("Debate history cleared");
+              }}
+              className="inline-flex items-center gap-1.5 rounded-sm border border-hairline-subtle px-3 py-1.5 text-xs text-text-tertiary hover:text-semantic-negative hover:border-semantic-negative/30 transition-all"
             >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-hairline-subtle font-display text-sm" style={{ color: g.accent }}>
-                  {g.signature}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div>
-                      <div className="font-display text-h3 text-text-primary">{g.name} <span className="ml-2 font-deva text-sm text-text-tertiary">{g.deva}</span></div>
-                      <div className="font-mono text-xs text-text-tertiary">{g.school} · {g.era}</div>
-                    </div>
-                    <StatusPill status={st.status} />
-                  </div>
-                  <AnimatePresence>
-                    {st.status !== 'idle' && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="mt-3"
-                      >
-                        {st.status === 'thinking' ? (
-                          <ThinkingDots guruName={g.name} />
-                        ) : st.status === 'error' ? (
-                          <div className="mt-3 rounded-sm border border-semantic-negative/30 bg-semantic-negative/5 px-3 py-2 text-sm text-semantic-negative">
-                            {g.name} was unable to complete their reading. {st.error}
-                          </div>
-                        ) : (
-                          <p className="whitespace-pre-line text-body text-text-secondary">
-                            {st.text}
-                            {st.status === 'streaming' && <span className="ml-0.5 inline-block h-4 w-1 animate-pulse bg-text-primary align-middle" />}
-                          </p>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </motion.article>
-          );
-        })}
-      </div>
-
-      {/* Verdict */}
-      {verdict.status !== 'idle' && (!playbackMode || playbackIndex >= activeGurus.length) && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-8 rounded-md border border-brand-maroon/40 bg-surface p-6 shadow-sm yantra-bg">
-          <div className="flex items-center gap-3">
-            <Gavel className="h-5 w-5 text-brand-maroon" />
-            <div>
-              <div className="text-eyebrow text-brand-saffron">Acharya's Verdict</div>
-              <div className="font-display text-h2 text-text-primary">Synthesis</div>
-            </div>
-            <Sparkles className="ml-auto h-4 w-4 text-brand-gold" />
+              <Trash2 className="h-3.5 w-3.5" /> Clear History
+            </button>
           </div>
-          <div className="gold-rule mt-4" />
-          {verdict.status === 'thinking' ? (
-            <div className="mt-4"><ThinkingDots guruName="The Acharya" /></div>
-          ) : verdict.status === 'error' ? (
-            <div className="mt-4 rounded-sm border border-semantic-negative/30 bg-semantic-negative/5 px-3 py-2 text-sm text-semantic-negative">
-              The Acharya was unable to deliver a verdict. {verdict.error}
-            </div>
-          ) : (
-            <p className="mt-4 whitespace-pre-line text-body text-text-secondary">
-              {verdict.text}
-              {verdict.status === 'streaming' && <span className="ml-0.5 inline-block h-4 w-1 animate-pulse bg-text-primary align-middle" />}
-            </p>
-          )}
-        </motion.div>
+          
+          <div className="space-y-6">
+            {turns.map((turn, turnIdx) => (
+              <div key={turnIdx} className="rounded-md border border-hairline-subtle bg-canvas/30 p-6 space-y-6">
+                {/* User's Question */}
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-saffron/10 text-brand-saffron font-display text-xs">
+                    Q
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-text-tertiary">Turn {turnIdx + 1} Question</span>
+                    <h4 className="font-display text-base font-semibold text-text-primary mt-0.5">{turn.question}</h4>
+                  </div>
+                </div>
+
+                <div className="gold-rule opacity-35" />
+
+                {/* Guru Readings Grid */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {turn.readings.map((r, rIdx) => {
+                    const guruInfo = GURUS.find(g => g.name === r.guru);
+                    return (
+                      <div key={rIdx} className="rounded-sm border border-hairline-subtle bg-surface p-4 text-sm flex flex-col justify-between shadow-sm animate-in fade-in duration-300">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div
+                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-display"
+                              style={{
+                                color: guruInfo?.accent || 'var(--text-primary)',
+                                borderColor: guruInfo?.accent || 'var(--border-hairline)'
+                              }}
+                            >
+                              {guruInfo?.signature || 'G'}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-display font-semibold text-text-primary text-xs truncate">{r.guru}</div>
+                              {guruInfo && <div className="text-[9px] text-text-tertiary font-mono truncate">{guruInfo.school}</div>}
+                            </div>
+                          </div>
+                          <p className="whitespace-pre-line text-xs text-text-secondary leading-relaxed font-body">
+                            {r.text}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Acharya Verdict */}
+                {turn.verdict && (
+                  <div className="rounded-sm border border-brand-maroon/20 bg-surface p-5 yantra-bg text-sm shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Gavel className="h-4 w-4 text-brand-maroon" />
+                      <span className="font-display font-bold text-text-primary text-xs">Acharya's Synthesis Verdict</span>
+                    </div>
+                    <p className="whitespace-pre-line text-xs text-text-secondary leading-relaxed font-body">
+                      {turn.verdict}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Watch the debate / Stop playback */}
-      {verdict.status === 'done' && !playbackMode && (
-        <button
-          onClick={startPlayback}
-          className="mt-4 inline-flex items-center gap-2 rounded-sm border border-brand-saffron/40 px-4 py-2 text-sm text-brand-saffron hover:bg-brand-saffron/5"
-        >
-          <Play className="h-4 w-4" /> Watch the debate
-        </button>
-      )}
-      {playbackMode && (
-        <button
-          onClick={() => setPlaybackMode(false)}
-          className="mt-4 inline-flex items-center gap-2 rounded-sm border border-semantic-negative/40 px-4 py-2 text-sm text-semantic-negative hover:bg-semantic-negative/5"
-        >
-          <Square className="h-4 w-4" /> Stop playback
-        </button>
+      {/* Active Debate Panel (Streaming in Real-Time) */}
+      {(running || activeGurus.some(g => states[g.key].status !== 'idle') || verdict.status !== 'idle') && (
+        <div className="mt-8 space-y-6 border-t border-brand-saffron/20 pt-8 animate-in fade-in duration-500">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-maroon opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-maroon"></span>
+            </span>
+            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-text-tertiary">
+              Active Tribunal Session
+            </h3>
+          </div>
+          
+          <div className="space-y-4">
+            {activeGurus.map((g) => {
+              const st = states[g.key];
+              const inactive = st.status === 'idle';
+              return (
+                <motion.article
+                  key={g.key}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: inactive ? 0.55 : 1, y: 0 }}
+                  className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-hairline-subtle font-display text-sm" style={{ color: g.accent }}>
+                      {g.signature}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <div>
+                          <div className="font-display text-h3 text-text-primary">{g.name} <span className="ml-2 font-deva text-sm text-text-tertiary">{g.deva}</span></div>
+                          <div className="font-mono text-xs text-text-tertiary">{g.school} · {g.era}</div>
+                        </div>
+                        <StatusPill status={st.status} />
+                      </div>
+                      <AnimatePresence>
+                        {st.status !== 'idle' && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="mt-3"
+                          >
+                            {st.status === 'thinking' ? (
+                              <ThinkingDots guruName={g.name} />
+                            ) : st.status === 'error' ? (
+                              <div className="mt-3 rounded-sm border border-semantic-negative/30 bg-semantic-negative/5 px-3 py-2 text-sm text-semantic-negative">
+                                {g.name} was unable to complete their reading. {st.error}
+                              </div>
+                            ) : (
+                              <p className="whitespace-pre-line text-body text-text-secondary">
+                                {st.text}
+                                {st.status === 'streaming' && <span className="ml-0.5 inline-block h-4 w-1 animate-pulse bg-text-primary align-middle" />}
+                              </p>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+
+          {/* Verdict */}
+          {verdict.status !== 'idle' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-md border border-brand-maroon/40 bg-surface p-6 shadow-sm yantra-bg">
+              <div className="flex items-center gap-3">
+                <Gavel className="h-5 w-5 text-brand-maroon" />
+                <div>
+                  <div className="text-eyebrow text-brand-saffron">Acharya's Verdict</div>
+                  <div className="font-display text-h2 text-text-primary">Synthesis</div>
+                </div>
+                <Sparkles className="ml-auto h-4 w-4 text-brand-gold" />
+              </div>
+              <div className="gold-rule mt-4" />
+              {verdict.status === 'thinking' ? (
+                <div className="mt-4"><ThinkingDots guruName="The Acharya" /></div>
+              ) : verdict.status === 'error' ? (
+                <div className="mt-4 rounded-sm border border-semantic-negative/30 bg-semantic-negative/5 px-3 py-2 text-sm text-semantic-negative">
+                  The Acharya was unable to deliver a verdict. {verdict.error}
+                </div>
+              ) : (
+                <p className="mt-4 whitespace-pre-line text-body text-text-secondary">
+                  {verdict.text}
+                  {verdict.status === 'streaming' && <span className="ml-0.5 inline-block h-4 w-1 animate-pulse bg-text-primary align-middle" />}
+                </p>
+              )}
+            </motion.div>
+          )}
+        </div>
       )}
 
       {/* Follow-up input */}
-      {verdict.status === 'done' && (
-        <div className="mt-6 rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
+      {turns.length > 0 && !running && (
+        <div className="mt-6 rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm animate-in fade-in duration-500">
           <label className="text-eyebrow text-text-tertiary">Ask a follow-up</label>
           <div className="mt-2 flex gap-3">
             <input
               type="text"
               value={followUp}
               onChange={(e) => setFollowUp(e.target.value)}
-              placeholder="Ask a deeper question about this reading\u2026"
+              placeholder="Ask a deeper question about this reading…"
               className="flex-1 rounded-sm border border-hairline-subtle bg-canvas px-3 py-2 text-body text-text-primary placeholder:text-text-muted focus:border-brand-maroon focus:outline-none"
               onKeyDown={(e) => { if (e.key === 'Enter' && followUp.trim()) { handleFollowUp(); } }}
             />

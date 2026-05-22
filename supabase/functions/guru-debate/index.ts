@@ -80,8 +80,9 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { guru, question, chart, mode } = body as {
+    const { guru, question, chart, mode, chatHistory } = body as {
       guru?: string; question: string; chart?: any; mode: "guru" | "verdict";
+      chatHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     };
     const priorReadings = body.priorReadings as Array<{ guru: string; text: string }> | undefined;
     const missingVoices = body.missingVoices as string[] | undefined;
@@ -96,21 +97,33 @@ Deno.serve(async (req) => {
     }
 
     let systemPrompt: string;
-    let userContent: string;
+    let messages: Array<{ role: string; content: string }> = [];
 
     if (mode === "verdict") {
       systemPrompt = VERDICT_PROMPT;
       const readingsText = (priorReadings ?? []).map(r => `--- ${r.guru.toUpperCase()} ---\n${r.text}`).join("\n\n");
-      userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nPRIOR READINGS:\n${readingsText}`;
+      let userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nPRIOR READINGS:\n${readingsText}`;
       if (missingVoices?.length) {
         userContent += `\n\nNOTE: The following gurus were unable to provide their reading: ${missingVoices.join(", ")}. Acknowledge this gap in your synthesis.`;
       }
+      
+      messages.push({ role: "system", content: systemPrompt });
+      if (chatHistory && chatHistory.length > 0) {
+        messages.push(...chatHistory);
+      }
+      messages.push({ role: "user", content: userContent });
     } else {
       if (!guru || !GURU_PROMPTS[guru]) {
         return new Response(JSON.stringify({ error: "invalid guru" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       systemPrompt = GURU_PROMPTS[guru];
-      userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nGive your reading now, in character.`;
+      const userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nGive your reading now, in character.`;
+      
+      messages.push({ role: "system", content: systemPrompt });
+      if (chatHistory && chatHistory.length > 0) {
+        messages.push(...chatHistory);
+      }
+      messages.push({ role: "user", content: userContent });
     }
 
     const resp = await fetch(endpoint, {
@@ -119,10 +132,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model,
         stream: true,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userContent },
-        ],
+        messages: messages,
       }),
     });
 
