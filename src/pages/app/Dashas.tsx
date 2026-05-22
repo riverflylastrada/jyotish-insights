@@ -21,18 +21,25 @@ function buildPratyantar(parent: DashaPeriod): DashaPeriod[] {
     ['Mars', 7], ['Rahu', 18], ['Jupiter', 16], ['Saturn', 19],
   ];
   const total = 120;
-  const start = new Date(parent.startDate).getTime();
-  const end = new Date(parent.endDate).getTime();
+  const rawStart = parent.startDate ? new Date(parent.startDate).getTime() : Date.now();
+  const rawEnd = parent.endDate ? new Date(parent.endDate).getTime() : Date.now() + 1000 * 60 * 60 * 24;
+  
+  const start = isNaN(rawStart) ? Date.now() : rawStart;
+  const end = isNaN(rawEnd) ? Date.now() + 1000 * 60 * 60 * 24 : rawEnd;
   const span = end - start;
   let cursor = start;
   return sequence.map(([planet, years]) => {
     const slice = (years / total) * span;
     const s = cursor;
     cursor += slice;
+    
+    const safeS = isNaN(s) ? Date.now() : s;
+    const safeCursor = isNaN(cursor) ? Date.now() : cursor;
+    
     return {
       level: 'pratyantar' as const, planet,
-      durationYears: (years / total) * (parent.durationYears),
-      startDate: new Date(s).toISOString(), endDate: new Date(cursor).toISOString(),
+      durationYears: (years / total) * (parent.durationYears || 1),
+      startDate: new Date(safeS).toISOString(), endDate: new Date(safeCursor).toISOString(),
     };
   });
 }

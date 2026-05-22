@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [transits, setTransits] = useState<PlanetPosition[]>([]);
   const [loadingTransits, setLoadingTransits] = useState(true);
   const [computedSnapshots, setComputedSnapshots] = useState<Record<string, KundliData>>({});
+  const [attemptedComputes, setAttemptedComputes] = useState<Record<string, boolean>>({});
 
   // Load saved profiles from Library
   useEffect(() => {
@@ -131,9 +132,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (!activeProfile) return;
     if (activeProfile.snapshot) return;
-    if (computedSnapshots[activeProfile.id]) return;
+    if (attemptedComputes[activeProfile.id]) return;
 
     async function computeSnapshot() {
+      setAttemptedComputes((prev) => ({ ...prev, [activeProfile!.id]: true }));
       try {
         const fresh = await getAstroProvider().generateKundli(activeProfile.birth_details);
         setComputedSnapshots((prev) => ({ ...prev, [activeProfile!.id]: fresh }));
@@ -148,7 +150,7 @@ export default function Dashboard() {
       }
     }
     computeSnapshot();
-  }, [activeProfile, computedSnapshots]);
+  }, [activeProfile, attemptedComputes]);
 
   const chartData = activeProfile?.snapshot || computedSnapshots[activeProfile?.id] || null;
 
@@ -199,7 +201,12 @@ export default function Dashboard() {
         const now = Date.now();
         
         const currentMaha = tl.find(
-          p => p && p.startDate && p.endDate && new Date(p.startDate).getTime() <= now && new Date(p.endDate).getTime() > now
+          p => {
+            if (!p || !p.startDate || !p.endDate) return false;
+            const sTime = new Date(p.startDate).getTime();
+            const eTime = new Date(p.endDate).getTime();
+            return !isNaN(sTime) && !isNaN(eTime) && sTime <= now && eTime > now;
+          }
         ) ?? tl[0];
         
         if (currentMaha && currentMaha.planet) {
@@ -219,8 +226,11 @@ export default function Dashboard() {
 
           const orderedAntar = reorderSequence(currentMaha.planet);
           const total = 120;
-          const start = currentMaha.startDate ? new Date(currentMaha.startDate).getTime() : now;
-          const end = currentMaha.endDate ? new Date(currentMaha.endDate).getTime() : now + 1000 * 60 * 60 * 24;
+          const rawStart = currentMaha.startDate ? new Date(currentMaha.startDate).getTime() : now;
+          const rawEnd = currentMaha.endDate ? new Date(currentMaha.endDate).getTime() : now + 1000 * 60 * 60 * 24;
+          
+          const start = isNaN(rawStart) ? now : rawStart;
+          const end = isNaN(rawEnd) ? now + 1000 * 60 * 60 * 24 : rawEnd;
           const span = end - start;
           let cursor = start;
           
@@ -228,17 +238,26 @@ export default function Dashboard() {
             const slice = (years / total) * span;
             const s = cursor;
             cursor += slice;
+            
+            const safeS = isNaN(s) ? now : s;
+            const safeCursor = isNaN(cursor) ? now : cursor;
+            
             return {
               level: 'antar' as const,
               planet,
               durationYears: (years / total) * (currentMaha.durationYears || 1),
-              startDate: new Date(s).toISOString(),
-              endDate: new Date(cursor).toISOString(),
+              startDate: new Date(safeS).toISOString(),
+              endDate: new Date(safeCursor).toISOString(),
             };
           });
 
           const currentAntar = children.find(
-            (c: any) => c && c.startDate && c.endDate && new Date(c.startDate).getTime() <= now && new Date(c.endDate).getTime() > now
+            (c: any) => {
+              if (!c || !c.startDate || !c.endDate) return false;
+              const sTime = new Date(c.startDate).getTime();
+              const eTime = new Date(c.endDate).getTime();
+              return !isNaN(sTime) && !isNaN(eTime) && sTime <= now && eTime > now;
+            }
           );
           
           activeAntar = currentAntar?.planet || children[0]?.planet || "Jupiter";
