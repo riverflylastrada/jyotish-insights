@@ -1,0 +1,24 @@
+name: jyotish-insights
+region: blr
+static_sites:
+  - name: jyotish-insights-frontend
+    github:
+      repo: Viewofmind/jyotish-insights
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    output_dir: dist
+    error_document: index.html
+    envs:
+      - key: VITE_SUPABASE_PROJECT_ID
+        scope: RUN_AND_BUILD_TIME
+        value: "bkdfseyhusoxiruhuhbs"
+      - key: VITE_SUPABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: "https://bkdfseyhusoxiruhuhbs.supabase.co"
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        scope: RUN_AND_BUILD_TIME
+        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGZzZXlodXNveGlydWh1aGJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTY0MzYsImV4cCI6MjA5NDk3MjQzNn0.hBUfzBDT_MA-eZXZkwQfxoOV4mBN2_jmhHJyA6kvpbo"
+      - key: VITE_ASTRO_PROVIDER
+        scope: RUN_AND_BUILD_TIME
+        value: "custom"

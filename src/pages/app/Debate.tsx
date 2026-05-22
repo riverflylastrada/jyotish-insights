@@ -59,37 +59,67 @@ async function streamFromEdge(
   let buffer = '';
   let full = '';
   let done = false;
+  let currentEventData = '';
+
+  const processLine = (line: string) => {
+    if (line === '') {
+      // Empty line indicates the end of an event block
+      if (currentEventData) {
+        handleEvent(currentEventData);
+        currentEventData = '';
+      }
+    } else if (line.startsWith('data: ')) {
+      const value = line.slice(6);
+      currentEventData = currentEventData ? `${currentEventData}\n${value}` : value;
+    }
+  };
+
+  const handleEvent = (data: string) => {
+    const trimmed = data.trim();
+    if (trimmed === '[DONE]') {
+      done = true;
+      return;
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
+      if (delta) {
+        full += delta;
+        onDelta(full);
+      }
+    } catch {
+      console.warn('Skipped malformed SSE chunk:', trimmed.slice(0, 100));
+    }
+  };
 
   while (!done) {
     const { done: rd, value } = await reader.read();
-    if (rd) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    // Split on double-newline (SSE event boundary)
-    const parts = buffer.split('\n\n');
-    // Last element is incomplete — keep in buffer
-    buffer = parts.pop() ?? '';
-
-    for (const event of parts) {
-      const lines = event.split('\n');
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const json = line.slice(6).trim();
-        if (json === '[DONE]') { done = true; break; }
-        try {
-          const parsed = JSON.parse(json);
-          const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (delta) { full += delta; onDelta(full); }
-        } catch {
-          // Malformed JSON in a complete event — skip, don't retry
-          console.warn('Skipped malformed SSE chunk:', json.slice(0, 100));
+    if (rd) {
+      // If the stream ended, force processing of any remaining line in buffer
+      if (buffer) {
+        const remaining = buffer.trim();
+        if (remaining) {
+          processLine(remaining);
+          processLine(''); // Trigger final event block
         }
       }
+      break;
+    }
+    
+    buffer += decoder.decode(value, { stream: true });
+
+    let lineIndex;
+    while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, lineIndex).trim();
+      buffer = buffer.slice(lineIndex + 1);
+      processLine(line);
       if (done) break;
     }
   }
+
   return full;
 }
+
 
 type GuruState = { status: 'idle' | 'thinking' | 'streaming' | 'done' | 'error'; text: string; error?: string };
 
