@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
   const [transits, setTransits] = useState<PlanetPosition[]>([]);
   const [loadingTransits, setLoadingTransits] = useState(true);
+  const [computedSnapshots, setComputedSnapshots] = useState<Record<string, KundliData>>({});
 
   // Load saved profiles from Library
   useEffect(() => {
@@ -125,7 +126,31 @@ export default function Dashboard() {
 
   // Profile selection logic
   const activeProfile = profiles.find(p => p.id === selectedProfileId) || profiles[0];
-  const chartData = activeProfile.snapshot;
+
+  // Dynamically compute snapshot if it doesn't exist
+  useEffect(() => {
+    if (!activeProfile) return;
+    if (activeProfile.snapshot) return;
+    if (computedSnapshots[activeProfile.id]) return;
+
+    async function computeSnapshot() {
+      try {
+        const fresh = await getAstroProvider().generateKundli(activeProfile.birth_details);
+        setComputedSnapshots((prev) => ({ ...prev, [activeProfile!.id]: fresh }));
+        
+        // Cache to database
+        void supabase
+          .from('charts')
+          .update({ snapshot: fresh as unknown as never })
+          .eq('id', activeProfile.id);
+      } catch (e) {
+        console.error("Failed to dynamically compute snapshot on dashboard:", e);
+      }
+    }
+    computeSnapshot();
+  }, [activeProfile, computedSnapshots]);
+
+  const chartData = activeProfile?.snapshot || computedSnapshots[activeProfile?.id] || null;
 
   // Compute daily transits if snapshot exists
   let auspiciousScore = 75;
@@ -167,12 +192,53 @@ export default function Dashboard() {
       auspiciousScore = Math.round(moonScore);
     }
 
-    // Dashas
+    // Dashas (dynamically calculated at runtime based on Date.now())
     if (chartData.dashas && chartData.dashas.length > 0) {
-      const md = chartData.dashas[0].currentMahaDasha;
-      activeMaha = md.planet;
-      const ad = md.children?.find((c: any) => new Date(c.startDate).getTime() <= Date.now() && new Date(c.endDate).getTime() > Date.now()) ?? md.children?.[0];
-      activeAntar = ad?.planet || "Jupiter";
+      const tl = chartData.dashas[0].timeline;
+      const now = Date.now();
+      
+      const currentMaha = tl.find(
+        p => new Date(p.startDate).getTime() <= now && new Date(p.endDate).getTime() > now
+      ) ?? tl[0];
+      
+      activeMaha = currentMaha.planet;
+
+      const sequence: Array<[string, number]> = [
+        ['Mercury', 17], ['Ketu', 7], ['Venus', 20], ['Sun', 6], ['Moon', 10],
+        ['Mars', 7], ['Rahu', 18], ['Jupiter', 16], ['Saturn', 19],
+      ];
+      
+      const reorderSequence = (startLord: string): Array<[string, number]> => {
+        const idx = sequence.findIndex(([p]) => p.toLowerCase() === startLord.toLowerCase());
+        if (idx === -1) return [...sequence];
+        return [...sequence.slice(idx), ...sequence.slice(0, idx)];
+      };
+
+      const orderedAntar = reorderSequence(currentMaha.planet);
+      const total = 120;
+      const start = new Date(currentMaha.startDate).getTime();
+      const end = new Date(currentMaha.endDate).getTime();
+      const span = end - start;
+      let cursor = start;
+      
+      const children = currentMaha.children || orderedAntar.map(([planet, years]) => {
+        const slice = (years / total) * span;
+        const s = cursor;
+        cursor += slice;
+        return {
+          level: 'antar' as const,
+          planet,
+          durationYears: (years / total) * currentMaha.durationYears,
+          startDate: new Date(s).toISOString(),
+          endDate: new Date(cursor).toISOString(),
+        };
+      });
+
+      const currentAntar = children.find(
+        (c: any) => new Date(c.startDate).getTime() <= now && new Date(c.endDate).getTime() > now
+      );
+      
+      activeAntar = currentAntar?.planet || children[0]?.planet || "Jupiter";
 
       // Tailored Vimshottari guidance
       const dashaGuidance: Record<string, string> = {
