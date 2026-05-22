@@ -210,7 +210,7 @@ const sampleChart = {
     },
   ],
   ashtakavarga: {
-    sarvashtakavarga: [25, 29, 22, 32, 26, 28, 30, 24, 27, 31, 26, 37],
+    sarva: [25, 29, 22, 32, 26, 28, 30, 24, 27, 31, 26, 37],
   },
   shadbala: {
     sun: 70,

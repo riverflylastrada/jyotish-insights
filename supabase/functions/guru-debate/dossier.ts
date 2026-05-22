@@ -321,7 +321,7 @@ function sectionAshtakavarga(chart: any): string {
   if (!av) return "";
 
   // SAV (Sarvashtakavarga) — aggregate per house
-  const sav = av.sarvashtakavarga;
+  const sav = av.sarva ?? av.sarvashtakavarga;
   if (!sav || !Array.isArray(sav)) return "";
 
   const lines = [`═══ ASHTAKAVARGA ═══`];
