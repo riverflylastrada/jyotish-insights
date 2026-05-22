@@ -1,6 +1,3 @@
-// Google Gemini AI via the OpenAI-compatible endpoint.
-// Set via: supabase secrets set GOOGLE_AI_KEY=<key>
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -44,12 +41,12 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { guru, question, chart, mode } = body as {
       guru?: string; question: string; chart?: any; mode: "guru" | "verdict";
-      // For verdict mode we also accept `priorReadings` (array of {guru, text}).
     };
     const priorReadings = body.priorReadings as Array<{ guru: string; text: string }> | undefined;
+    const missingVoices = body.missingVoices as string[] | undefined;
 
     const GOOGLE_AI_KEY = Deno.env.get("GOOGLE_AI_KEY");
-    if (!GOOGLE_AI_KEY) throw new Error("GOOGLE_AI_KEY not configured");
+    if (!GOOGLE_AI_KEY) throw new Error("GOOGLE_AI_KEY not configured — set it via: supabase secrets set GOOGLE_AI_KEY=<your-key>");
     if (!question || typeof question !== "string") {
       return new Response(JSON.stringify({ error: "question is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -61,6 +58,9 @@ Deno.serve(async (req) => {
       systemPrompt = VERDICT_PROMPT;
       const readingsText = (priorReadings ?? []).map(r => `--- ${r.guru.toUpperCase()} ---\n${r.text}`).join("\n\n");
       userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nPRIOR READINGS:\n${readingsText}`;
+      if (missingVoices?.length) {
+        userContent += `\n\nNOTE: The following gurus were unable to provide their reading: ${missingVoices.join(", ")}. Acknowledge this gap in your synthesis.`;
+      }
     } else {
       if (!guru || !GURU_PROMPTS[guru]) {
         return new Response(JSON.stringify({ error: "invalid guru" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -83,10 +83,7 @@ Deno.serve(async (req) => {
     });
 
     if (resp.status === 429) {
-      return new Response(JSON.stringify({ error: "Rate limit exceeded — please try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    if (resp.status === 402) {
-      return new Response(JSON.stringify({ error: "Google AI API quota exhausted — check your billing." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "AI provider rate limit — please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (!resp.ok) {
       const t = await resp.text();
