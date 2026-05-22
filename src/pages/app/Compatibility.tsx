@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { getAstroProvider } from '@/lib/astro/factory';
 
 interface SavedChart {
   id: string;
@@ -140,6 +141,7 @@ export default function Compatibility() {
           if (!c.snapshot) {
             // Generate simple mock snapshot if empty
             c.snapshot = {
+              isFallback: true,
               birthDetails: c.birth_details,
               divisionalCharts: [
                 {
@@ -169,7 +171,7 @@ export default function Compatibility() {
     loadCharts();
   }, []);
 
-  const calculateCompatibility = () => {
+  const calculateCompatibility = async () => {
     if (!chart1Id || !chart2Id) {
       toast.error("Select two charts to perform Milan");
       return;
@@ -179,12 +181,46 @@ export default function Compatibility() {
       return;
     }
 
-    const groom = charts?.find(c => c.id === chart1Id);
-    const bride = charts?.find(c => c.id === chart2Id);
+    let groom = charts?.find(c => c.id === chart1Id);
+    let bride = charts?.find(c => c.id === chart2Id);
 
     if (!groom || !bride) {
       toast.error("Error loading selected charts");
       return;
+    }
+
+    // Check if either is using a fallback mock, and calculate real coordinates on the fly!
+    let updatedCharts = [...(charts || [])];
+    let needsUpdate = false;
+
+    if (groom.snapshot?.isFallback) {
+      try {
+        toast.info(`Computing birth chart details for ${groom.name}...`);
+        const fresh = await getAstroProvider().generateKundli(groom.birth_details);
+        groom.snapshot = fresh;
+        needsUpdate = true;
+        // cache back to Supabase
+        void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', groom.id);
+      } catch (err) {
+        console.error("Failed to dynamically compute groom snapshot:", err);
+      }
+    }
+
+    if (bride.snapshot?.isFallback) {
+      try {
+        toast.info(`Computing birth chart details for ${bride.name}...`);
+        const fresh = await getAstroProvider().generateKundli(bride.birth_details);
+        bride.snapshot = fresh;
+        needsUpdate = true;
+        // cache back to Supabase
+        void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', bride.id);
+      } catch (err) {
+        console.error("Failed to dynamically compute bride snapshot:", err);
+      }
+    }
+
+    if (needsUpdate) {
+      setCharts(updatedCharts);
     }
 
     // Extract D1 Moon details
@@ -254,7 +290,7 @@ export default function Compatibility() {
     // Distance from groom to bride and vice versa
     const t1 = (bNakIdx - gNakIdx + 27) % 9;
     const t2 = (gNakIdx - bNakIdx + 27) % 9;
-    const auspiciousTara = [0, 1, 2, 4, 6, 8]; // Janma (sometimes ok), Sampat, Kshema, Sadhaka, Mitra, Adhimitra
+    const auspiciousTara = [0, 1, 3, 5, 7, 8]; // Janma (0), Sampat (1), Kshema (3), Sadhaka (5), Mitra (7), Adhimitra (8)
     const gTaraOk = auspiciousTara.includes(t1);
     const bTaraOk = auspiciousTara.includes(t2);
     let taraPoints = 0;
@@ -308,14 +344,12 @@ export default function Compatibility() {
     else ganaPoints = 0; // Manushya + Rakshasa
 
     // 7. Bhakoot (7 Points)
-    // Distance in signs
+    // Distance in signs (1-based, from 1 to 12)
     const diff = (bRashiNum - gRashiNum + 12) % 12;
-    const groomDiff = (gRashiNum - bRashiNum + 12) % 12;
-    const bDist = diff === 0 ? 12 : diff;
-    const gDist = groomDiff === 0 ? 12 : groomDiff;
+    const bDist = diff + 1;
     
-    // Inauspicious Bhakoot: 2/12, 6/8, 5/9 (sometimes ok but traditionally 0 here)
-    const inauspiciousBhakoot = [2, 12, 6, 8];
+    // Inauspicious Bhakoot in 1-based counting: 2/12 (Dwirdwadashe), 5/9 (Navapancham), 6/8 (Shadashtak)
+    const inauspiciousBhakoot = [2, 12, 5, 9, 6, 8];
     const isBhakootOk = !inauspiciousBhakoot.includes(bDist);
     const bhakootPoints = isBhakootOk ? 7 : 0;
 
