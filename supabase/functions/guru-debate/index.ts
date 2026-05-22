@@ -1,9 +1,5 @@
-// NOTE: This function uses LOVABLE_API_KEY to call ai.gateway.lovable.dev.
-// After migrating away from Lovable, you need to either:
-//   1. Get the key from your Lovable workspace (Settings → API Keys), or
-//   2. Replace the gateway call below with a direct AI provider (e.g.
-//      OpenAI, Google Gemini) using your own API key set via:
-//        supabase secrets set OPENAI_API_KEY=<key>
+// Google Gemini AI via the OpenAI-compatible endpoint.
+// Set via: supabase secrets set GOOGLE_AI_KEY=<key>
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,8 +48,8 @@ Deno.serve(async (req) => {
     };
     const priorReadings = body.priorReadings as Array<{ guru: string; text: string }> | undefined;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GOOGLE_AI_KEY = Deno.env.get("GOOGLE_AI_KEY");
+    if (!GOOGLE_AI_KEY) throw new Error("GOOGLE_AI_KEY not configured");
     if (!question || typeof question !== "string") {
       return new Response(JSON.stringify({ error: "question is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -73,11 +69,11 @@ Deno.serve(async (req) => {
       userContent = `QUESTION: ${question}\n\nCHART:\n${chartContext(chart)}\n\nGive your reading now, in character.`;
     }
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${GOOGLE_AI_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gemini-2.5-flash",
         stream: true,
         messages: [
           { role: "system", content: systemPrompt },
@@ -90,7 +86,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Rate limit exceeded — please try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (resp.status === 402) {
-      return new Response(JSON.stringify({ error: "Lovable AI credits exhausted. Add credits in Settings → Workspace → Usage." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Google AI API quota exhausted — check your billing." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (!resp.ok) {
       const t = await resp.text();

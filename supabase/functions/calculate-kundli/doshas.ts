@@ -88,11 +88,17 @@ function kaalSarpDosha(d1: PlanetPos[]): Dosha {
     }
   }
 
+  const kaalSarpTypes: Record<number, string> = {
+    1: 'Anant', 2: 'Kulik', 3: 'Vasuki', 4: 'Shankhpal', 5: 'Padma', 6: 'Mahapadma',
+    7: 'Takshak', 8: 'Karkotak', 9: 'Shankhchud', 10: 'Ghatak', 11: 'Vishdhar', 12: 'Sheshnag',
+  };
+  const ksType = allBetween ? (kaalSarpTypes[rahu.houseNumber] ?? 'Unknown') : '';
+
   return {
     name: 'kaal_sarp', isPresent: allBetween,
     severity: allBetween ? 'high' : undefined,
     explanation: allBetween
-      ? 'All planets are contained between the Rahu-Ketu axis, forming Kaal Sarp Dosha.'
+      ? `All planets are contained between the Rahu-Ketu axis, forming ${ksType} Kaal Sarp Dosha (Rahu in H${rahu.houseNumber}).`
       : 'Planets are not entirely contained between Rahu and Ketu axis. No Kaal Sarp Dosha.',
     affectedAreas: allBetween ? ['Sudden obstacles', 'Karmic delays', 'Ancestral issues'] : [],
     remedies: allBetween ? [

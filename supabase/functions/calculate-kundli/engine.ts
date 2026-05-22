@@ -52,6 +52,10 @@ const PLANETS: Array<{ key: string; label: string }> = [
   { key: 'ketu', label: 'ketu' },
 ];
 
+function kendras(h: number): boolean { return [1, 4, 7, 10].includes(h); }
+function trikonas(h: number): boolean { return [1, 5, 9].includes(h); }
+function dusthanas(h: number): boolean { return [6, 8, 12].includes(h); }
+
 // ─── Main calculation ───────────────────────────────────────────────────────
 
 export function calculateKundli(details: BirthDetails) {
@@ -125,6 +129,26 @@ export function calculateKundli(details: BirthDetails) {
   const { sunrise, sunset } = sunriseSunset(jd, lat, lon);
   const panchang = computePanchang(trop.sun, trop.moon, moonSid, jd, sunrise, sunset);
 
+  // Simplified Shadbala-like strength scores (0-100 scale)
+  const shadbala: Record<string, number> = {};
+  for (const p of d1Planets) {
+    if (p.planet === 'ascendant') continue;
+    let score = 50;
+    if (p.dignity === 'exalted') score += 30;
+    else if (p.dignity === 'own_sign') score += 20;
+    else if (p.dignity === 'mooltrikona') score += 25;
+    else if (p.dignity === 'friend') score += 10;
+    else if (p.dignity === 'neutral') score += 0;
+    else if (p.dignity === 'enemy') score -= 10;
+    else if (p.dignity === 'debilitated') score -= 25;
+    if (p.isCombust) score -= 15;
+    if (p.isRetrograde && !['rahu', 'ketu'].includes(p.planet)) score += 5;
+    if (kendras(p.houseNumber)) score += 10;
+    else if (trikonas(p.houseNumber)) score += 8;
+    else if (dusthanas(p.houseNumber)) score -= 10;
+    shadbala[p.planet] = Math.max(0, Math.min(100, score));
+  }
+
   return {
     id: crypto.randomUUID(),
     birthDetails: details,
@@ -136,6 +160,7 @@ export function calculateKundli(details: BirthDetails) {
     doshas,
     yogas,
     ashtakavarga,
+    shadbala,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
   };
 }
