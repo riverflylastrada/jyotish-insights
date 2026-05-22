@@ -366,7 +366,7 @@ export default function Debate() {
         <div className="mt-5 flex items-center justify-between">
           <div className="text-xs text-text-tertiary">Live · responses streamed from the AI gateway against this chart.</div>
           <button
-            onClick={runDebate}
+            onClick={() => runDebate()}
             disabled={running || !question.trim()}
             className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
           >
