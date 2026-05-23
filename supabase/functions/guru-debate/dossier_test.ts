@@ -232,6 +232,24 @@ const sampleChart = {
     sunrise: "06:12",
     sunset: "19:08",
   },
+  kp: {
+    planetSubLords: [
+      { planet: "sun", signLord: "Sun", starLord: "Sun", subLord: "Mercury" },
+      { planet: "moon", signLord: "Moon", starLord: "Mercury", subLord: "Venus" },
+    ],
+  },
+  jaimini: {
+    charaKarakas: [
+      { planet: "sun", degreeInSign: 28.68, karaka: "AK" },
+      { planet: "moon", degreeInSign: 17.2, karaka: "AmK" },
+    ],
+    atmakaraka: "sun",
+    karakamsa: { sign: 4, signName: "Karka" },
+    arudhaPadas: [
+      { house: 1, label: "AL (Arudha Lagna)", sign: 6, signName: "Kanya" },
+      { house: 12, label: "UL (Upapada Lagna)", sign: 5, signName: "Simha" },
+    ],
+  },
 };
 
 const sampleTransits = [
@@ -355,4 +373,18 @@ Deno.test("dossier handles empty chart gracefully", () => {
 Deno.test("dossier handles null chart gracefully", () => {
   const d = buildChartDossier(null, [], fixedNow);
   assertStringIncludes(d, "2026-05-22");
+});
+
+Deno.test("dossier contains KP sub-lord table", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "KP SUB-LORDS");
+  assertStringIncludes(d, "Sub-lord");
+  assertStringIncludes(d, "Placidus cuspal sub-lords are not yet computed");
+});
+
+Deno.test("dossier contains Jaimini Chara Karakas and Arudha", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "JAIMINI");
+  assertStringIncludes(d, "Chara Karakas:");
+  assertStringIncludes(d, "AL (Arudha Lagna): Kanya");
 });

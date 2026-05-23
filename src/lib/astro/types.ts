@@ -90,6 +90,56 @@ export interface AshtakavargaData {
   sarva: number[];
 }
 
+export interface KpData {
+  planetSubLords: Array<{
+    planet: string;
+    signLord: string;
+    starLord: string;
+    subLord: string;
+  }>;
+  cuspalSubLords?: Array<{
+    cusp: number;
+    longitude: number;
+    signLord: string;
+    starLord: string;
+    subLord: string;
+  }>;
+  rulingPlanets?: {
+    ascSignLord: string;
+    ascStarLord: string;
+    moonSignLord: string;
+    moonStarLord: string;
+    dayLord: string;
+  };
+}
+
+export interface JaiminiData {
+  charaKarakas: Array<{
+    planet: string;
+    degreeInSign: number;
+    karaka: string;
+  }>;
+  atmakaraka: string;
+  karakamsa: { sign: number; signName: string };
+  arudhaPadas: Array<{
+    house: number;
+    label: string;
+    sign: number;
+    signName: string;
+  }>;
+  charaDasha?: {
+    timeline: Array<{
+      sign: number;
+      signName: string;
+      startDate: string;
+      endDate: string;
+      durationYears: number;
+    }>;
+    currentSign?: number;
+    currentSignName?: string;
+  };
+}
+
 export interface KundliData {
   id: string;
   birthDetails: BirthDetails;
@@ -110,6 +160,8 @@ export interface KundliData {
   yogas: Yoga[];
   ashtakavarga: AshtakavargaData;
   shadbala?: Record<string, number>;
+  kp?: KpData;
+  jaimini?: JaiminiData;
   raw: unknown;
 }
 

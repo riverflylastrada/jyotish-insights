@@ -32,6 +32,10 @@ function pad(s: string, len: number): string {
   return s.padEnd(len);
 }
 
+function capitalize(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 const WEEKDAY_NAMES = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ];
@@ -410,33 +414,65 @@ function sectionDivisionalSummary(chart: any): string {
   return lines.join("\n");
 }
 
-function sectionCharaKarakas(chart: any): string {
-  const d1 = chart?.divisionalCharts?.find((c: any) => c.varga === "D1");
-  const planets = d1?.planets ?? [];
+function sectionKP(chart: any): string {
+  const kp = chart?.kp;
+  if (!kp) return "";
 
-  // Only Sun through Saturn for Chara Karakas (7 planets)
-  const karakaPlanets = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"];
-  const candidates = planets
-    .filter((p: any) => karakaPlanets.includes(p.planet))
-    .map((p: any) => ({ planet: p.planet, signDegree: p.signDegree, signName: p.signName }))
-    .sort((a: any, b: any) => b.signDegree - a.signDegree);
-
-  if (candidates.length < 7) return "";
-
-  const karakaNames = [
-    "Atmakaraka (AK)", "Amatyakaraka (AmK)", "Bhratrikaraka (BK)",
-    "Matrikaraka (MK)", "Putrakaraka (PuK)", "Gnatikaraka (GK)", "Darakaraka (DK)",
-  ];
-
-  const lines = [`═══ CHARA KARAKAS (Jaimini) ═══`];
-  for (let i = 0; i < Math.min(karakaNames.length, candidates.length); i++) {
-    const c = candidates[i];
-    if (i === 0) {
-      lines.push(`${karakaNames[i]}: ${c.planet} at ${fmtDeg(c.signDegree)} in ${c.signName}`);
-    } else {
-      lines.push(`${karakaNames[i]}: ${c.planet}`);
+  const lines = [`═══ KP SUB-LORDS (Krishnamurti Paddhati) ═══`];
+  if (kp.planetSubLords?.length) {
+    for (const e of kp.planetSubLords) {
+      lines.push(`${capitalize(e.planet)}: Sign-lord ${e.signLord}, Star-lord ${e.starLord}, Sub-lord ${e.subLord}`);
     }
   }
+
+  if (kp.cuspalSubLords?.length) {
+    lines.push(`Cuspal Sub-Lords:`);
+    for (const c of kp.cuspalSubLords) {
+      lines.push(`  Cusp ${c.cusp}: Sign-lord ${c.signLord}, Star-lord ${c.starLord}, Sub-lord ${c.subLord}`);
+    }
+  } else {
+    lines.push(`NOTE: Placidus cuspal sub-lords are not yet computed (Whole Sign houses in use) — do NOT fabricate cuspal sub-lords.`);
+  }
+
+  if (kp.rulingPlanets) {
+    const rp = kp.rulingPlanets;
+    lines.push(`Ruling Planets — Asc sign-lord ${rp.ascSignLord}, Asc star-lord ${rp.ascStarLord}, Moon sign-lord ${rp.moonSignLord}, Moon star-lord ${rp.moonStarLord}, Day-lord ${rp.dayLord}`);
+  }
+
+  return lines.join("\n");
+}
+
+function sectionJaimini(chart: any): string {
+  const j = chart?.jaimini;
+  if (!j) return "";
+
+  const lines = [`═══ JAIMINI (Chara Karakas, Karakamsa, Arudha Padas) ═══`];
+
+  if (j.charaKarakas?.length) {
+    const ck = j.charaKarakas
+      .map((c: any) => `${capitalize(c.planet)}=${c.karaka} (${fmtDeg(c.degreeInSign)})`)
+      .join(", ");
+    lines.push(`Chara Karakas: ${ck}`);
+  }
+
+  lines.push(`Atmakaraka: ${capitalize(j.atmakaraka ?? "unknown")}`);
+
+  if (j.karakamsa?.signName) {
+    lines.push(`Karakamsa (AK's Navamsa sign): ${j.karakamsa.signName}`);
+  }
+
+  if (j.arudhaPadas?.length) {
+    for (const ap of j.arudhaPadas) {
+      lines.push(`${ap.label}: ${ap.signName}`);
+    }
+  }
+
+  if (j.charaDasha?.timeline?.length) {
+    lines.push(`Chara Dasha: currently ${j.charaDasha.currentSignName ?? "see timeline"} (computed — use with caution pending parity validation).`);
+  } else {
+    lines.push(`Chara Dasha: not yet computed (stubbed pending parity validation with AstroSage/JHora) — do NOT fabricate.`);
+  }
+
   return lines.join("\n");
 }
 
@@ -444,8 +480,7 @@ function sectionUnavailableSystems(): string {
   return [
     `═══ SYSTEMS NOT YET COMPUTED ═══`,
     `The following are not available in this chart snapshot — do NOT fabricate them:`,
-    `- KP cuspal sub-lords and significators`,
-    `- Jaimini Arudha padas (A1-A12)`,
+    `- KP cuspal sub-lords and significators (Placidus cusps pending)`,
     `- Varshphal (annual/solar return chart)`,
     `- Sahams (Arabic parts)`,
   ].join("\n");
@@ -475,7 +510,8 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionShadbala(chart),
     sectionPanchang(chart),
     sectionDivisionalSummary(chart),
-    sectionCharaKarakas(chart),
+    sectionKP(chart),
+    sectionJaimini(chart),
     sectionUnavailableSystems(),
   ].filter(Boolean).join("\n\n");
 }
