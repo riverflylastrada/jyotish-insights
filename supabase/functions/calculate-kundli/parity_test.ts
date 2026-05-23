@@ -93,19 +93,20 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { planet: "mercury", karaka: "DK" },
         { planet: "rahu", karaka: "Karaka8" },
       ],
+      // Chara Dasha (KN Rao): Scorpio→Ketu, Aquarius→Rahu
       charaDasha: [
-        { sign: 9, durationYears: 10 },  // Dhanu
-        { sign: 10, durationYears: 2 },   // Makara
-        { sign: 11, durationYears: 7 },   // Kumbha
-        { sign: 12, durationYears: 3 },   // Meena
-        { sign: 1, durationYears: 2 },    // Mesha
-        { sign: 2, durationYears: 8 },    // Vrishabha
-        { sign: 3, durationYears: 2 },    // Mithuna
-        { sign: 4, durationYears: 4 },    // Karka
-        { sign: 5, durationYears: 12 },   // Simha
-        { sign: 6, durationYears: 12 },   // Kanya
-        { sign: 7, durationYears: 9 },    // Tula
-        { sign: 8, durationYears: 3 },    // Vrischika
+        { sign: 9, durationYears: 11 },  // Dhanu: Jupiter in 8, fwd 11
+        { sign: 10, durationYears: 3 },   // Makara: Saturn in 7, bwd 3
+        { sign: 11, durationYears: 3 },   // Kumbha: Rahu in 2, fwd 3
+        { sign: 12, durationYears: 4 },   // Meena: Jupiter in 8, bwd 4
+        { sign: 1, durationYears: 3 },    // Mesha: Mars in 4, fwd 3
+        { sign: 2, durationYears: 9 },    // Vrishabha: Venus in 5, bwd 9
+        { sign: 3, durationYears: 3 },    // Mithuna: Mercury in 6, fwd 3
+        { sign: 4, durationYears: 5 },    // Karka: Moon in 11, bwd 5
+        { sign: 5, durationYears: 12 },   // Simha: Sun in 5, own sign
+        { sign: 6, durationYears: 12 },   // Kanya: Mercury in 6, own sign
+        { sign: 7, durationYears: 10 },   // Tula: Venus in 5, fwd 10
+        { sign: 8, durationYears: 12 },   // Vrischika: Ketu in 8, own sign
       ],
       placidusCusps: [
         { cusp: 1, sign: 9, deg: 9.559 },
@@ -168,19 +169,20 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { planet: "sun", karaka: "DK" },
         { planet: "mars", karaka: "Karaka8" },
       ],
+      // Chara Dasha (KN Rao): Scorpio→Ketu, Aquarius→Rahu
       charaDasha: [
-        { sign: 5, durationYears: 12 },   // Simha (Sun in own sign)
-        { sign: 6, durationYears: 1 },    // Kanya
-        { sign: 7, durationYears: 9 },    // Tula
-        { sign: 8, durationYears: 1 },    // Vrischika
-        { sign: 9, durationYears: 7 },    // Dhanu
-        { sign: 10, durationYears: 6 },   // Makara
-        { sign: 11, durationYears: 3 },   // Kumbha
-        { sign: 12, durationYears: 6 },   // Meena
-        { sign: 1, durationYears: 4 },    // Mesha
-        { sign: 2, durationYears: 8 },    // Vrishabha
-        { sign: 3, durationYears: 1 },    // Mithuna
-        { sign: 4, durationYears: 10 },   // Karka
+        { sign: 5, durationYears: 12 },   // Simha: Sun in 5, own sign
+        { sign: 6, durationYears: 1 },    // Kanya: Mercury in 5, bwd 1
+        { sign: 7, durationYears: 10 },   // Tula: Venus in 5, fwd 10
+        { sign: 8, durationYears: 10 },   // Vrischika: Ketu in 10, bwd 10
+        { sign: 9, durationYears: 8 },    // Dhanu: Jupiter in 5, fwd 8
+        { sign: 10, durationYears: 7 },   // Makara: Saturn in 3, bwd 7
+        { sign: 11, durationYears: 5 },   // Kumbha: Rahu in 4, fwd 5
+        { sign: 12, durationYears: 7 },   // Meena: Jupiter in 5, bwd 7
+        { sign: 1, durationYears: 5 },    // Mesha: Mars in 6, fwd 5
+        { sign: 2, durationYears: 9 },    // Vrishabha: Venus in 5, bwd 9
+        { sign: 3, durationYears: 2 },    // Mithuna: Mercury in 5, fwd 2
+        { sign: 4, durationYears: 11 },   // Karka: Moon in 5, bwd 11
       ],
       placidusCusps: [
         { cusp: 1, sign: 5, deg: 28.809 },
@@ -243,19 +245,20 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { planet: "moon", karaka: "DK" },
         { planet: "jupiter", karaka: "Karaka8" },
       ],
+      // Chara Dasha (KN Rao): Scorpio→Ketu, Aquarius→Rahu
       charaDasha: [
-        { sign: 11, durationYears: 2 },   // Kumbha
-        { sign: 12, durationYears: 7 },   // Meena
-        { sign: 1, durationYears: 4 },    // Mesha
-        { sign: 2, durationYears: 7 },    // Vrishabha
-        { sign: 3, durationYears: 2 },    // Mithuna
-        { sign: 4, durationYears: 8 },    // Karka
-        { sign: 5, durationYears: 1 },    // Simha
-        { sign: 6, durationYears: 12 },   // Kanya
-        { sign: 7, durationYears: 10 },   // Tula
-        { sign: 8, durationYears: 1 },    // Vrischika
-        { sign: 9, durationYears: 6 },    // Dhanu
-        { sign: 10, durationYears: 7 },   // Makara
+        { sign: 11, durationYears: 6 },   // Kumbha: Rahu in 5, fwd 6
+        { sign: 12, durationYears: 8 },   // Meena: Jupiter in 4, bwd 8
+        { sign: 1, durationYears: 5 },    // Mesha: Mars in 6, fwd 5
+        { sign: 2, durationYears: 8 },    // Vrishabha: Venus in 6, bwd 8
+        { sign: 3, durationYears: 3 },    // Mithuna: Mercury in 6, fwd 3
+        { sign: 4, durationYears: 9 },    // Karka: Moon in 7, bwd 9
+        { sign: 5, durationYears: 1 },    // Simha: Sun in 6, fwd 1
+        { sign: 6, durationYears: 12 },   // Kanya: Mercury in 6, own sign
+        { sign: 7, durationYears: 11 },   // Tula: Venus in 6, fwd 11
+        { sign: 8, durationYears: 9 },    // Vrischika: Ketu in 11, bwd 9
+        { sign: 9, durationYears: 7 },    // Dhanu: Jupiter in 4, fwd 7
+        { sign: 10, durationYears: 8 },   // Makara: Saturn in 2, bwd 8
       ],
       placidusCusps: [
         { cusp: 1, sign: 11, deg: 21.560 },

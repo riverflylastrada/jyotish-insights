@@ -4,7 +4,7 @@
  * Run with: deno test supabase/functions/calculate-kundli/jaimini_test.ts
  */
 
-import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertNotEquals, assertExists, assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha, getJaiminiLord } from "./jaimini.ts";
 import type { PlanetPos } from "./divisional.ts";
 
@@ -159,9 +159,18 @@ Deno.test("getJaiminiLord: dual-lord signs use primary lord", () => {
   assertEquals(getJaiminiLord(12), 'jupiter');   // Pisces → Jupiter (not Ketu)
 });
 
-// ─── Chara Dasha (stubbed) ──────────────────────────────────────────────────
+// ─── Chara Dasha ────────────────────────────────────────────────────────────
 
-Deno.test("computeCharaDasha: returns null (stubbed)", () => {
+Deno.test("computeCharaDasha: returns 12 sign-dasha periods (KN Rao)", () => {
   const result = computeCharaDasha(testPlanets, 11, new Date('1980-08-15'));
-  assertEquals(result, null);
+  assertNotEquals(result, null);
+  assertEquals(result!.length, 12);
+  // Sequence starts from Lagna sign 11 (Aquarius, odd) → forward
+  assertEquals(result![0].sign, 11);
+  assertEquals(result![1].sign, 12);
+  assertEquals(result![2].sign, 1);
+  // All durations should be 1–12
+  for (const d of result!) {
+    assert(d.durationYears >= 1 && d.durationYears <= 12);
+  }
 });
