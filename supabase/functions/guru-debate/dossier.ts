@@ -159,30 +159,31 @@ function sectionSadeSatiStatus(transits: any[], natalMoonSign: number): string {
   if (!saturn) return "";
 
   const diff = ((saturn.signNumber - natalMoonSign + 12) % 12);
-  const lines = [`═══ SADE SATI / SATURN TRANSIT STATUS ═══`];
+  const lines = [`═══ SADE SATI / SATURN TRANSIT STATUS (AUTHORITATIVE — state this exact phase) ═══`];
 
   if (diff === 11) {
-    lines.push(`SADE SATI: Phase I (Rising/Ascending) — Saturn transiting 12th from natal Moon`);
+    lines.push(`SADE SATI: Phase 1 of 3 (Rising/Ascending) — Saturn transiting the 12th from the natal Moon. Trend: INTENSIFYING (early phase).`);
   } else if (diff === 0) {
-    lines.push(`SADE SATI: Phase II (Peak) — Saturn transiting over natal Moon`);
+    lines.push(`SADE SATI: Phase 2 of 3 (Peak/Janma) — Saturn transiting OVER the natal Moon. Trend: this is the MOST INTENSE phase.`);
   } else if (diff === 1) {
-    lines.push(`SADE SATI: Phase III (Setting/Descending) — Saturn transiting 2nd from natal Moon`);
+    lines.push(`SADE SATI: Phase 3 of 3 (Setting/Descending) — Saturn transiting the 2nd from the natal Moon. Trend: WANING (final phase, weakening).`);
   } else {
-    lines.push(`NOT currently in Sade Sati period`);
+    lines.push(`NOT currently in Sade Sati period (Saturn is not in the 12th, 1st, or 2nd from the natal Moon).`);
   }
 
   // Ashtama Shani (Saturn 8th from Moon)
   if (diff === 7) {
-    lines.push(`ASHTAMA SHANI: Saturn transiting 8th from natal Moon — period of stress and obstacles`);
+    lines.push(`ASHTAMA SHANI: Saturn transiting 8th from natal Moon — period of stress and obstacles.`);
   }
 
   // Kantaka/Dhaiya (Saturn 4th from Moon)
   if (diff === 3) {
-    lines.push(`KANTAKA SHANI (Dhaiya): Saturn transiting 4th from natal Moon — domestic and emotional pressure`);
+    lines.push(`KANTAKA SHANI (Dhaiya): Saturn transiting 4th from natal Moon — domestic and emotional pressure.`);
   }
 
   lines.push(`Transit Saturn: ${saturn.signName} ${fmtDeg(saturn.signDegree)}${saturn.isRetrograde ? " ℞" : ""}`);
   lines.push(`Natal Moon: ${signName(natalMoonSign)}`);
+  lines.push(`DIRECTIVE: State the SADE SATI phase and trend EXACTLY as given above. Do NOT recompute, renumber, or relabel the phase, and do NOT contradict the stated trend (intensifying vs. waning).`);
   return lines.join("\n");
 }
 

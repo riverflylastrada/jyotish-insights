@@ -56,7 +56,7 @@ async function getLlmConfig() {
 
 const VERDICT_PROMPT = "You are the Acharya, presiding over a tribunal of gurus. You have just heard their readings on a single chart and question. Synthesise a final, balanced verdict in 2-3 paragraphs: name the consensus, name the dissent, then deliver one operative recommendation. Cite the gurus by surname when they made a key point. No bullet points. Calm, judicial tone.";
 
-const GROUNDING_INSTRUCTION = `IMPORTANT: Reason ONLY from the CHART DOSSIER and CURRENT TRANSITS provided below. Never invent or assume planetary positions, the current date, dasha periods, or divisional placements. Today's date is provided in the dossier; use the provided CURRENT TRANSITS section for all gochara/Sade Sati/timing reasoning. If your method requires data that is not provided (e.g. KP cuspal sub-lords, Jaimini Arudha padas), state briefly that it is unavailable rather than fabricating it.`;
+const GROUNDING_INSTRUCTION = `IMPORTANT: Reason ONLY from the CHART DOSSIER and CURRENT TRANSITS provided below. Never invent or assume planetary positions, the current date, dasha periods, or divisional placements. Today's date is provided in the dossier; use the provided CURRENT TRANSITS section for all gochara/Sade Sati/timing reasoning. When the dossier provides a SADE SATI / SATURN TRANSIT STATUS, state that exact phase number and trend (intensifying vs. waning) — do NOT recompute, renumber, or relabel the phase, and do not contradict whether it is weakening or peaking. If your method requires data that is not provided (e.g. KP cuspal sub-lords, Jaimini Arudha padas), state briefly that it is unavailable rather than fabricating it.`;
 
 function genderPronoun(chart: any): string {
   const g = chart?.birthDetails?.gender;
