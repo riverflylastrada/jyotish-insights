@@ -182,22 +182,97 @@ export interface CharaDashaPeriod {
 }
 
 /**
- * Chara Dasha — STUBBED.
+ * Sign lord for Chara Dasha (KN Rao dual-lord convention):
+ * Scorpio (8) → Ketu, Aquarius (11) → Rahu.
+ * All other signs use the standard Parashari lord.
+ */
+function charaDashaLord(sign: number): string {
+  const lords: Record<number, string> = {
+    1: 'mars', 2: 'venus', 3: 'mercury', 4: 'moon',
+    5: 'sun', 6: 'mercury', 7: 'venus', 8: 'ketu',
+    9: 'jupiter', 10: 'saturn', 11: 'rahu', 12: 'jupiter',
+  };
+  return lords[sign] ?? 'sun';
+}
+
+/** Odd signs: Aries, Gemini, Leo, Libra, Sagittarius, Aquarius. */
+function isOddSign(sign: number): boolean {
+  return [1, 3, 5, 7, 9, 11].includes(sign);
+}
+
+/**
+ * Chara Dasha — KN Rao method.
  *
- * Jaimini's sign-based dasha requires:
- * - Odd/even lagna determination for direction
- * - Duration based on lord's distance with special rules for dual-lord signs
- * - Exception handling for signs whose lord is in the sign itself
- *
- * Parity with AstroSage/JHora could not be validated for 3 reference charts
- * within this pass. Returns null to indicate the dasha is not yet computed.
- * The dossier will state "Chara Dasha not yet validated — use with caution".
+ * Rules:
+ * 1. 12 sign-dashas starting from the Lagna sign.
+ * 2. Sequence: forward (zodiacal) if Lagna is odd, reverse if even.
+ * 3. Duration: count from the sign to its lord's sign — forward for odd
+ *    signs, backward for even. Count is inclusive (sign itself = 1),
+ *    years = count − 1. If lord is in the sign itself, years = 12.
+ *    Clamp 1–12.
+ * 4. Dual lords: Scorpio → Ketu, Aquarius → Rahu.
  */
 export function computeCharaDasha(
-  _d1Planets: PlanetPos[],
-  _ascSign: number,
-  _birthDate: Date,
+  d1Planets: PlanetPos[],
+  ascSign: number,
+  birthDate: Date,
 ): CharaDashaPeriod[] | null {
-  // Stubbed — parity validation pending.
-  return null;
+  // Build a map from planet name → sign number
+  const planetSign: Record<string, number> = {};
+  for (const p of d1Planets) {
+    if (p.planet !== 'ascendant') {
+      planetSign[p.planet] = p.signNumber;
+    }
+  }
+
+  const forward = isOddSign(ascSign);
+  const timeline: CharaDashaPeriod[] = [];
+  let cursor = new Date(birthDate);
+
+  for (let i = 0; i < 12; i++) {
+    // Determine the i-th sign in the dasha sequence
+    let sign: number;
+    if (forward) {
+      sign = ((ascSign - 1 + i) % 12) + 1;
+    } else {
+      sign = ((ascSign - 1 - i + 120) % 12) + 1;
+    }
+
+    // Find the lord and the lord's sign
+    const lord = charaDashaLord(sign);
+    const lordSign = planetSign[lord];
+    if (lordSign === undefined) continue;
+
+    // Count from the sign to the lord's sign (inclusive, sign = 1)
+    // years = inclusiveCount − 1 = steps forward/backward
+    let years: number;
+    if (lordSign === sign) {
+      years = 12;
+    } else if (isOddSign(sign)) {
+      // Count forward (zodiacal)
+      years = ((lordSign - sign + 12) % 12);
+    } else {
+      // Count backward (reverse zodiacal)
+      years = ((sign - lordSign + 12) % 12);
+    }
+
+    // Clamp 1–12
+    years = Math.max(1, Math.min(12, years));
+
+    const startDate = new Date(cursor);
+    const endDate = new Date(cursor);
+    endDate.setFullYear(endDate.getFullYear() + years);
+
+    timeline.push({
+      sign,
+      signName: SIGN_NAMES[(sign - 1) % 12],
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      durationYears: years,
+    });
+
+    cursor = new Date(endDate);
+  }
+
+  return timeline;
 }

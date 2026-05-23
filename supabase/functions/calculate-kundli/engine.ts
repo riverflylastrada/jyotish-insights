@@ -196,7 +196,17 @@ export function calculateKundli(details: BirthDetails) {
       atmakaraka: ak?.planet ?? 'unknown',
       karakamsa: karakamsaResult,
       arudhaPadas,
-      charaDasha: charaDashaTimeline ? { timeline: charaDashaTimeline } : undefined,
+      charaDasha: charaDashaTimeline ? (() => {
+        const now = new Date();
+        const current = charaDashaTimeline.find(
+          (d) => new Date(d.startDate) <= now && now < new Date(d.endDate),
+        );
+        return {
+          timeline: charaDashaTimeline,
+          currentSign: current?.sign,
+          currentSignName: current?.signName,
+        };
+      })() : undefined,
     },
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
   };

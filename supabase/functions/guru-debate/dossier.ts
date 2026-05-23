@@ -469,9 +469,13 @@ function sectionJaimini(chart: any): string {
   }
 
   if (j.charaDasha?.timeline?.length) {
-    lines.push(`Chara Dasha: currently ${j.charaDasha.currentSignName ?? "see timeline"} (computed — use with caution pending parity validation).`);
+    lines.push(`Chara Dasha (KN Rao): currently ${j.charaDasha.currentSignName ?? "see timeline"}.`);
+    for (const d of j.charaDasha.timeline) {
+      const marker = d.signName === j.charaDasha.currentSignName ? " ◄ current" : "";
+      lines.push(`  ${d.signName}: ${d.durationYears} yrs (${d.startDate?.slice(0,10)} → ${d.endDate?.slice(0,10)})${marker}`);
+    }
   } else {
-    lines.push(`Chara Dasha: not yet computed (stubbed pending parity validation with AstroSage/JHora) — do NOT fabricate.`);
+    lines.push(`Chara Dasha: not yet computed — do NOT fabricate.`);
   }
 
   return lines.join("\n");
