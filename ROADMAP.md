@@ -11,16 +11,40 @@ grouped by horizon and theme.
 
 ## Where we are today
 
-The platform already delivers an end-to-end experience: in-house chart
-computation, 16 divisional charts, Vimshottari dasha, yogas, doshas,
-Ashtakavarga, Panchang, transits, 36-point compatibility, the multi-Guru debate
-engine, auth, a chart library with public sharing, and an admin panel. The
-recent commit history shows active work on AstroSage parity (compatibility
-scoring, Ashtakavarga tables) and on the debate engine (parallel streaming,
-multi-turn memory).
+The platform delivers an end-to-end experience: in-house chart computation, 16
+divisional charts, Vimshottari dasha, yogas, doshas, Ashtakavarga, Panchang,
+transits, 36-point compatibility, the multi-Guru debate engine, auth, a chart
+library with public sharing, an admin panel, and PDF report export.
 
-The main gaps are **astronomical precision**, **breadth of classical systems**,
-**monetization/plan enforcement**, and **automated test coverage**.
+The remaining gaps are **astronomical precision** (ephemeris, full Shadbala),
+**a few stubbed classical systems** (Chara Dasha, KP Placidus cusps),
+**monetization/plan enforcement**, and a **parity test harness**.
+
+---
+
+## Recently shipped ✅
+
+- ✅ **Grounded Guru Debate.** Replaced the lossy chart context with a modular
+  ~17-section **chart dossier** ([dossier.ts](supabase/functions/guru-debate/dossier.ts)):
+  server-computed live transits (houses from Lagna and Moon), authoritative Sade
+  Sati phase, multi-level dashas, gender, yogas/doshas, Ashtakavarga, Shadbala,
+  divisional summaries, KP and Jaimini sections.
+- ✅ **Anti-hallucination guardrail** — gurus must reason only from provided
+  data and state computed values (e.g. the Sade Sati phase) verbatim. Fixed the
+  bug where gurus placed the same planet in different signs on the same day.
+- ✅ **Truncation retry** — the client captures `finish_reason` and retries
+  short/cut-off readings up to twice instead of showing them as complete.
+- ✅ **KP sub-lord engine** ([kp.ts](supabase/functions/calculate-kundli/kp.ts)) —
+  planet sub-lords (sign/star/sub) and Ruling Planets.
+- ✅ **Jaimini engine** ([jaimini.ts](supabase/functions/calculate-kundli/jaimini.ts)) —
+  8 Chara Karakas (Rahu reversed), Karakamsa, Arudha Padas (AL/UL with exception
+  handling), surfaced as first-class chart data.
+- ✅ **Self-updating snapshots** — saved charts are version-stamped and
+  auto-recalculate when the engine gains new data (no manual "Recalculate").
+- ✅ **Edge-function tests** — 45 Deno tests across the KP, Jaimini, and dossier
+  modules; Vitest covers the SSE parse + retry logic.
+- ✅ **PDF report export** — `render-report` renders the dossier to a multi-page
+  PDF via PDFShift (key configured in Admin → API Keys).
 
 ---
 
@@ -36,40 +60,45 @@ The main gaps are **astronomical precision**, **breadth of classical systems**,
 - 🟡 **AstroSage parity test harness.** A celebrity dataset
   (`indian_celebrity_kundli_data.xlsx`) exists — wire it into an automated
   parity suite that diffs computed charts against known-good references and
-  fails CI on regressions.
+  fails CI on regressions. (KP/Jaimini unit tests exist; full chart parity does
+  not yet.)
 - ⬜ **Full Shadbala.** Replace the current simplified strength heuristic with
   the classical six-source Shadbala (Sthana, Dig, Kala, Cheshta, Naisargika,
   Drik) reported in Rupas/Virupas.
 
+### Finish the stubbed systems
+- 🟡 **Jaimini Chara Dasha.** `computeCharaDasha` is stubbed pending parity
+  validation. Implement the KN Rao method and validate against AstroSage/JHora
+  before un-stubbing the dossier section.
+- 🟡 **KP cuspal sub-lords.** `computePlacidusCusps` is stubbed; KP currently
+  uses Whole Sign. Implement Placidus cusps, then cuspal sub-lords and the
+  4-fold significator scheme.
+
 ### Quality & testing
-- 🟡 **Test the calculation engine.** Only a placeholder Vitest exists today.
-  Add unit tests per module (astronomy, vedic, divisional, dashas, yogas,
-  doshas, ashtakavarga, panchang) plus golden-snapshot tests for full charts.
-- ⬜ **CI pipeline** — run lint + tests on every push/PR.
-- ⬜ **Edge-function tests** for `calculate-kundli` and `guru-debate`
-  (Deno test).
+- 🟡 **Engine unit coverage.** KP, Jaimini, and the dossier are covered; extend
+  to astronomy, vedic, divisional, dashas, yogas, doshas, ashtakavarga, panchang
+  plus golden-snapshot tests for full charts.
+- ⬜ **CI pipeline** — run lint + Vitest + `deno test`/`deno check` on every push/PR.
 
 ### Provider layer
 - 🟡 **Finish the provider abstraction.** `normalizers.ts` is a no-op and the
-  `vedicrishi`/`custom` frontend providers are stubs. Confirm `custom` fully
-  routes to the `calculate-kundli` edge function and remove dead paths, or
-  complete the VedicRishi adapter as a documented fallback.
+  `vedicrishi` provider is a stub. `custom` is confirmed working against the
+  edge function; remove dead paths or complete the VedicRishi adapter.
 
 ---
 
 ## Mid-term
 
 ### Additional classical systems
-- ⬜ **More dasha systems** — Yogini, Ashtottari, Kalachakra, and Jaimini
-  **Chara Dasha** (the Jaimini guru already reasons about Chara Dasha, but the
-  engine doesn't compute it yet).
+- ⬜ **More dasha systems** — Yogini, Ashtottari, Kalachakra (alongside the
+  in-progress Jaimini Chara Dasha).
 - ⬜ **Multiple house systems.** Only Whole Sign is implemented, though
   `profiles.house_system` already stores the preference. Add Placidus, Sripati,
-  Equal, and KP (Placidus-based) cusps.
+  Equal, and KP (Placidus-based) cusps. *(Shares the Placidus work above.)*
 - ⬜ **Expanded yoga catalog** — grow well beyond the current 15+, organized by
   category with cancellation rules.
-- ⬜ **Jaimini toolkit** — Chara Karakas, Arudha Padas, Karakamsa, Argala,
-  surfaced as first-class chart data (not just LLM prose).
+- ⬜ **Extend the Jaimini toolkit** — Argala, Chara Dasha sub-periods, and Special
+  Lagnas, building on the shipped Chara Karakas / Arudha Padas.
 
 ### Features
 - 🟡 **Muhurta (electional astrology).** A route exists; build out
@@ -77,8 +106,6 @@ The main gaps are **astronomical precision**, **breadth of classical systems**,
 - ⬜ **Transit alerts & notifications.** Promised by the "Acharya" pricing tier;
   detect significant gochara/Sade Sati events and notify users.
 - ⬜ **Annual chart (Varshphal / Tajik).** Solar-return chart and year analysis.
-- ⬜ **True PDF export.** `render-report` produces HTML; add reliable
-  server-side PDF rendering.
 - 💡 **RAG-backed citations** for the Guru debate — ground readings in the
   actual source texts (BPHS, Saravali, Phaladeepika) for verifiable quotes.
 
@@ -110,8 +137,8 @@ The main gaps are **astronomical precision**, **breadth of classical systems**,
 ## Cross-cutting / hygiene
 
 - ⬜ **Accessibility pass** (keyboard nav, ARIA, contrast) across all pages.
-- ⬜ **Performance** — profile and lazy-load heavy routes; the snapshot cache in
-  `useKundli` already helps, extend it.
+- ⬜ **Performance** — profile and lazy-load heavy routes; extend the
+  version-stamped snapshot cache in `useKundli`.
 - ⬜ **Security review** of RLS policies and the public share-token path.
 - ⬜ **Observability** — structured logging and error tracking for edge
   functions.
