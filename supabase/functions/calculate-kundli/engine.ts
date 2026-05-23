@@ -18,6 +18,8 @@ import { detectYogas } from "./yogas.ts";
 import { detectDoshas } from "./doshas.ts";
 import { computeAshtakavarga } from "./ashtakavarga.ts";
 import { computePanchang } from "./panchang.ts";
+import { computeKpPlanetSubLords } from "./kp.ts";
+import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha } from "./jaimini.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -149,6 +151,19 @@ export function calculateKundli(details: BirthDetails) {
     shadbala[p.planet] = Math.max(0, Math.min(100, score));
   }
 
+  // KP sub-lords for all 9 planets
+  const kpPlanetSubLords = computeKpPlanetSubLords(d1Planets);
+
+  // Jaimini: Chara Karakas, Karakamsa, Arudha Padas, Chara Dasha
+  const charaKarakas = computeCharaKarakas(d1Planets);
+  const ak = charaKarakas.find((ck) => ck.karaka === 'AK');
+  const d9Chart = divCharts.find((c) => c.varga === 'D9');
+  const karakamsaResult = ak && d9Chart
+    ? karakamsa(ak.planet, d9Chart.planets)
+    : { sign: 0, signName: 'Unknown' };
+  const arudhaPadas = computeArudhaPadas(d1Planets, ascSign);
+  const charaDashaTimeline = computeCharaDasha(d1Planets, ascSign, birthDate);
+
   return {
     id: crypto.randomUUID(),
     birthDetails: details,
@@ -161,6 +176,14 @@ export function calculateKundli(details: BirthDetails) {
     yogas,
     ashtakavarga,
     shadbala,
+    kp: { planetSubLords: kpPlanetSubLords },
+    jaimini: {
+      charaKarakas,
+      atmakaraka: ak?.planet ?? 'unknown',
+      karakamsa: karakamsaResult,
+      arudhaPadas,
+      charaDasha: charaDashaTimeline ? { timeline: charaDashaTimeline } : undefined,
+    },
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
   };
 }
