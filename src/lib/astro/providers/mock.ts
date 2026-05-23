@@ -2,7 +2,7 @@ import type {
   AstroProvider, BirthDetails, KundliData, PlanetPosition, DivisionalChart,
   DashaSystem, DashaPeriod, Dosha, Yoga, AshtakavargaData, PlanetName,
 } from '../types';
-import { SIGN_NAMES } from '../types';
+import { SIGN_NAMES, CURRENT_SNAPSHOT_VERSION } from '../types';
 
 // Reference chart: 15 Aug 1980, 14:30, Ahmedabad. Lagna ~ Vrischika (Scorpio).
 // Numbers are illustrative — real engine will replace.
@@ -186,6 +186,7 @@ export class MockProvider implements AstroProvider {
     const charts = buildVargas();
     return {
       id: 'demo',
+      snapshotVersion: CURRENT_SNAPSHOT_VERSION,
       birthDetails: details,
       generatedAt: new Date().toISOString(),
       ascendant: D1_PLANETS[0],
