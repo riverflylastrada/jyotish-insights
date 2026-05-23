@@ -310,7 +310,8 @@ Deno.test("dossier contains Atmakaraka", () => {
 
 Deno.test("dossier lists unavailable systems", () => {
   const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
-  assertStringIncludes(d, "KP cuspal sub-lords");
+  assertStringIncludes(d, "SYSTEMS NOT YET COMPUTED");
+  assertStringIncludes(d, "Varshphal");
   assertStringIncludes(d, "NOT fabricate");
 });
 
