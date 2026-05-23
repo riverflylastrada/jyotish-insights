@@ -52,8 +52,15 @@ API is required.
 - **Panchang** — Tithi, Vara, Nakshatra, Yoga, and Karana, plus sunrise/sunset.
 - **Shadbala-style strength scores** for each planet (dignity, combustion,
   retrogression, and house placement weighted into a 0–100 score).
+- **KP (Krishnamurti Paddhati)** — sign-lord / star-lord / sub-lord for every
+  planet, plus KP Ruling Planets. *(Placidus cuspal sub-lords in progress.)*
+- **Jaimini** — 8 Chara Karakas (Atmakaraka → Darakaraka, with Rahu reversed),
+  Karakamsa, and Arudha Padas (Arudha Lagna, Upapada). *(Chara Dasha in progress.)*
 - Selectable **Ayanamsa** (Lahiri, Raman, Krishnamurti, Yukteshwar) and chart
   style (North / South Indian).
+- **Self-updating snapshots** — saved charts carry an engine version and
+  auto-recalculate when the engine gains new data, so old charts gain new
+  features (e.g. KP/Jaimini) without a manual recalculation.
 
 ### Interpretation & analysis
 - **Multi-Guru Debate** — pose a question and stream parallel readings from up
@@ -61,7 +68,10 @@ API is required.
   K. N. Rao, K. S. Krishnamurti, Jaimini, Mantreshwara, Kalyanavarman), then a
   Master Acharya synthesizes a final verdict noting consensus and dissent.
   Multi-turn follow-up conversation and a scrollable trial-history log are
-  supported.
+  supported. Every reading is **grounded in a full chart dossier** (live
+  transits, the computed Sade Sati phase, dashas, yogas/doshas, KP and Jaimini
+  data) with an anti-hallucination guardrail and automatic retry on truncated
+  responses — so gurus reason from real data instead of inventing positions.
 - **Transits (Gochara)** — an interactive bi-wheel overlaying today's planets
   onto the natal chart, with houses computed from both Lagna and Moon, plus
   Sade Sati and double-transit indicators.
@@ -143,7 +153,9 @@ in TypeScript:
 | [doshas.ts](supabase/functions/calculate-kundli/doshas.ts) | Dosha detection + remedies |
 | [ashtakavarga.ts](supabase/functions/calculate-kundli/ashtakavarga.ts) | Bhinna- and Sarva-ashtakavarga |
 | [panchang.ts](supabase/functions/calculate-kundli/panchang.ts) | Tithi, Vara, Nakshatra, Yoga, Karana |
-| [engine.ts](supabase/functions/calculate-kundli/engine.ts) | Orchestrator → assembles the full `KundliData` |
+| [kp.ts](supabase/functions/calculate-kundli/kp.ts) | KP sub-lords (sign/star/sub) and Ruling Planets (cuspal sub-lords pending Placidus) |
+| [jaimini.ts](supabase/functions/calculate-kundli/jaimini.ts) | Chara Karakas, Karakamsa, Arudha Padas (Chara Dasha pending parity) |
+| [engine.ts](supabase/functions/calculate-kundli/engine.ts) | Orchestrator → assembles the full `KundliData` (version-stamped) |
 
 Planetary positions use Keplerian orbital elements (Meeus, *Astronomical
 Algorithms*), giving ~0.1–0.5° accuracy — sufficient for astrological purposes.
@@ -160,15 +172,26 @@ Algorithms*), giving ~0.1–0.5° accuracy — sufficient for astrological purpo
 [supabase/functions/guru-debate/index.ts](supabase/functions/guru-debate/index.ts)
 exposes two modes:
 
-- **`guru`** — given a chart, a question, and a guru id, it builds a compact
-  chart context (planets, current Mahadasha, active yogas/doshas) and streams an
-  in-character reading from that guru's system prompt.
+- **`guru`** — given a chart, a question, and a guru id, it builds a full
+  **chart dossier** and streams an in-character reading from that guru's system
+  prompt.
 - **`verdict`** — given the prior readings, the Acharya produces a final
   synthesis, explicitly naming consensus and dissent.
 
-Readings stream over SSE so the UI fills in live and runs the gurus in parallel.
-The LLM endpoint, model, and API key are read from `app_settings` (configurable
-in the Admin panel) with a `GOOGLE_AI_KEY` environment fallback.
+The dossier ([dossier.ts](supabase/functions/guru-debate/dossier.ts)) is a
+modular, ~17-section context builder — today's date, **server-computed live
+transits** (houses from both Lagna and Moon), the **authoritative Sade Sati
+phase**, natal planet table, house lordships, multi-level dashas, yogas/doshas,
+Ashtakavarga, Shadbala, Panchang, divisional summaries, and the **KP** and
+**Jaimini** sections. A grounding guardrail forbids inventing positions or
+dates and tells gurus to state computed values (e.g. the Sade Sati phase)
+verbatim. This fixed a class of bugs where gurus would hallucinate
+contradictory planetary positions on transit-sensitive questions.
+
+Readings stream over SSE so the UI fills in live and runs the gurus in parallel;
+the client captures `finish_reason` and **retries truncated readings** up to
+twice. The LLM endpoint, model, and API key are read from `app_settings`
+(configurable in the Admin panel) with a `GOOGLE_AI_KEY` environment fallback.
 
 ---
 
@@ -192,7 +215,11 @@ src/
   stores/          # useChartStore, useDebateStore, useUserStore (Zustand)
   integrations/    # Supabase client + generated types
 supabase/
-  functions/       # calculate-kundli, guru-debate, render-report (Deno)
+  functions/
+    calculate-kundli/  # Vedic engine (astronomy, vedic, divisional, dashas,
+                       #   yogas, doshas, ashtakavarga, panchang, kp, jaimini)
+    guru-debate/       # LLM tribunal: index.ts + dossier.ts (chart dossier builder)
+    render-report/     # HTML → PDF report (via PDFShift)
   migrations/      # Postgres schema + RLS + RPCs
 Dockerfile         # Multi-stage build → nginx
 .do/app.yaml       # DigitalOcean App Platform spec
@@ -270,7 +297,8 @@ Core tables (see [supabase/migrations/](supabase/migrations/)):
   (ayanamsa, chart style, house system) and a `role` (`user` | `admin`).
   Auto-created on signup via the `handle_new_user` trigger.
 - **`charts`** — saved charts: `birth_details` (JSONB), cached `snapshot`
-  (JSONB), and a secret `share_token` for public read access.
+  (JSONB, version-stamped — stale snapshots auto-recalculate on load), and a
+  secret `share_token` for public read access.
 - **`app_settings`** — admin-managed key/value config (LLM endpoint, model, API
   key references), admin-only via RLS.
 
@@ -314,17 +342,27 @@ Supabase CLI as shown above.
 
 ## Testing
 
-Tests use [Vitest](https://vitest.dev) with Testing Library and jsdom
+**Frontend** — [Vitest](https://vitest.dev) with Testing Library and jsdom
 (config in [vitest.config.ts](vitest.config.ts), setup in
-[src/test/setup.ts](src/test/setup.ts)).
+[src/test/setup.ts](src/test/setup.ts)), covering the SSE parsing + truncation
+retry logic:
 
 ```bash
 npm run test          # run once
 npm run test:watch    # watch mode
 ```
 
-> Test coverage is currently minimal — expanding the suite around the
-> calculation engine is a priority (see the [Roadmap](ROADMAP.md)).
+**Edge functions** — Deno tests for the engine and dossier (KP, Jaimini, and the
+chart dossier builder):
+
+```bash
+deno test supabase/functions/calculate-kundli/ supabase/functions/guru-debate/
+deno check supabase/functions/calculate-kundli/engine.ts
+```
+
+> Coverage spans the KP/Jaimini engines and the dossier builder. The next
+> priority is a parity-test harness diffing computed charts against reference
+> software (AstroSage / JHora) — see the [Roadmap](ROADMAP.md).
 
 ---
 
