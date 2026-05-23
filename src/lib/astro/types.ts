@@ -140,8 +140,18 @@ export interface JaiminiData {
   };
 }
 
+/**
+ * Current engine snapshot version. Saved chart snapshots older than this
+ * (or with no version) are automatically recalculated on next load.
+ * Bump this whenever the snapshot gains new data, and keep it in sync with
+ * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
+ */
+export const CURRENT_SNAPSHOT_VERSION = 2;
+
 export interface KundliData {
   id: string;
+  /** Engine version that produced this snapshot (see CURRENT_SNAPSHOT_VERSION). */
+  snapshotVersion?: number;
   birthDetails: BirthDetails;
   generatedAt: string;
   ascendant: PlanetPosition;
