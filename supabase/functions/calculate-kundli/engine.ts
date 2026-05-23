@@ -85,7 +85,7 @@ export function calculateKundli(details: BirthDetails) {
   const ascSign = signNumber(ascSid);
 
   const d1Planets: PlanetPos[] = PLANETS.map(({ key }) => {
-    const tropLon = (trop as Record<string, number>)[key];
+    const tropLon = (trop as unknown as Record<string, number>)[key];
     const sidLon = toSidereal(tropLon, aya);
     const sn = signNumber(sidLon);
     const sd = signDegree(sidLon);
@@ -180,7 +180,7 @@ export function calculateTransits(details: BirthDetails) {
   const ascSign = signNumber(ascSid);
 
   return PLANETS.filter(({ key }) => key !== 'ascendant').map(({ key }) => {
-    const tropLon = (trop as Record<string, number>)[key];
+    const tropLon = (trop as unknown as Record<string, number>)[key];
     const sidLon = toSidereal(tropLon, aya);
     const sn = signNumber(sidLon);
     const sd = signDegree(sidLon);
