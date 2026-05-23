@@ -5,6 +5,7 @@
 import {
   julianDay, julianCenturies, tropicalPositions,
   isRetrograde, planetSpeed, sunriseSunset,
+  obliquity, lst,
 } from "./astronomy.ts";
 import {
   ayanamsa, toSidereal, signNumber, signName, signDegree,
@@ -18,7 +19,7 @@ import { detectYogas } from "./yogas.ts";
 import { detectDoshas } from "./doshas.ts";
 import { computeAshtakavarga } from "./ashtakavarga.ts";
 import { computePanchang } from "./panchang.ts";
-import { computeKpPlanetSubLords } from "./kp.ts";
+import { computeKpPlanetSubLords, computePlacidusCusps, computeCuspalSubLords, computeRulingPlanets } from "./kp.ts";
 import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha } from "./jaimini.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
@@ -154,6 +155,15 @@ export function calculateKundli(details: BirthDetails) {
   // KP sub-lords for all 9 planets
   const kpPlanetSubLords = computeKpPlanetSubLords(d1Planets);
 
+  // KP Placidus cusps + cuspal sub-lords
+  const eps = obliquity(T);
+  const ramcDeg = lst(jd, lon);
+  const tropCusps = computePlacidusCusps(jd, lat, eps, ramcDeg);
+  const cuspalSubLords = computeCuspalSubLords(tropCusps, aya);
+
+  // KP Ruling Planets (at chart time)
+  const rulingPlanets = computeRulingPlanets(ascSid, moonSid, birthDate);
+
   // Jaimini: Chara Karakas, Karakamsa, Arudha Padas, Chara Dasha
   const charaKarakas = computeCharaKarakas(d1Planets);
   const ak = charaKarakas.find((ck) => ck.karaka === 'AK');
@@ -169,7 +179,7 @@ export function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 2,
+    snapshotVersion: 3,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -180,7 +190,7 @@ export function calculateKundli(details: BirthDetails) {
     yogas,
     ashtakavarga,
     shadbala,
-    kp: { planetSubLords: kpPlanetSubLords },
+    kp: { planetSubLords: kpPlanetSubLords, cuspalSubLords, rulingPlanets },
     jaimini: {
       charaKarakas,
       atmakaraka: ak?.planet ?? 'unknown',

@@ -481,7 +481,7 @@ function sectionUnavailableSystems(): string {
   return [
     `═══ SYSTEMS NOT YET COMPUTED ═══`,
     `The following are not available in this chart snapshot — do NOT fabricate them:`,
-    `- KP cuspal sub-lords and significators (Placidus cusps pending)`,
+    `- KP 4-fold significators per house (occupants, star-lords, lord, lord's star-lord — pending)`,
     `- Varshphal (annual/solar return chart)`,
     `- Sahams (Arabic parts)`,
   ].join("\n");
