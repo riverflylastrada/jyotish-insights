@@ -1,0 +1,33 @@
+name: Mirror main to riverflylastrada
+
+# Keeps the riverflylastrada/jyotish-insights fork's `main` in lockstep with this
+# repo. Runs on every push to main (including PR merges, e.g. from Devin), so both
+# GitHub repos always carry the same code.
+#
+# Setup (one time): add a repository secret named MIRROR_TOKEN — a GitHub PAT
+# (fine-grained or classic) with Contents:write access to
+# riverflylastrada/jyotish-insights. Until the secret exists, this job no-ops.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push main to the fork
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          if [ -z "$MIRROR_TOKEN" ]; then
+            echo "MIRROR_TOKEN secret not set — skipping mirror (configure it to enable auto-sync)."
+            exit 0
+          fi
+          git push "https://x-access-token:${MIRROR_TOKEN}@github.com/riverflylastrada/jyotish-insights.git" HEAD:main
