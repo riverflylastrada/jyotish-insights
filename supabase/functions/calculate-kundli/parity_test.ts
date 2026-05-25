@@ -18,12 +18,10 @@ import type { BirthDetails } from "./engine.ts";
 // ─── Tolerances ─────────────────────────────────────────────────────────────
 
 /** Position tolerance in degrees.
- *  Our Keplerian engine (Meeus-style orbital elements for J2000±centuries)
- *  targets ~0.1–0.5° accuracy for modern dates. For charts in the 1940s
- *  (further from J2000.0), Keplerian degradation can push errors to ~0.8°.
- *  We use 1.0° as the harness tolerance — enough to catch gross bugs while
- *  accommodating the engine's known limitations vs Swiss Ephemeris. */
-const POS_TOLERANCE_DEG = 1.0;
+ *  VSOP87 (Bretagnon & Francou 1988) gives sub-arcminute accuracy for
+ *  Sun and planets (Mercury–Saturn). Tolerance set to 0.05° (3 arcmin)
+ *  to validate parity with Swiss Ephemeris. */
+const POS_TOLERANCE_DEG = 0.05;
 
 /** Moon tolerance is wider (up to 1.5°) because the Moon's fast motion
  *  amplifies small JD/ephemeris differences. */
