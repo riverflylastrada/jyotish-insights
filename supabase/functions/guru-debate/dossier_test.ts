@@ -213,15 +213,16 @@ const sampleChart = {
     sarva: [25, 29, 22, 32, 26, 28, 30, 24, 27, 31, 26, 37],
   },
   shadbala: {
-    sun: 70,
-    moon: 65,
-    mars: 40,
-    mercury: 35,
-    jupiter: 38,
-    venus: 42,
-    saturn: 55,
-    rahu: 50,
-    ketu: 50,
+    planets: {
+      sun:     { sthanaBala: 150, digBala: 40, kalaBala: 120, cheshtaBala: 0, naisargikaBala: 60, drikBala: 10, totalVirupas: 380, totalRupas: 6.33, required: 6.5, ratio: 0.97 },
+      moon:    { sthanaBala: 130, digBala: 50, kalaBala: 100, cheshtaBala: 0, naisargikaBala: 51.43, drikBala: 5, totalVirupas: 336.43, totalRupas: 5.61, required: 6, ratio: 0.93 },
+      mars:    { sthanaBala: 100, digBala: 30, kalaBala: 90, cheshtaBala: 30, naisargikaBala: 17.14, drikBala: -5, totalVirupas: 262.14, totalRupas: 4.37, required: 5, ratio: 0.87 },
+      mercury: { sthanaBala: 120, digBala: 20, kalaBala: 140, cheshtaBala: 30, naisargikaBala: 25.71, drikBala: 8, totalVirupas: 343.71, totalRupas: 5.73, required: 7, ratio: 0.82 },
+      jupiter: { sthanaBala: 110, digBala: 30, kalaBala: 95, cheshtaBala: 45, naisargikaBala: 34.28, drikBala: 12, totalVirupas: 326.28, totalRupas: 5.44, required: 6.5, ratio: 0.84 },
+      venus:   { sthanaBala: 105, digBala: 50, kalaBala: 85, cheshtaBala: 30, naisargikaBala: 42.85, drikBala: 7, totalVirupas: 319.85, totalRupas: 5.33, required: 5.5, ratio: 0.97 },
+      saturn:  { sthanaBala: 115, digBala: 40, kalaBala: 110, cheshtaBala: 60, naisargikaBala: 8.57, drikBala: -3, totalVirupas: 330.57, totalRupas: 5.51, required: 5, ratio: 1.10 },
+    },
+    rank: ["sun", "mercury", "moon", "saturn", "jupiter", "venus", "mars"],
   },
   panchang: {
     tithi: "Shukla Paksha Shashthi",
@@ -334,11 +335,14 @@ Deno.test("dossier contains Ashtakavarga data", () => {
   assertStringIncludes(d, "SAV");
 });
 
-Deno.test("dossier contains Shadbala data", () => {
+Deno.test("dossier contains Shadbala data with six-source breakdown", () => {
   const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
   assertStringIncludes(d, "SHADBALA");
+  assertStringIncludes(d, "Sthana");
+  assertStringIncludes(d, "Rupas");
   assertStringIncludes(d, "Strongest");
   assertStringIncludes(d, "Weakest");
+  assertStringIncludes(d, "Strength rank");
 });
 
 Deno.test("dossier contains Panchang data", () => {

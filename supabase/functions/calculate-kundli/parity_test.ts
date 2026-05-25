@@ -47,6 +47,10 @@ interface ReferenceChart {
     charaDasha?: Array<{ sign: number; durationYears: number }>;
     /** Placidus cusps (sidereal) — sign + degree for each cusp 1–12 */
     placidusCusps?: Array<{ cusp: number; sign: number; deg: number }>;
+    /** Shadbala total Rupas per planet (from JHora / our engine baseline) */
+    shadbalaRupas?: Record<string, number>;
+    /** Shadbala rank (strongest → weakest) */
+    shadbalaRank?: string[];
   };
 }
 
@@ -126,6 +130,8 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { cusp: 11, sign: 7, deg: 20.880 },
         { cusp: 12, sign: 8, deg: 15.746 },
       ],
+      shadbalaRupas: { sun: 6.71, moon: 6.37, mars: 6.11, mercury: 9.39, jupiter: 5.83, venus: 6.08, saturn: 7.52 },
+      shadbalaRank: ["mercury", "saturn", "sun", "moon", "mars", "venus", "jupiter"],
     },
   },
   // ── Chart 2: Rajiv Gandhi ──────────────────────────────────────────────
@@ -203,6 +209,8 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { cusp: 11, sign: 3, deg: 29.196 },
         { cusp: 12, sign: 4, deg: 29.310 },
       ],
+      shadbalaRupas: { sun: 9.66, moon: 4.81, mars: 6.44, mercury: 8.23, jupiter: 8.93, venus: 4.99, saturn: 6.26 },
+      shadbalaRank: ["sun", "jupiter", "mercury", "mars", "saturn", "venus", "moon"],
     },
   },
   // ── Chart 3: Amitabh Bachchan ──────────────────────────────────────────
@@ -280,6 +288,8 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { cusp: 11, sign: 9, deg: 20.656 },
         { cusp: 12, sign: 10, deg: 17.429 },
       ],
+      shadbalaRupas: { sun: 6.87, moon: 4.15, mars: 4.80, mercury: 7.56, jupiter: 6.77, venus: 5.87, saturn: 7.72 },
+      shadbalaRank: ["saturn", "mercury", "sun", "jupiter", "venus", "mars", "moon"],
     },
   },
 ];
@@ -428,4 +438,49 @@ for (const ref of REFERENCE_CHARTS) {
     assertEquals(typeof chart.snapshotVersion, "number");
     assertEquals(chart.snapshotVersion! >= 2, true, "Snapshot version should be ≥ 2");
   });
+
+  // ── Shadbala (six-source, Parashari/BPHS) ─────────────────────────────
+  Deno.test(`[${ref.label}] Shadbala is computed for 7 grahas`, () => {
+    const sb = chart.shadbala as { planets: Record<string, { totalRupas: number; sthanaBala: number; digBala: number; kalaBala: number; cheshtaBala: number; naisargikaBala: number; drikBala: number; required: number; ratio: number }>; rank: string[] };
+    assertEquals(typeof sb, "object", "shadbala should be an object");
+    assertEquals(typeof sb.planets, "object", "shadbala.planets should be an object");
+    const planets = Object.keys(sb.planets);
+    assertEquals(planets.length, 7, `Expected 7 grahas, got ${planets.length}`);
+    for (const p of ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"]) {
+      assertEquals(planets.includes(p), true, `Missing planet ${p}`);
+      const data = sb.planets[p];
+      assertEquals(data.totalRupas > 0, true, `${p} totalRupas should be > 0`);
+      assertEquals(data.required > 0, true, `${p} required should be > 0`);
+    }
+    assertEquals(sb.rank.length, 7, "rank should have 7 entries");
+  });
+
+  if (ref.expected.shadbalaRupas) {
+    const SHADBALA_RUPA_TOLERANCE = 0.5; // ±0.5 Rupa
+
+    Deno.test(`[${ref.label}] Shadbala total Rupas within ±${SHADBALA_RUPA_TOLERANCE} of baseline`, () => {
+      const sb = chart.shadbala as { planets: Record<string, { totalRupas: number }>; rank: string[] };
+      for (const [planet, expectedRupas] of Object.entries(ref.expected.shadbalaRupas!)) {
+        const actual = sb.planets[planet]?.totalRupas;
+        assertAlmostEquals(
+          actual,
+          expectedRupas,
+          SHADBALA_RUPA_TOLERANCE,
+          `${planet} Shadbala: expected ~${expectedRupas} Rupas, got ${actual}`,
+        );
+      }
+    });
+
+    Deno.test(`[${ref.label}] Shadbala rank matches baseline`, () => {
+      const sb = chart.shadbala as { planets: Record<string, { totalRupas: number }>; rank: string[] };
+      const expectedRank = ref.expected.shadbalaRank!;
+      for (let i = 0; i < expectedRank.length; i++) {
+        assertEquals(
+          sb.rank[i],
+          expectedRank[i],
+          `Rank position ${i + 1}: expected ${expectedRank[i]}, got ${sb.rank[i]}`,
+        );
+      }
+    });
+  }
 }
