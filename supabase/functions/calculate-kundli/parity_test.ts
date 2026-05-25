@@ -14,6 +14,7 @@ import {
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { calculateKundli } from "./engine.ts";
 import type { BirthDetails } from "./engine.ts";
+import type { NodeType } from "./astronomy.ts";
 
 // ─── Tolerances ─────────────────────────────────────────────────────────────
 
@@ -23,9 +24,13 @@ import type { BirthDetails } from "./engine.ts";
  *  to validate parity with Swiss Ephemeris. */
 const POS_TOLERANCE_DEG = 0.05;
 
-/** Moon tolerance is wider (up to 1.5°) because the Moon's fast motion
- *  amplifies small JD/ephemeris differences. */
-const MOON_TOLERANCE_DEG = 1.5;
+/** Moon tolerance: ELP-2000/82 (Meeus Ch. 47, ~60 terms) gives ~10″ accuracy.
+ *  Set to 0.1° (6 arcmin) to validate parity with Swiss Ephemeris. */
+const MOON_TOLERANCE_DEG = 0.1;
+
+/** Ascendant tolerance: with true obliquity (IAU nutation) and apparent
+ *  sidereal time, ascendant matches Swiss Ephemeris within ~0.02°. */
+const ASC_TOLERANCE_DEG = 0.02;
 
 // ─── Reference chart definitions ────────────────────────────────────────────
 
@@ -66,6 +71,7 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       },
       ayanamsa: "lahiri",
       houseSystem: "whole_sign",
+      nodeType: "mean" as NodeType,
     },
     expected: {
       ascSign: 9,   // Dhanu
@@ -142,6 +148,7 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       },
       ayanamsa: "lahiri",
       houseSystem: "whole_sign",
+      nodeType: "mean" as NodeType,
     },
     expected: {
       ascSign: 5,   // Simha
@@ -218,6 +225,7 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       },
       ayanamsa: "lahiri",
       houseSystem: "whole_sign",
+      nodeType: "mean" as NodeType,
     },
     expected: {
       ascSign: 11,  // Kumbha
@@ -302,7 +310,7 @@ for (const ref of REFERENCE_CHARTS) {
   });
 
   Deno.test(`[${ref.label}] Ascendant degree ≈ ${ref.expected.ascDeg.toFixed(2)}°`, () => {
-    assertAlmostEquals(chart.ascendant.signDegree, ref.expected.ascDeg, POS_TOLERANCE_DEG);
+    assertAlmostEquals(chart.ascendant.signDegree, ref.expected.ascDeg, ASC_TOLERANCE_DEG);
   });
 
   // ── Planet signs ────────────────────────────────────────────────────────
