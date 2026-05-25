@@ -3,14 +3,24 @@
  * ascendant, obliquity, and sidereal time.
  *
  * Planetary positions use VSOP87 (Bretagnon & Francou 1988) for Sun and
- * planets (Mercury–Saturn), giving sub-arcminute accuracy matching Swiss
- * Ephemeris to ~0.01° for modern dates.
+ * planets (Mercury–Saturn), giving sub-arcminute accuracy.
  *
- * Moon uses a simplified Meeus model (PR #2 will upgrade to ELP-2000/82).
+ * Moon uses ELP-2000/82 (Chapront-Touzé & Chapront) via Meeus Ch. 47,
+ * ~60 periodic terms for ~10 arcsecond longitude accuracy.
+ *
+ * Nutation uses IAU 1980 series (Meeus Ch. 22).
+ * Rahu/Ketu default to true node (mean node + perturbations).
  */
 
 import { DEG } from "./constants.ts";
 import { vsop87SunLongitude, vsop87PlanetLongitude } from "./vsop87.ts";
+import {
+  elp82MoonLongitude,
+  nutation,
+  trueObliquity,
+  trueNode,
+  meanNode,
+} from "./elp82.ts";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -40,7 +50,7 @@ export function julianCenturies(jd: number): number {
 // ─── Obliquity ──────────────────────────────────────────────────────────────
 
 export function obliquity(T: number): number {
-  return 23.439291 - 0.0130042 * T - 1.64e-7 * T * T + 5.04e-7 * T * T * T;
+  return trueObliquity(T);
 }
 
 // ─── Sidereal Time ──────────────────────────────────────────────────────────
@@ -54,9 +64,17 @@ export function gmst(jd: number): number {
   );
 }
 
-/** Local Sidereal Time in degrees. */
+/** Greenwich Apparent Sidereal Time (GMST + nutation correction). */
+export function gast(jd: number): number {
+  const T = julianCenturies(jd);
+  const { deltaPsi } = nutation(T);
+  const eps = obliquity(T);
+  return norm360(gmst(jd) + deltaPsi * Math.cos(rad(eps)));
+}
+
+/** Local Apparent Sidereal Time in degrees. */
 export function lst(jd: number, lonEast: number): number {
-  return norm360(gmst(jd) + lonEast);
+  return norm360(gast(jd) + lonEast);
 }
 
 // ─── Ascendant ──────────────────────────────────────────────────────────────
@@ -82,34 +100,15 @@ export function sunLongitude(T: number): number {
 // ─── Moon (geocentric ecliptic longitude) ───────────────────────────────────
 
 export function moonLongitude(T: number): number {
-  const Lp = norm360(218.3165 + 481267.8813 * T);
-  const D  = norm360(297.8502 + 445267.1115 * T);
-  const M  = norm360(357.5291 + 35999.0503  * T);
-  const Mp = norm360(134.9634 + 477198.8676 * T);
-  const F  = norm360(93.2720  + 483202.0175 * T);
-  const Dr = rad(D), Mr = rad(M), Mpr = rad(Mp), Fr = rad(F);
-  return norm360(
-    Lp +
-    6.289  * Math.sin(Mpr) +
-    1.274  * Math.sin(2 * Dr - Mpr) +
-    0.658  * Math.sin(2 * Dr) +
-    0.214  * Math.sin(2 * Mpr) -
-    0.186  * Math.sin(Mr) -
-    0.114  * Math.sin(2 * Fr) +
-    0.059  * Math.sin(2 * Dr - 2 * Mpr) +
-    0.057  * Math.sin(2 * Dr - Mr - Mpr) +
-    0.053  * Math.sin(2 * Dr + Mpr) +
-    0.046  * Math.sin(2 * Dr - Mr) -
-    0.041  * Math.sin(Mr - Mpr) -
-    0.035  * Math.sin(Dr) -
-    0.030  * Math.sin(Mr + Mpr),
-  );
+  return elp82MoonLongitude(T);
 }
 
 // ─── Rahu (Mean Ascending Node) ─────────────────────────────────────────────
 
-export function rahuLongitude(T: number): number {
-  return norm360(125.04452 - 1934.136261 * T + 0.0020708 * T * T);
+export type NodeType = 'true' | 'mean';
+
+export function rahuLongitude(T: number, nodeType: NodeType = 'true'): number {
+  return nodeType === 'true' ? trueNode(T) : meanNode(T);
 }
 
 // ─── Planetary positions via VSOP87 ─────────────────────────────────────────
@@ -132,11 +131,12 @@ export interface RawPositions {
 
 export function tropicalPositions(
   jd: number, lat: number, lon: number,
+  nodeType: NodeType = 'true',
 ): RawPositions {
   const T = julianCenturies(jd);
   const sun     = sunLongitude(T);
   const moon    = moonLongitude(T);
-  const rahu    = rahuLongitude(T);
+  const rahu    = rahuLongitude(T, nodeType);
   const ketu    = norm360(rahu + 180);
   const mercury = planetLongitude('mercury', T);
   const venus   = planetLongitude('venus', T);

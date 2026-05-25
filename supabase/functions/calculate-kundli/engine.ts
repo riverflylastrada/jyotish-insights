@@ -6,6 +6,7 @@ import {
   julianDay, julianCenturies, tropicalPositions,
   isRetrograde, planetSpeed, sunriseSunset,
   obliquity, lst,
+  type NodeType,
 } from "./astronomy.ts";
 import {
   ayanamsa, toSidereal, signNumber, signName, signDegree,
@@ -38,6 +39,7 @@ export interface BirthDetails {
   gender?: string;
   ayanamsa: AyanamsaKey;
   houseSystem: string;
+  nodeType?: NodeType;
 }
 
 // ─── Planet list ────────────────────────────────────────────────────────────
@@ -78,7 +80,8 @@ export function calculateKundli(details: BirthDetails) {
   const lon = details.placeOfBirth.longitude;
 
   // Tropical positions
-  const trop = tropicalPositions(jd, lat, lon);
+  const nodeType = details.nodeType ?? 'true';
+  const trop = tropicalPositions(jd, lat, lon, nodeType);
 
   // Ayanamsa
   const aya = ayanamsa(details.ayanamsa, jd);
@@ -179,7 +182,7 @@ export function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 3,
+    snapshotVersion: 4,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -221,7 +224,8 @@ export function calculateTransits(details: BirthDetails) {
     now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(),
   );
   const T = julianCenturies(jd);
-  const trop = tropicalPositions(jd, details.placeOfBirth.latitude, details.placeOfBirth.longitude);
+  const nodeType = details.nodeType ?? 'true';
+  const trop = tropicalPositions(jd, details.placeOfBirth.latitude, details.placeOfBirth.longitude, nodeType);
   const aya = ayanamsa(details.ayanamsa, jd);
   const ascSid = toSidereal(trop.ascendant, aya);
   const ascSign = signNumber(ascSid);
