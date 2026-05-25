@@ -5,7 +5,7 @@
 import {
   julianDay, julianCenturies, tropicalPositions,
   isRetrograde, planetSpeed, sunriseSunset,
-  obliquity, lst,
+  obliquity, lst, norm360,
   type NodeType,
 } from "./astronomy.ts";
 import {
@@ -136,8 +136,13 @@ export function calculateKundli(details: BirthDetails) {
   const { sunrise, sunset } = sunriseSunset(jd, lat, lon);
   const panchang = computePanchang(trop.sun, trop.moon, moonSid, jd, sunrise, sunset);
 
-  // Full six-source Shadbala (Parashari/BPHS)
+  // Placidus cusps (needed by both Shadbala and KP)
   const eps = obliquity(T);
+  const ramcDeg = lst(jd, lon);
+  const tropCusps = computePlacidusCusps(jd, lat, eps, ramcDeg);
+  const siderealCusps = tropCusps.map((c: number) => norm360(c - aya));
+
+  // Full six-source Shadbala (Parashari/BPHS)
   const tropRec: Record<string, number> = {
     sun: trop.sun, moon: trop.moon, mars: trop.mars,
     mercury: trop.mercury, jupiter: trop.jupiter,
@@ -151,15 +156,13 @@ export function calculateKundli(details: BirthDetails) {
     lon,
     tropicalPositions: tropRec,
     obliquityDeg: eps,
+    siderealCusps,
   });
 
   // KP sub-lords for all 9 planets
   const kpPlanetSubLords = computeKpPlanetSubLords(d1Planets);
 
-  // KP Placidus cusps + cuspal sub-lords
-  const epsKp = obliquity(T);
-  const ramcDeg = lst(jd, lon);
-  const tropCusps = computePlacidusCusps(jd, lat, epsKp, ramcDeg);
+  // KP cuspal sub-lords (reuse tropCusps from above)
   const cuspalSubLords = computeCuspalSubLords(tropCusps, aya);
 
   // KP Ruling Planets (at chart time)

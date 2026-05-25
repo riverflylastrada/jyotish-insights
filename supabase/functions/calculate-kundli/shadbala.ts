@@ -4,11 +4,15 @@
  * Computes the classical six balas for Sun–Saturn (7 grahas) in virupas,
  * then total Rupas (1 Rupa = 60 virupas), required minimum, ratio, and rank.
  *
- * Conventions follow Jagannatha Hora (JHora) as closely as possible.
- * Sub-component choices documented inline.
+ * Root-cause fixes (PR #18 update, validated against AstroSage):
+ * 1. Sun Cheshta = Ayana Bala, Moon Cheshta = Paksha Bala (per BPHS)
+ * 2. Dig Bala uses angular distance from weakpoint cusp longitude
+ * 3. Kendradi Bala uses Bhava (Placidus) house positions
+ * 4. Cheshta for Mars–Saturn uses 8-state classification
+ * 5. Nathonnatha & Tribhaga use computed sunrise/sunset
  */
 
-import { DEG, EXALTATION, DEBILITATION, OWN_SIGNS, MOOLTRIKONA, FRIENDSHIPS } from "./constants.ts";
+import { DEG, OWN_SIGNS, MOOLTRIKONA, FRIENDSHIPS } from "./constants.ts";
 import type { PlanetPos } from "./divisional.ts";
 import type { DivChart } from "./divisional.ts";
 
@@ -46,11 +50,6 @@ const NAISARGIKA: Record<Graha, number> = {
   sun: 60, moon: 51.43, mars: 17.14, mercury: 25.71, jupiter: 34.28, venus: 42.85, saturn: 8.57,
 };
 
-/** Exaltation degrees (sidereal, full 360°) per BPHS. */
-const EXALT_DEG: Record<Graha, number> = {
-  sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200,
-};
-
 /** Debilitation degrees = exaltation + 180. */
 const DEBIL_DEG: Record<Graha, number> = {
   sun: 190, moon: 213, mars: 118, mercury: 345, jupiter: 275, venus: 177, saturn: 20,
@@ -66,22 +65,8 @@ function signLord(sign: number): string {
   return lords[sign] ?? 'sun';
 }
 
-/** Natural benefics and malefics (JHora convention). */
-function isBenefic(planet: string): boolean {
-  return ['jupiter', 'venus'].includes(planet);
-}
-
-/** Full Moon → benefic, else malefic (simplified; more precise Paksha logic below). */
 function isMoonBenefic(moonSunAngle: number): boolean {
-  // Moon benefic when Shukla Paksha 8th tithi onward ≈ angle > 120°
-  // JHora: Moon benefic if Sun-Moon angle > 120° (waxing side)
   return moonSunAngle >= 120 && moonSunAngle <= 300;
-}
-
-function isMercuryBenefic(mercuryAssociation: boolean): boolean {
-  // Mercury is benefic if not associated with malefics — simplified: treat as benefic
-  // JHora default: Mercury = benefic
-  return !mercuryAssociation;
 }
 
 const rad = (d: number) => d * DEG;
@@ -98,6 +83,40 @@ const MEAN_DAILY_MOTION: Record<Graha, number> = {
   saturn: 0.03346,
 };
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Determine which Bhava (Placidus house) a planet falls in based on cusps. */
+function bhavaHouse(planetLon: number, cusps: number[]): number {
+  const plon = norm360(planetLon);
+  for (let i = 0; i < 12; i++) {
+    const start = norm360(cusps[i]);
+    const end = norm360(cusps[(i + 1) % 12]);
+    if (start <= end) {
+      if (plon >= start && plon < end) return i + 1;
+    } else {
+      // wrap around 360°
+      if (plon >= start || plon < end) return i + 1;
+    }
+  }
+  return 1; // fallback
+}
+
+/** Compute sunrise/sunset JD for the given date and location. */
+function sunriseSunsetJd(jd: number, lat: number, lon: number): { sunriseJd: number; sunsetJd: number } {
+  const T = (jd - 2451545.0) / 36525.0;
+  const M = norm360(357.5291 + 35999.0503 * T);
+  const C = 1.9148 * Math.sin(rad(M)) + 0.02 * Math.sin(rad(2 * M)) + 0.0003 * Math.sin(rad(3 * M));
+  const lambda = norm360(M + C + 180 + 102.9372);
+  const decl = Math.asin(Math.sin(rad(23.44)) * Math.sin(rad(lambda)));
+  const cosH = (Math.sin(rad(-0.833)) - Math.sin(rad(lat)) * Math.sin(decl)) /
+               (Math.cos(rad(lat)) * Math.cos(decl));
+  const H = Math.acos(Math.max(-1, Math.min(1, cosH))) / DEG;
+  // lon is east-positive; NOAA formula uses west-positive, so negate
+  const Jnoon = 2451545.0 + Math.round(jd - 2451545.0 + lon / 360) - lon / 360;
+  const Jtransit = Jnoon + 0.0053 * Math.sin(rad(M)) - 0.0069 * Math.sin(rad(2 * lambda));
+  return { sunriseJd: Jtransit - H / 360, sunsetJd: Jtransit + H / 360 };
+}
+
 // ─── 1. Sthana Bala ─────────────────────────────────────────────────────────
 
 function uchchaBala(planet: Graha, sidLon: number): number {
@@ -112,7 +131,7 @@ function uchchaBala(planet: Graha, sidLon: number): number {
  * Points per varga: Mooltrikona 45, Own sign 30, Great friend 22.5,
  * Friend 15, Neutral 7.5, Enemy 3.75, Great enemy 1.875.
  *
- * We compute compound (Panchada) relationship for each varga:
+ * Compound (Panchada) relationship for each varga:
  * naisargika friendship ± temporal friendship.
  */
 function saptavargajaBala(
@@ -124,7 +143,7 @@ function saptavargajaBala(
   let total = 0;
 
   for (const code of vargaCodes) {
-    const chart = code === 'D1' ? divCharts.find(c => c.varga === 'D1') : divCharts.find(c => c.varga === code);
+    const chart = divCharts.find(c => c.varga === code);
     if (!chart) continue;
 
     const pp = chart.planets.find(p => p.planet === planet);
@@ -134,7 +153,7 @@ function saptavargajaBala(
     const lord = signLord(sign);
     const degInSign = pp.signDegree;
 
-    // Check mooltrikona (only in D1)
+    // Check mooltrikona (only in D1 — degree range is D1-specific)
     if (code === 'D1') {
       const mt = MOOLTRIKONA[planet];
       if (mt && mt[0] === sign && degInSign >= mt[1] && degInSign <= mt[2]) {
@@ -151,7 +170,7 @@ function saptavargajaBala(
 
     // Relationship-based scoring
     if (lord === planet) {
-      total += 30; // own sign
+      total += 30; // own sign (lord check redundant with above, but safety)
       continue;
     }
 
@@ -187,8 +206,7 @@ function getTemporalRelation(planet: string, other: string, d1Planets: PlanetPos
   const pSign = pp.signNumber;
   const oSign = op.signNumber;
   const dist = ((oSign - pSign + 12) % 12);
-  // Temporal friends: 2, 3, 4, 10, 11, 12 from planet
-  // (houses 2,3,4,10,11,12 → distances 1,2,3,9,10,11)
+  // Temporal friends: houses 2,3,4,10,11,12 from planet → distances 1,2,3,9,10,11
   return [1, 2, 3, 9, 10, 11].includes(dist) ? 'friend' : 'enemy';
 }
 
@@ -207,9 +225,6 @@ function getCompoundRelation(planet: string, lord: string, d1Planets: PlanetPos[
 }
 
 function ojhayugmaBala(planet: Graha, d1Sign: number, d9Sign: number): number {
-  // Odd/Even rasi + navamsa bala
-  // Moon, Venus: get 15 virupas each for even rasi and even navamsa (total max 30)
-  // Sun, Mars, Jupiter, Mercury, Saturn: 15 for odd rasi, 15 for odd navamsa
   let total = 0;
   const isOddSign = d1Sign % 2 === 1;
   const isOddNavamsa = d9Sign % 2 === 1;
@@ -225,16 +240,12 @@ function ojhayugmaBala(planet: Graha, d1Sign: number, d9Sign: number): number {
 }
 
 function kendradiBala(house: number): number {
-  // Kendra (1,4,7,10) = 60; Panapara (2,5,8,11) = 30; Apoklima (3,6,9,12) = 15
   if ([1, 4, 7, 10].includes(house)) return 60;
   if ([2, 5, 8, 11].includes(house)) return 30;
   return 15;
 }
 
 function drekkanaBala(planet: Graha, degInSign: number): number {
-  // First drekkana (0–10°): male planets (Sun, Mars, Jupiter) get 15
-  // Second drekkana (10–20°): neutral planets (Mercury, Saturn) get 15
-  // Third drekkana (20–30°): female planets (Moon, Venus) get 15
   const drekkana = degInSign < 10 ? 1 : degInSign < 20 ? 2 : 3;
   const male = ['sun', 'mars', 'jupiter'];
   const female = ['moon', 'venus'];
@@ -251,6 +262,7 @@ function computeSthanaBala(
   sidLon: number,
   d1Planets: PlanetPos[],
   divCharts: DivChart[],
+  siderealCusps: number[],
 ): number {
   const pp = d1Planets.find(p => p.planet === planet);
   if (!pp) return 0;
@@ -262,7 +274,10 @@ function computeSthanaBala(
   const uchcha = uchchaBala(planet, sidLon);
   const sapta = saptavargajaBala(planet, d1Planets, divCharts);
   const ojha = ojhayugmaBala(planet, pp.signNumber, d9Sign);
-  const kendra = kendradiBala(pp.houseNumber);
+
+  // Kendradi uses Bhava (Placidus) house — not whole-sign
+  const bhouse = bhavaHouse(sidLon, siderealCusps);
+  const kendra = kendradiBala(bhouse);
   const drekk = drekkanaBala(planet, pp.signDegree);
 
   return uchcha + sapta + ojha + kendra + drekk;
@@ -270,120 +285,80 @@ function computeSthanaBala(
 
 // ─── 2. Dig Bala ────────────────────────────────────────────────────────────
 
-function computeDigBala(planet: Graha, house: number): number {
-  // Strong house (max dig bala) per planet:
-  // Jupiter, Mercury: 1st house (lagna, East)
-  // Sun, Mars: 10th house (MC, South)
-  // Saturn: 7th house (Descendant, West)
-  // Moon, Venus: 4th house (IC, North)
-  // Weak point = opposite house
-  const strongHouse: Record<Graha, number> = {
-    jupiter: 1, mercury: 1,
-    sun: 10, mars: 10,
-    saturn: 7,
-    moon: 4, venus: 4,
+function computeDigBala(planet: Graha, planetLon: number, cusps: number[]): number {
+  // Angular distance from weakpoint cusp longitude (max 60V at 180°).
+  // Strong → Weak:  Jupiter/Mercury: ASC→DESC, Sun/Mars: MC→IC,
+  //                  Saturn: DESC→ASC, Moon/Venus: IC→MC
+  const weakCuspIdx: Record<Graha, number> = {
+    jupiter: 6, mercury: 6,   // weak at DESC
+    sun: 3, mars: 3,          // weak at IC
+    saturn: 0,                // weak at ASC
+    moon: 9, venus: 9,        // weak at MC
   };
 
-  const strong = strongHouse[planet];
-  // Distance from weak point (strong + 6 houses = weak point on 12-house circle)
-  // Angular distance from weak point in house units, convert to virupas
-  const weakHouse = ((strong - 1 + 6) % 12) + 1;
-
-  // House distance from weak point (modular on 12)
-  let dist = ((house - weakHouse + 12) % 12);
-  if (dist > 6) dist = 12 - dist;
-
-  return dist * 10; // max 60 virupas when dist=6 (at strong house)
+  const weakLon = cusps[weakCuspIdx[planet]];
+  let dist = norm360(planetLon - weakLon);
+  if (dist > 180) dist = 360 - dist;
+  return dist / 3; // max 60 when 180° from weak point
 }
 
 // ─── 3. Kala Bala ───────────────────────────────────────────────────────────
 
-function nathonnathaBalance(planet: Graha, sunLonTropical: number, jd: number, lat: number, lon: number): number {
-  // Day/night strength.
-  // Sun, Jupiter, Venus: diurnal (stronger during day)
-  // Moon, Mars, Saturn: nocturnal (stronger at night)
-  // Mercury: always 60 (ubhayachari)
-
+function nathonnathaBalance(planet: Graha, jd: number, sunriseJd: number, sunsetJd: number): number {
+  // Mercury: always 60 (ubhayachari — strong both day and night)
   if (planet === 'mercury') return 60;
 
-  // Approximate fraction of day elapsed using JD
-  // Local apparent time fraction (0=midnight, 0.5=noon)
-  // Simplified: use hour angle from JD fractional part + longitude correction
-  const jdFrac = (jd + 0.5) % 1; // fraction of day since midnight UT
-  const localFrac = norm360((jdFrac * 360) + lon) / 360; // local noon ~0.5
-
-  // Distance from midnight (0 at midnight, 0.5 at noon)
-  let dayFrac = localFrac;
-  if (dayFrac > 0.5) dayFrac = 1 - dayFrac;
-  // dayFrac: 0 at midnight, 0.5 at noon
+  // Noon midpoint from actual sunrise/sunset
+  const noonJd = (sunriseJd + sunsetJd) / 2;
+  let distFromNoon = Math.abs(jd - noonJd);
+  if (distFromNoon > 0.5) distFromNoon = 1 - distFromNoon;
+  // frac: 0 at noon, 1 at midnight
+  const frac = Math.min(1, distFromNoon / 0.5);
 
   const diurnal = ['sun', 'jupiter', 'venus'];
-  const nocturnal = ['moon', 'mars', 'saturn'];
-
-  // Day planets: max 60 at noon, 0 at midnight
-  // Night planets: max 60 at midnight, 0 at noon
-  if (diurnal.includes(planet)) {
-    return dayFrac * 2 * 60; // 0–60
-  } else if (nocturnal.includes(planet)) {
-    return (1 - dayFrac * 2) * 60; // 60–0
-  }
-  return 30;
+  if (diurnal.includes(planet)) return (1 - frac) * 60;
+  // nocturnal: Moon, Mars, Saturn
+  return frac * 60;
 }
 
 function pakshaBala(planet: Graha, moonSunAngle: number): number {
-  // Shukla Paksha: benefics gain, malefics lose (and vice versa in Krishna)
+  // Shukla Paksha: benefics gain, malefics lose
   // Moon–Sun angle: 0° = new moon, 180° = full moon
-  // Paksha Bala = (angle/3) for benefics, ((360-angle)/3) for malefics
-  // Max 60 virupas. Per JHora convention: doubled for Moon.
-
-  // For Moon: Paksha Bala = moonSunAngle / 3 (0 at new, 60 at full)
-  // This also serves as Moon's Cheshta Bala equivalent.
   if (planet === 'moon') {
     let angle = moonSunAngle;
     if (angle > 180) angle = 360 - angle;
     return angle / 3; // 0–60
   }
 
-  // Benefics (Jupiter, Venus, [well-aspected Mercury]): strength in Shukla
-  // Malefics (Sun, Mars, Saturn): strength in Krishna
   const benefics = ['jupiter', 'venus', 'mercury'];
-  const malefics = ['sun', 'mars', 'saturn'];
-
   let angle = moonSunAngle;
   if (angle > 180) angle = 360 - angle; // 0–180
 
   if (benefics.includes(planet)) {
     return angle / 3; // max 60 at full moon
-  } else if (malefics.includes(planet)) {
-    return (180 - angle) / 3; // max 60 at new moon
   }
-  return 30;
+  // malefics: Sun, Mars, Saturn
+  return (180 - angle) / 3; // max 60 at new moon
 }
 
-function tribhagaBala(planet: Graha, jd: number, lon: number): number {
-  // Day divided into 3 parts; Night divided into 3 parts
-  // Day: 1st third = Jupiter, 2nd = Sun, 3rd = Saturn
-  // Night: 1st third = Moon, 2nd = Venus, 3rd = Mars
-  // Mercury: all times (60 virupas always)
-  // Winner gets 60 virupas.
+function tribhagaBala(planet: Graha, jd: number, sunriseJd: number, sunsetJd: number): number {
+  // Mercury does NOT own a specific Tribhaga period; scored 0 like non-ruling planets.
+  // (Mercury's "always strong" is reflected in Nathonnatha, not Tribhaga.)
 
-  if (planet === 'mercury') return 60;
-
-  const jdFrac = (jd + 0.5) % 1;
-  const localFrac = norm360((jdFrac * 360) + lon) / 360;
-
-  // Approximate: sunrise~0.25, sunset~0.75 of day fraction
-  // Simplified: day = 0.25–0.75, night = 0.75–1.25 (wrapped)
-  const isDay = localFrac >= 0.25 && localFrac < 0.75;
+  const isDay = jd >= sunriseJd && jd < sunsetJd;
 
   if (isDay) {
-    const dayProgress = (localFrac - 0.25) / 0.5; // 0–1
+    const dayProgress = (jd - sunriseJd) / (sunsetJd - sunriseJd);
     if (dayProgress < 1 / 3 && planet === 'jupiter') return 60;
     if (dayProgress >= 1 / 3 && dayProgress < 2 / 3 && planet === 'sun') return 60;
     if (dayProgress >= 2 / 3 && planet === 'saturn') return 60;
   } else {
-    const nightFrac = localFrac >= 0.75 ? localFrac - 0.75 : localFrac + 0.25;
-    const nightProgress = nightFrac / 0.5;
+    // Night: approximate from sunset to next sunrise
+    const nightDuration = 1 - (sunsetJd - sunriseJd); // in days
+    const timeSinceSunset = jd >= sunsetJd
+      ? jd - sunsetJd
+      : jd - sunsetJd + 1; // wrapped past midnight
+    const nightProgress = Math.max(0, Math.min(1, timeSinceSunset / nightDuration));
     if (nightProgress < 1 / 3 && planet === 'moon') return 60;
     if (nightProgress >= 1 / 3 && nightProgress < 2 / 3 && planet === 'venus') return 60;
     if (nightProgress >= 2 / 3 && planet === 'mars') return 60;
@@ -391,35 +366,35 @@ function tribhagaBala(planet: Graha, jd: number, lon: number): number {
   return 0;
 }
 
-function abdaMasaVaraHoraBala(planet: Graha, jd: number): number {
-  // Abda lord (year lord), Masa lord (month lord), Vara lord (weekday lord), Hora lord (hour lord)
-  // Each gives 15, 30, 45, 60 virupas respectively if the planet is that lord.
-
-  // Weekday lord (Vara) — most significant sub-component
-  // JD 0 = Monday. weekday = floor(JD + 1.5) mod 7: 0=Sun,1=Mon,...6=Sat
+function abdaMasaVaraHoraBala(planet: Graha, jd: number, sunriseJd: number, sunsetJd: number): number {
+  // Weekday lord (Vara)
   const weekday = Math.floor(jd + 1.5) % 7;
   const varaLords = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
   const varaLord = varaLords[weekday];
 
-  // Hora lord: hour of the day. Planet hour sequence cycles every 7, starting from vara lord at sunrise
-  // Simplified: calculate hours since sunrise (approx 6:00 local)
-  const jdFrac = (jd + 0.5) % 1;
-  const hourOfDay = jdFrac * 24;
-  // Hora sequence: each hour ruled by a planet in the order: Sun, Venus, Mercury, Moon, Saturn, Jupiter, Mars
-  // Starting from the vara lord at sunrise (~6:00)
+  // Hora lord — planetary hours using actual sunrise and unequal hours
   const horaSequence = ['sun', 'venus', 'mercury', 'moon', 'saturn', 'jupiter', 'mars'];
   const varaIdx = horaSequence.indexOf(varaLord);
-  const hoursSinceSunrise = Math.floor(((hourOfDay - 6 + 24) % 24));
-  const horaLord = horaSequence[(varaIdx + hoursSinceSunrise) % 7];
+  const dayLen = sunsetJd - sunriseJd;
+  const nightLen = 1 - dayLen;
+  const isDay = jd >= sunriseJd && jd < sunsetJd;
+  let horaIdx: number;
+  if (isDay) {
+    const horaLen = dayLen / 12;
+    horaIdx = Math.floor((jd - sunriseJd) / horaLen);
+  } else {
+    const horaLen = nightLen / 12;
+    const elapsed = jd >= sunsetJd ? jd - sunsetJd : jd - sunsetJd + 1;
+    horaIdx = 12 + Math.floor(elapsed / horaLen);
+  }
+  horaIdx = Math.min(horaIdx, 23);
+  const horaLord = horaSequence[(varaIdx + horaIdx) % 7];
 
-  // Abda lord (year lord): the vara lord of the day on which the solar year starts
-  // Simplified: use a cycle. JHora uses Kali Yuga year start.
-  // Approximate via JD. This is a minor contribution (15 virupas max).
-  const yearFromJd = Math.floor((jd - 588465.5) / 365.25); // rough Kali year
+  // Abda lord (year lord, approximate)
+  const yearFromJd = Math.floor((jd - 588465.5) / 365.25);
   const abdaLord = varaLords[yearFromJd % 7];
 
-  // Masa lord: weekday lord of the lunar month
-  // Approximate: month index from JD
+  // Masa lord (month lord, approximate)
   const monthFromJd = Math.floor((jd - 588465.5) / 29.5306);
   const masaLord = varaLords[monthFromJd % 7];
 
@@ -433,35 +408,19 @@ function abdaMasaVaraHoraBala(planet: Graha, jd: number): number {
 }
 
 function ayanaBala(planet: Graha, tropicalLon: number, obliquityDeg: number): number {
-  // Based on declination. Planets with northern declination (positive) when
-  // benefic, or southern when malefic, gain strength.
-  // Ayana Bala = (declination + max_decl) / (2 * max_decl) * 60
-  // where max_decl = obliquity (~23.44°)
-  // JHora: AyanaBala = (decl/max_decl + 1) * 30 for those gaining in north,
-  // or (1 - decl/max_decl) * 30 for those gaining in south.
-
-  // Compute declination: sin(decl) = sin(obliquity) * sin(tropical_longitude)
+  // Declination from tropical longitude
   const sinDecl = Math.sin(rad(obliquityDeg)) * Math.sin(rad(tropicalLon));
-  const decl = Math.asin(Math.max(-1, Math.min(1, sinDecl))) / DEG; // degrees
+  const decl = Math.asin(Math.max(-1, Math.min(1, sinDecl))) / DEG;
 
-  // Sun and Mars, Jupiter, Venus: gain in north (positive decl)
-  // Moon, Saturn: gain in south (negative decl)
-  // Mercury: always 60 (or use formula)
-  // Per JHora/BPHS: planets with northern declination gain ayana bala.
-  // Actually: Sun, Mars, Jupiter — gain with northern ayane (Uttarayana)
-  // Moon, Venus, Saturn — gain with southern ayane (Dakshinayana)
-  // Mercury — both equally
-  // Formula: ((decl + obliquity) / (2 * obliquity)) * 60
-
-  // Normalized: 0 at max south decl, 60 at max north decl
+  // AyanaBala = (decl + obliquity) / (2 * obliquity) * 60 for north-gaining
   const normalized = ((decl + obliquityDeg) / (2 * obliquityDeg)) * 60;
 
-  // Planets gaining in northern declination
+  // Sun, Mars, Jupiter: gain with northern declination
   const northGain = ['sun', 'mars', 'jupiter'];
-  // Planets gaining in southern declination
+  // Moon, Venus, Saturn: gain with southern declination
   const southGain = ['moon', 'saturn', 'venus'];
 
-  if (planet === 'mercury') return normalized; // Mercury gains in both
+  if (planet === 'mercury') return normalized;
   if (northGain.includes(planet)) return normalized;
   if (southGain.includes(planet)) return 60 - normalized;
   return 30;
@@ -471,28 +430,27 @@ function yuddhaBala(
   _planet: Graha,
   _d1Planets: PlanetPos[],
 ): number {
-  // Planetary war: when two planets are within 1° of each other.
-  // The one with higher latitude wins and gains; the other loses.
-  // This is a relatively small correction and requires latitude data
-  // we don't currently have. Stubbed at 0.
+  // Stubbed: requires planetary latitude data not yet in engine.
   return 0;
 }
 
 function computeKalaBala(
   planet: Graha,
   jd: number,
-  lat: number,
-  lon: number,
-  sunTropLon: number,
+  _lat: number,
+  _lon: number,
+  _sunTropLon: number,
   moonSunAngle: number,
   obliquityDeg: number,
   tropicalLon: number,
   d1Planets: PlanetPos[],
+  sunriseJd: number,
+  sunsetJd: number,
 ): number {
-  const nath = nathonnathaBalance(planet, sunTropLon, jd, lat, lon);
+  const nath = nathonnathaBalance(planet, jd, sunriseJd, sunsetJd);
   const paksha = pakshaBala(planet, moonSunAngle);
-  const tribhaga = tribhagaBala(planet, jd, lon);
-  const lordBala = abdaMasaVaraHoraBala(planet, jd);
+  const tribhaga = tribhagaBala(planet, jd, sunriseJd, sunsetJd);
+  const lordBala = abdaMasaVaraHoraBala(planet, jd, sunriseJd, sunsetJd);
   const ayana = ayanaBala(planet, tropicalLon, obliquityDeg);
   const yuddha = yuddhaBala(planet, d1Planets);
 
@@ -501,73 +459,39 @@ function computeKalaBala(
 
 // ─── 4. Cheshta Bala ────────────────────────────────────────────────────────
 
-function computeCheshtaBala(planet: Graha, speed: number, isRetro: boolean, moonSunAngle: number, tropicalSunLon: number): number {
-  // Motional strength from speed relative to mean daily motion.
-  // Retrograde planets get high cheshta bala (max 60).
-  // Sun uses Ayana Bala equivalent (already computed in Kala Bala for JHora).
-  // Moon uses Paksha Bala equivalent.
-  //
-  // JHora convention: Sun's Cheshta = Ayana Bala (computed in Kala Bala),
-  // Moon's Cheshta = Paksha Bala (already in Kala Bala).
-  // For Sun and Moon, Cheshta Bala is set to 0 here (already counted in Kala Bala).
-
+function computeCheshtaBala(
+  planet: Graha,
+  speed: number,
+  isRetro: boolean,
+  moonSunAngle: number,
+  tropicalLon: number,
+  obliquityDeg: number,
+): number {
+  // Per BPHS: Sun's Cheshta Bala = its Ayana Bala (credited again here).
   if (planet === 'sun') {
-    // Sun's Cheshta Bala per JHora = Ayana Cheshta
-    // Use the tropical longitude to derive a value based on position in orbit
-    // Sun moves fastest at perihelion (~Jan) and slowest at aphelion (~Jul)
-    // Approximate: CheshtaBala = |(speed - mean) / mean| * 60, capped at 60
-    // Actually per BPHS, Sun's Cheshta = Ayana Bala already in Kala.
-    // JHora sets Sun's Cheshta to 0 (folded into Kala). Return 0.
-    return 0;
+    return ayanaBala('sun', tropicalLon, obliquityDeg);
   }
 
+  // Per BPHS: Moon's Cheshta Bala = its Paksha Bala (double-credited as Cheshta).
   if (planet === 'moon') {
-    // Moon's Cheshta = Paksha Bala already counted in Kala Bala.
-    // JHora sets Moon's Cheshta to 0. Return 0.
-    return 0;
+    return pakshaBala('moon', moonSunAngle);
   }
 
-  // For Mars through Saturn:
-  // 8 states of motion (Meeus): vakra (retro), anuvakra (retro entering),
-  // vikala (stationary), manda (slow), mandatara (slower), sama (mean),
-  // chara (fast), atichara (very fast).
-  // Virupas: vakra=60, anuvakra=30, vikala=15, manda=15, mandatara=7.5,
-  // sama=30, chara=45, atichara=30
-  // Simplified approach matching JHora's formula:
-  // CheshtaBala = |(actualSpeed - meanSpeed) / meanSpeed| * 60
-  // retrograde → extra boost
-
+  // Mars through Saturn: 8-state classification based on speed vs mean.
   const meanSpeed = MEAN_DAILY_MOTION[planet];
 
-  if (isRetro) {
-    // Retrograde motion → high cheshta bala
-    // JHora typically gives ~45-60 for retrograde
-    return 60;
-  }
+  // Vakra (retrograde)
+  if (speed < 0 || isRetro) return 60;
 
-  if (Math.abs(speed) < 0.01) {
-    // Stationary (vikala) = 60 virupas per JHora
-    return 60;
-  }
+  // Vikala (stationary, speed < 5% of mean)
+  if (Math.abs(speed) < meanSpeed * 0.05) return 15;
 
-  // Speed ratio: how fast vs mean
   const ratio = speed / meanSpeed;
-
-  if (ratio < 0) {
-    // Retrograde (should be caught above, but just in case)
-    return 60;
-  }
-
-  // JHora-like mapping:
-  // ratio < 0.5 (very slow) → ~45–60
-  // ratio ~ 1.0 (mean speed) → ~30
-  // ratio > 1.5 (very fast) → ~45
-  // The farther from mean, the higher the score
-
-  const deviation = Math.abs(ratio - 1.0);
-  // Map deviation to 0–60: at deviation=0 → 30 (sama), at deviation≥1 → 60
-  const bala = 30 + Math.min(30, deviation * 30);
-  return Math.min(60, bala);
+  if (ratio < 0.5) return 7.5;    // Mandatara (very slow)
+  if (ratio < 0.9) return 15;     // Manda (slow)
+  if (ratio <= 1.1) return 30;    // Sama (mean speed)
+  if (ratio < 2.0) return 45;     // Chara (fast)
+  return 30;                       // Atichara (very fast)
 }
 
 // ─── 5. Naisargika Bala ─────────────────────────────────────────────────────
@@ -583,14 +507,6 @@ function computeDrikBala(
   d1Planets: PlanetPos[],
   moonSunAngle: number,
 ): number {
-  // Aspectual strength: sum of benefic aspects minus sum of malefic aspects.
-  // Full aspect = 60 virupas base, scaled by planet's relationship.
-  // Standard Parashari aspects:
-  // All planets aspect 7th house fully (180°)
-  // Mars: 4th and 8th also
-  // Jupiter: 5th and 9th also
-  // Saturn: 3rd and 10th also
-
   const pp = d1Planets.find(p => p.planet === planet);
   if (!pp) return 0;
 
@@ -604,9 +520,8 @@ function computeDrikBala(
     if (!GRAHA_KEYS.includes(other.planet as Graha)) continue;
 
     const otherSign = other.signNumber;
-    const dist = ((otherSign - planetSign + 12) % 12); // houses from planet
+    const dist = ((otherSign - planetSign + 12) % 12);
 
-    // Check if other planet aspects the planet's sign
     let aspectStrength = 0;
 
     // 7th house aspect (all planets)
@@ -620,19 +535,16 @@ function computeDrikBala(
 
     if (aspectStrength === 0) continue;
 
-    // Determine if aspecting planet is benefic or malefic
     let beneficAspect = false;
     if (other.planet === 'jupiter' || other.planet === 'venus') {
       beneficAspect = true;
     } else if (other.planet === 'moon' && moonBenefic) {
       beneficAspect = true;
     } else if (other.planet === 'mercury') {
-      // Mercury is conditionally benefic; default: benefic unless with malefics
       beneficAspect = true;
     }
-    // Sun, Mars, Saturn are malefics
 
-    const contribution = aspectStrength * 15; // scaled to ~15 virupas per aspect
+    const contribution = aspectStrength * 15;
     if (beneficAspect) {
       total += contribution;
     } else {
@@ -640,7 +552,6 @@ function computeDrikBala(
     }
   }
 
-  // Drik Bala can be negative (net malefic aspects)
   return total;
 }
 
@@ -654,6 +565,7 @@ export interface ShadbalaInput {
   lon: number;
   tropicalPositions: Record<string, number>;
   obliquityDeg: number;
+  siderealCusps: number[]; // 12 Placidus cusps (sidereal longitudes, 0-indexed)
 }
 
 export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
@@ -661,12 +573,16 @@ export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
     d1Planets, divCharts, jd, lat, lon,
     tropicalPositions: tropPos,
     obliquityDeg,
+    siderealCusps,
   } = input;
 
-  // Moon–Sun sidereal angle for Paksha Bala
+  // Moon–Sun tropical angle for Paksha Bala
   const sunTropLon = tropPos.sun ?? 0;
   const moonTropLon = tropPos.moon ?? 0;
   const moonSunAngle = norm360(moonTropLon - sunTropLon);
+
+  // Compute sunrise/sunset JDs for Nathonnatha and Tribhaga
+  const { sunriseJd, sunsetJd } = sunriseSunsetJd(jd, lat, lon);
 
   const result: Record<string, PlanetShadbala> = {};
 
@@ -678,10 +594,14 @@ export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
     const speed = pp.speed ?? MEAN_DAILY_MOTION[planet];
     const isRetro = pp.isRetrograde;
 
-    const sthanaBala = computeSthanaBala(planet, pp.longitude, d1Planets, divCharts);
-    const digBala = computeDigBala(planet, pp.houseNumber);
-    const kalaBala = computeKalaBala(planet, jd, lat, lon, sunTropLon, moonSunAngle, obliquityDeg, tropLon, d1Planets);
-    const cheshtaBala = computeCheshtaBala(planet, speed, isRetro, moonSunAngle, sunTropLon);
+    const sthanaBala = computeSthanaBala(planet, pp.longitude, d1Planets, divCharts, siderealCusps);
+    const digBala = computeDigBala(planet, pp.longitude, siderealCusps);
+    const kalaBala = computeKalaBala(
+      planet, jd, lat, lon, sunTropLon, moonSunAngle,
+      obliquityDeg, tropLon, d1Planets,
+      sunriseJd, sunsetJd,
+    );
+    const cheshtaBala = computeCheshtaBala(planet, speed, isRetro, moonSunAngle, tropLon, obliquityDeg);
     const naisargikaBala = computeNaisargikaBala(planet);
     const drikBala = computeDrikBala(planet, d1Planets, moonSunAngle);
 
