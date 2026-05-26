@@ -173,12 +173,21 @@ export function computeArudhaPadas(d1Planets: PlanetPos[], ascSign: number): Aru
 
 // ─── Chara Dasha ────────────────────────────────────────────────────────────
 
+export interface CharaDashaAntarPeriod {
+  sign: number;
+  signName: string;
+  startDate: string;
+  endDate: string;
+  durationYears: number;
+}
+
 export interface CharaDashaPeriod {
   sign: number;
   signName: string;
   startDate: string;
   endDate: string;
   durationYears: number;
+  children: CharaDashaAntarPeriod[];
 }
 
 /**
@@ -195,83 +204,278 @@ function charaDashaLord(sign: number): string {
   return lords[sign] ?? 'sun';
 }
 
-/** Odd signs: Aries, Gemini, Leo, Libra, Sagittarius, Aquarius. */
-function isOddSign(sign: number): boolean {
-  return [1, 3, 5, 7, 9, 11].includes(sign);
+/**
+ * Even-footed signs (samapada): Cancer, Leo, Virgo, Capricorn, Aquarius, Pisces.
+ * Used for both the Savya/Apasavya direction rule and the duration counting
+ * direction — matching PyJHora's `even_footed_signs` constant.
+ */
+const EVEN_FOOTED_SIGNS = new Set([4, 5, 6, 10, 11, 12]);
+
+// ─── Stronger co-lord determination (PyJHora `stronger_planet_from_planet_positions`) ──
+
+/** Traditional (Parashari) sign dispositors, 1-indexed. */
+const DISPOSITOR: Record<number, string> = {
+  1: 'mars', 2: 'venus', 3: 'mercury', 4: 'moon',
+  5: 'sun', 6: 'mercury', 7: 'venus', 8: 'mars',
+  9: 'jupiter', 10: 'saturn', 11: 'saturn', 12: 'jupiter',
+};
+
+/** Rasi modality: Dual(3) > Fixed(2) > Movable(1).  1-indexed signs. */
+const FIXED_SIGNS = new Set([2, 5, 8, 11]);
+const DUAL_SIGNS  = new Set([3, 6, 9, 12]);
+function rasiModality(sign: number): number {
+  if (DUAL_SIGNS.has(sign))  return 3;
+  if (FIXED_SIGNS.has(sign)) return 2;
+  return 1;
+}
+
+/** Exaltation signs per planet (1-indexed). */
+const EXALTED_IN: Record<string, Set<number>> = {
+  mars:    new Set([10]),
+  saturn:  new Set([7]),
+  rahu:    new Set([2, 3]),
+  ketu:    new Set([8, 9]),
+};
+
+/**
+ * Jaimini rasi drishti table (1-indexed).
+ * Movable → 3 fixed signs (skip adjacent).
+ * Fixed → 3 movable signs (skip adjacent).
+ * Dual → all other duals.
+ */
+const RASI_DRISHTI: Record<number, number[]> = {
+  1: [5, 8, 11],   2: [4, 7, 10],   3: [6, 9, 12],
+  4: [2, 8, 11],   5: [1, 7, 10],   6: [3, 9, 12],
+  7: [2, 5, 11],   8: [1, 4, 10],   9: [3, 6, 12],
+  10: [2, 5, 8],  11: [1, 4, 7],   12: [3, 6, 9],
+};
+
+/**
+ * Determine the stronger co-lord for a dual-lord sign when neither
+ * co-lord occupies the sign.  Implements PyJHora's `_stronger_planet_new`
+ * + Rule 5b fallback (longitude tiebreaker).
+ *
+ * @returns planet name of the stronger co-lord
+ */
+function strongerCoLord(
+  planet1: string,             // e.g. 'mars' or 'saturn'
+  planet2: string,             // e.g. 'ketu' or 'rahu'
+  planetSign: Record<string, number>,
+  planetDeg: Record<string, number>,
+): string {
+  const h1 = planetSign[planet1];
+  const h2 = planetSign[planet2];
+  if (h1 === undefined || h2 === undefined) return planet1;
+
+  // Build house→planet count
+  const houseCount: Record<number, number> = {};
+  for (const s of Object.values(planetSign)) {
+    houseCount[s] = (houseCount[s] ?? 0) + 1;
+  }
+
+  // Rule 1: planet joined by more planets
+  const conj1 = (houseCount[h1] ?? 1) - 1;
+  const conj2 = (houseCount[h2] ?? 1) - 1;
+  if (conj1 > conj2) return planet1;
+  if (conj2 > conj1) return planet2;
+
+  // Rule 2: how many of {Jupiter, Mercury, dispositor} conjoin or aspect
+  function rule2Score(pSign: number): number {
+    let count = 0;
+    const disp = DISPOSITOR[pSign];
+    const checklist = new Set(['jupiter', 'mercury']);
+    if (disp) checklist.add(disp);
+
+    for (const target of checklist) {
+      const ts = planetSign[target];
+      if (ts === undefined) continue;
+      // Conjoin
+      if (ts === pSign) { count++; continue; }
+      // Rasi drishti: does 'target' (in sign ts) aspect pSign?
+      const aspects = RASI_DRISHTI[ts];
+      if (aspects && aspects.includes(pSign)) count++;
+    }
+    return count;
+  }
+  const r2a = rule2Score(h1);
+  const r2b = rule2Score(h2);
+  if (r2a > r2b) return planet1;
+  if (r2b > r2a) return planet2;
+
+  // Rule 3: exalted planet is stronger
+  const ex1 = EXALTED_IN[planet1]?.has(h1) ?? false;
+  const ex2 = EXALTED_IN[planet2]?.has(h2) ?? false;
+  if (ex1 && !ex2) return planet1;
+  if (ex2 && !ex1) return planet2;
+
+  // Rule 4: rasi modality (Dual > Fixed > Movable)
+  const m1 = rasiModality(h1);
+  const m2 = rasiModality(h2);
+  if (m1 > m2) return planet1;
+  if (m2 > m1) return planet2;
+
+  // Rule 5b: more advanced longitude in sign
+  const deg1 = planetDeg[planet1] ?? 0;
+  const deg2 = planetDeg[planet2] ?? 0;
+  return deg1 >= deg2 ? planet1 : planet2;
 }
 
 /**
- * Chara Dasha — KN Rao method.
+ * Chara Dasha — KN Rao method (Savya/Apasavya direction + even-footed counting).
  *
- * Rules:
- * 1. 12 sign-dashas starting from the Lagna sign.
- * 2. Sequence: forward (zodiacal) if Lagna is odd, reverse if even.
- * 3. Duration: count from the sign to its lord's sign — forward for odd
- *    signs, backward for even. Count is inclusive (sign itself = 1),
- *    years = count − 1. If lord is in the sign itself, years = 12.
- *    Clamp 1–12.
- * 4. Dual lords: Scorpio → Ketu, Aquarius → Rahu.
+ * Rules (aligned with PyJHora `_dhasa_progression_knrao_method` +
+ * `_dhasa_duration_pvnrao_method`):
+ * 1. Seed = Lagna sign.  12 Maha-sign periods.
+ * 2. Direction: compute the 9th sign from the Lagna.  If it is an
+ *    even-footed sign → REVERSE (apasavya); else FORWARD (savya).
+ * 3. Duration: if the dasha sign is even-footed, count forward from the
+ *    lord's sign to the dasha sign; else count forward from the dasha
+ *    sign to the lord's sign.  Years = count (lord-in-own-sign ⇒ 12).
+ *    For Scorpio / Aquarius, when one co-lord occupies the sign use the
+ *    other co-lord's position (PyJHora PVN Rao special case).
+ * 4. Dual lords: Scorpio → Mars / Ketu, Aquarius → Saturn / Rahu.
  */
+/**
+ * Sidereal year in days (used by PyJHora for proportional sub-period dating).
+ */
+const SIDEREAL_YEAR_DAYS = 365.242198781;
+
+/**
+ * Add fractional years to a Date using sidereal-year days.
+ * This matches PyJHora's JD-based arithmetic more closely than
+ * calendar-year addition.
+ */
+function addSiderealYears(base: Date, years: number): Date {
+  const ms = years * SIDEREAL_YEAR_DAYS * 86_400_000;
+  return new Date(base.getTime() + ms);
+}
+
 export function computeCharaDasha(
   d1Planets: PlanetPos[],
   ascSign: number,
   birthDate: Date,
 ): CharaDashaPeriod[] | null {
-  // Build a map from planet name → sign number
+  // Build maps from planet name → sign number and planet name → degree in sign
   const planetSign: Record<string, number> = {};
+  const planetDeg: Record<string, number> = {};
   for (const p of d1Planets) {
     if (p.planet !== 'ascendant') {
       planetSign[p.planet] = p.signNumber;
+      planetDeg[p.planet]  = p.signDegree;
     }
   }
 
-  const forward = isOddSign(ascSign);
-  const timeline: CharaDashaPeriod[] = [];
-  let cursor = new Date(birthDate);
+  // Direction: 9th sign from Lagna; reverse if even-footed (PyJHora rule)
+  const ninth = ((ascSign - 1 + 8) % 12) + 1;
+  const forward = !EVEN_FOOTED_SIGNS.has(ninth);
 
+  // Step 1: build the maha progression (12 signs in order)
+  const progression: number[] = [];
   for (let i = 0; i < 12; i++) {
-    // Determine the i-th sign in the dasha sequence
     let sign: number;
     if (forward) {
       sign = ((ascSign - 1 + i) % 12) + 1;
     } else {
       sign = ((ascSign - 1 - i + 120) % 12) + 1;
     }
+    progression.push(sign);
+  }
 
-    // Find the lord and the lord's sign
+  // Step 2: compute maha durations (even-footed counting direction)
+  const mahaDurations: number[] = [];
+  for (const sign of progression) {
     const lord = charaDashaLord(sign);
-    const lordSign = planetSign[lord];
-    if (lordSign === undefined) continue;
+    let lordSign = planetSign[lord];
+    if (lordSign === undefined) return null;
 
-    // Count from the sign to the lord's sign (inclusive, sign = 1)
-    // years = inclusiveCount − 1 = steps forward/backward
+    // PVN Rao dual-lord handling for Scorpio / Aquarius:
+    // 1. Both co-lords in the sign → 12.
+    // 2. One co-lord in the sign → use the other co-lord's position.
+    // 3. Neither in the sign → use the stronger co-lord (PyJHora rules).
+    if (sign === 8) {
+      const marsSign = planetSign['mars'];
+      const ketuSign = planetSign['ketu'];
+      if (marsSign !== undefined && ketuSign !== undefined) {
+        if (marsSign === 8 && ketuSign === 8) { mahaDurations.push(12); continue; }
+        if (marsSign === 8 && ketuSign !== 8) { lordSign = ketuSign; }
+        else if (ketuSign === 8 && marsSign !== 8) { lordSign = marsSign; }
+        else {
+          const stronger = strongerCoLord('mars', 'ketu', planetSign, planetDeg);
+          lordSign = planetSign[stronger]!;
+        }
+      }
+    } else if (sign === 11) {
+      const satSign = planetSign['saturn'];
+      const rahuSign = planetSign['rahu'];
+      if (satSign !== undefined && rahuSign !== undefined) {
+        if (satSign === 11 && rahuSign === 11) { mahaDurations.push(12); continue; }
+        if (satSign === 11 && rahuSign !== 11) { lordSign = rahuSign; }
+        else if (rahuSign === 11 && satSign !== 11) { lordSign = satSign; }
+        else {
+          const stronger = strongerCoLord('saturn', 'rahu', planetSign, planetDeg);
+          lordSign = planetSign[stronger]!;
+        }
+      }
+    }
+
     let years: number;
     if (lordSign === sign) {
       years = 12;
-    } else if (isOddSign(sign)) {
-      // Count forward (zodiacal)
-      years = ((lordSign - sign + 12) % 12);
-    } else {
-      // Count backward (reverse zodiacal)
+    } else if (EVEN_FOOTED_SIGNS.has(sign)) {
+      // Even-footed: count forward from lord's sign → dasha sign
       years = ((sign - lordSign + 12) % 12);
+    } else {
+      // Not even-footed: count forward from dasha sign → lord's sign
+      years = ((lordSign - sign + 12) % 12);
     }
-
-    // Clamp 1–12
     years = Math.max(1, Math.min(12, years));
+    mahaDurations.push(years);
+  }
 
-    const startDate = new Date(cursor);
-    const endDate = new Date(cursor);
-    endDate.setFullYear(endDate.getFullYear() + years);
+  // Step 3: antardasha order — KN Rao rule (PyJHora _antardhasa method=1):
+  // rotate the maha progression by 1 (skip first, put at end).
+  // Applied as a per-parent rotation: for maha at index i, antardashas
+  // run progression[(i+1)%12] … progression[i].
+  const timeline: CharaDashaPeriod[] = [];
+  let cursor = new Date(birthDate);
+
+  for (let i = 0; i < 12; i++) {
+    const sign = progression[i];
+    const years = mahaDurations[i];
+    const mahaStart = new Date(cursor);
+    const mahaEnd = addSiderealYears(mahaStart, years);
+
+    // Build antardasha children
+    const antarDuration = years / 12;
+    const children: CharaDashaAntarPeriod[] = [];
+    let antarCursor = new Date(mahaStart);
+
+    for (let j = 1; j <= 12; j++) {
+      const antarSign = progression[(i + j) % 12];
+      const antarStart = new Date(antarCursor);
+      const antarEnd = addSiderealYears(antarStart, antarDuration);
+
+      children.push({
+        sign: antarSign,
+        signName: SIGN_NAMES[(antarSign - 1) % 12],
+        startDate: antarStart.toISOString(),
+        endDate: antarEnd.toISOString(),
+        durationYears: Math.round(antarDuration * 10000) / 10000,
+      });
+
+      antarCursor = antarEnd;
+    }
 
     timeline.push({
       sign,
       signName: SIGN_NAMES[(sign - 1) % 12],
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate: mahaStart.toISOString(),
+      endDate: mahaEnd.toISOString(),
       durationYears: years,
+      children,
     });
 
-    cursor = new Date(endDate);
+    cursor = mahaEnd;
   }
 
   return timeline;
