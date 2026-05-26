@@ -441,6 +441,37 @@ function sectionShadbala(chart: any): string {
   return lines.join("\n");
 }
 
+function sectionBhavaBala(chart: any): string {
+  const bb = chart?.bhavaBala;
+  if (!bb || !bb.houses || !Array.isArray(bb.houses) || bb.houses.length === 0) return "";
+
+  const lines = [`═══ BHAVA BALA (House Strength — Virupas & Rupas) ═══`];
+
+  const header = `${pad("House", 8)}| ${pad("Adhipathi", 10)}| ${pad("DigBala", 9)}| ${pad("DrikBala", 9)}| ${pad("Total(V)", 10)}| Rupas`;
+  lines.push(header);
+
+  for (const h of bb.houses) {
+    lines.push(
+      `${pad("H" + h.house, 8)}| ${pad(String(h.bhavadhipathiBala), 10)}| ${pad(String(h.bhavaDigBala), 9)}| ${pad(String(h.bhavaDrikBala), 9)}| ${pad(String(h.totalVirupas), 10)}| ${h.totalRupas}`,
+    );
+  }
+
+  const rank = bb.rank;
+  if (rank?.length) {
+    lines.push(`House strength rank (strongest → weakest): ${rank.map((h: number) => "H" + h).join(", ")}`);
+  }
+
+  const sorted = [...bb.houses].sort((a: any, b: any) => b.totalRupas - a.totalRupas);
+  if (sorted.length > 0) {
+    const strongest = sorted[0];
+    const weakest = sorted[sorted.length - 1];
+    lines.push(`Strongest: House ${strongest.house} (${strongest.totalRupas} Rupas)`);
+    lines.push(`Weakest: House ${weakest.house} (${weakest.totalRupas} Rupas)`);
+  }
+
+  return lines.join("\n");
+}
+
 function sectionPanchang(chart: any): string {
   const p = chart?.panchang;
   if (!p) return "";
@@ -590,6 +621,7 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionDoshas(chart),
     sectionAshtakavarga(chart),
     sectionShadbala(chart),
+    sectionBhavaBala(chart),
     sectionPanchang(chart),
     sectionDivisionalSummary(chart),
     sectionKP(chart),

@@ -131,6 +131,20 @@ export interface ShadbalaData {
   rank: string[];
 }
 
+export interface HouseBhavaBalaData {
+  house: number;
+  bhavadhipathiBala: number;
+  bhavaDigBala: number;
+  bhavaDrikBala: number;
+  totalVirupas: number;
+  totalRupas: number;
+}
+
+export interface BhavaBalaData {
+  houses: HouseBhavaBalaData[];
+  rank: number[];
+}
+
 export interface JaiminiData {
   charaKarakas: Array<{
     planet: string;
@@ -164,7 +178,7 @@ export interface JaiminiData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 6;
+export const CURRENT_SNAPSHOT_VERSION = 7;
 
 export interface KundliData {
   id: string;
@@ -188,6 +202,7 @@ export interface KundliData {
   yogas: Yoga[];
   ashtakavarga: AshtakavargaData;
   shadbala?: ShadbalaData;
+  bhavaBala?: BhavaBalaData;
   kp?: KpData;
   jaimini?: JaiminiData;
   raw: unknown;

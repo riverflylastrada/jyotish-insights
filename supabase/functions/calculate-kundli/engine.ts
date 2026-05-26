@@ -25,6 +25,7 @@ import { computePanchang } from "./panchang.ts";
 import { computeKpPlanetSubLords, computePlacidusCusps, computeCuspalSubLords, computeRulingPlanets } from "./kp.ts";
 import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha } from "./jaimini.ts";
 import { computeShadbala } from "./shadbala.ts";
+import { computeBhavaBala } from "./bhavabala.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -161,6 +162,19 @@ export function calculateKundli(details: BirthDetails) {
     ascSign,
   });
 
+  // Bhava Bala (house strength, reuses Shadbala)
+  const bhavaBala = computeBhavaBala({
+    d1Planets,
+    siderealCusps,
+    shadbala,
+    ascSign,
+    jd,
+    lat,
+    lon,
+    tz: tzOffset,
+    ayanamsaDeg: aya,
+  });
+
   // KP sub-lords for all 9 planets
   const kpPlanetSubLords = computeKpPlanetSubLords(d1Planets);
 
@@ -185,7 +199,7 @@ export function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 6,
+    snapshotVersion: 7,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -196,6 +210,7 @@ export function calculateKundli(details: BirthDetails) {
     yogas,
     ashtakavarga,
     shadbala,
+    bhavaBala,
     kp: { planetSubLords: kpPlanetSubLords, cuspalSubLords, rulingPlanets },
     jaimini: {
       charaKarakas,
