@@ -47,7 +47,7 @@ interface ReferenceChart {
     charaDasha?: Array<{ sign: number; durationYears: number }>;
     /** Placidus cusps (sidereal) — sign + degree for each cusp 1–12 */
     placidusCusps?: Array<{ cusp: number; sign: number; deg: number }>;
-    /** Shadbala total Rupas per planet (from JHora / our engine baseline) */
+    /** Shadbala total Rupas per planet (from JHora / PyJHora v4.8.5, Lahiri) */
     shadbalaRupas?: Record<string, number>;
     /** Shadbala rank (strongest → weakest) */
     shadbalaRank?: string[];
@@ -130,13 +130,9 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { cusp: 11, sign: 7, deg: 20.880 },
         { cusp: 12, sign: 8, deg: 15.746 },
       ],
-      // AstroSage (external reference) rank: sun > mars > saturn > venus > moon > mercury > jupiter
-      // Engine rank (after BPHS fixes): sun > saturn > mercury > mars > moon > venus > jupiter
-      // Positions matching AstroSage: Sun #1, Moon #5, Jupiter #7 (3 of 7).
-      // Residual: Mercury's Sthana remains high (many friendly vargas); Mars debilitated
-      // (low Uchcha); Saturn benefits from Tribhaga at this birth time.
-      // Per CONTRIBUTING.md: honest residual beats rigged pass.
-      shadbalaRank: ["sun", "saturn", "mercury", "mars", "moon", "venus", "jupiter"],
+      // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
+      shadbalaRupas: { sun: 8.07, moon: 7.82, mars: 6.07, mercury: 8.75, jupiter: 6.77, venus: 6.84, saturn: 6.32 },
+      shadbalaRank: ["mercury", "sun", "moon", "venus", "jupiter", "saturn", "mars"],
     },
   },
   // ── Chart 2: Rajiv Gandhi ──────────────────────────────────────────────
@@ -214,8 +210,9 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { cusp: 11, sign: 3, deg: 29.196 },
         { cusp: 12, sign: 4, deg: 29.310 },
       ],
-      // Method-only (not externally verified against AstroSage)
-      shadbalaRank: ["sun", "jupiter", "saturn", "mars", "mercury", "venus", "moon"],
+      // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
+      shadbalaRupas: { sun: 10.02, moon: 4.57, mars: 6.06, mercury: 8.62, jupiter: 8.00, venus: 4.37, saturn: 5.85 },
+      shadbalaRank: ["sun", "mercury", "jupiter", "mars", "saturn", "moon", "venus"],
     },
   },
   // ── Chart 3: Amitabh Bachchan ──────────────────────────────────────────
@@ -293,8 +290,9 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { cusp: 11, sign: 9, deg: 20.656 },
         { cusp: 12, sign: 10, deg: 17.429 },
       ],
-      // Method-only (not externally verified against AstroSage)
-      shadbalaRank: ["sun", "jupiter", "mercury", "venus", "saturn", "moon", "mars"],
+      // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
+      shadbalaRupas: { sun: 7.28, moon: 4.45, mars: 4.20, mercury: 7.54, jupiter: 8.03, venus: 5.86, saturn: 7.77 },
+      shadbalaRank: ["jupiter", "saturn", "mercury", "sun", "venus", "moon", "mars"],
     },
   },
 ];
@@ -461,7 +459,7 @@ for (const ref of REFERENCE_CHARTS) {
   });
 
   if (ref.expected.shadbalaRank) {
-    Deno.test(`[${ref.label}] Shadbala rank matches engine baseline`, () => {
+    Deno.test(`[${ref.label}] Shadbala rank matches JHora`, () => {
       const sb = chart.shadbala as { planets: Record<string, { totalRupas: number }>; rank: string[] };
       const expectedRank = ref.expected.shadbalaRank!;
       for (let i = 0; i < expectedRank.length; i++) {
@@ -472,21 +470,21 @@ for (const ref of REFERENCE_CHARTS) {
         );
       }
     });
+  }
 
-    // AstroSage position assertions for the dev chart (externally validated)
-    if (ref.label.includes("Dev Chart")) {
-      Deno.test(`[${ref.label}] Shadbala: Sun is strongest (AstroSage #1)`, () => {
-        const sb = chart.shadbala as { rank: string[] };
-        assertEquals(sb.rank[0], "sun", "Sun should be #1 (matches AstroSage)");
-      });
-      Deno.test(`[${ref.label}] Shadbala: Jupiter is weakest (AstroSage #7)`, () => {
-        const sb = chart.shadbala as { rank: string[] };
-        assertEquals(sb.rank[6], "jupiter", "Jupiter should be #7 (matches AstroSage)");
-      });
-      Deno.test(`[${ref.label}] Shadbala: Moon at position 5 (AstroSage #5)`, () => {
-        const sb = chart.shadbala as { rank: string[] };
-        assertEquals(sb.rank[4], "moon", "Moon should be #5 (matches AstroSage)");
-      });
-    }
+  // ── Shadbala Rupas parity with JHora (±0.5 Rupa tolerance) ────────────
+  if (ref.expected.shadbalaRupas) {
+    const SHADBALA_TOLERANCE_RUPAS = 0.5;
+    Deno.test(`[${ref.label}] Shadbala Rupas within ±${SHADBALA_TOLERANCE_RUPAS}R of JHora`, () => {
+      const sb = chart.shadbala as { planets: Record<string, { totalRupas: number }> };
+      for (const [planet, jhoraRupas] of Object.entries(ref.expected.shadbalaRupas!)) {
+        assertAlmostEquals(
+          sb.planets[planet].totalRupas,
+          jhoraRupas,
+          SHADBALA_TOLERANCE_RUPAS,
+          `${planet}: engine ${sb.planets[planet].totalRupas.toFixed(2)}R vs JHora ${jhoraRupas}R`,
+        );
+      }
+    });
   }
 }

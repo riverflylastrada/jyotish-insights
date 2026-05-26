@@ -143,20 +143,16 @@ export function calculateKundli(details: BirthDetails) {
   const siderealCusps = tropCusps.map((c: number) => norm360(c - aya));
 
   // Full six-source Shadbala (Parashari/BPHS)
-  const tropRec: Record<string, number> = {
-    sun: trop.sun, moon: trop.moon, mars: trop.mars,
-    mercury: trop.mercury, jupiter: trop.jupiter,
-    venus: trop.venus, saturn: trop.saturn,
-  };
   const shadbala = computeShadbala({
     d1Planets,
     divCharts,
     jd,
     lat,
     lon,
-    tropicalPositions: tropRec,
-    obliquityDeg: eps,
+    tz: tzOffset,
+    ayanamsaDeg: aya,
     siderealCusps,
+    ascSign,
   });
 
   // KP sub-lords for all 9 planets
