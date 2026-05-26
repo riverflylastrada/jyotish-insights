@@ -11,14 +11,18 @@ grouped by horizon and theme.
 
 ## Where we are today
 
-The platform delivers an end-to-end experience: in-house chart computation, 16
-divisional charts, Vimshottari dasha, yogas, doshas, Ashtakavarga, Panchang,
-transits, 36-point compatibility, the multi-Guru debate engine, auth, a chart
-library with public sharing, an admin panel, and PDF report export.
+The platform delivers an end-to-end experience: **Swiss-Ephemeris-grade**
+in-house chart computation, 16 divisional charts, Vimshottari + Jaimini Chara
+dasha, yogas, doshas, Ashtakavarga, Panchang, **six-source Shadbala**, **KP
+(with Placidus cuspal sub-lords)**, transits, 36-point compatibility, the
+multi-Guru debate engine, auth, a chart library with public sharing, an admin
+panel, and PDF report export. A Swiss-Ephemeris/JHora **parity harness** and
+**CI** guard accuracy on every PR.
 
-The remaining gaps are **astronomical precision** (ephemeris, full Shadbala),
-**a few stubbed classical systems** (Chara Dasha, KP Placidus cusps),
-**monetization/plan enforcement**, and a **parity test harness**.
+The remaining gaps are **monetization/plan enforcement**, **breadth of timing
+systems** (more dashas, Varshphal), product features (Muhurta, transit alerts),
+and two small engine follow-ups (KP 4-fold significators, Chara Dasha
+sub-periods).
 
 ---
 
@@ -41,8 +45,20 @@ The remaining gaps are **astronomical precision** (ephemeris, full Shadbala),
   handling), surfaced as first-class chart data.
 - ✅ **Self-updating snapshots** — saved charts are version-stamped and
   auto-recalculate when the engine gains new data (no manual "Recalculate").
-- ✅ **Edge-function tests** — 45 Deno tests across the KP, Jaimini, and dossier
-  modules; Vitest covers the SSE parse + retry logic.
+- ✅ **Swiss-Ephemeris-grade positions** — VSOP87 planets + ELP-2000/82 Moon,
+  IAU nutation, true/mean node; matches Swiss Ephemeris to the arc-minute
+  (replaced the Keplerian ~0.5° engine).
+- ✅ **KP Placidus cuspal sub-lords** + Ruling Planets (sub-arcminute cusp parity).
+- ✅ **Jaimini Chara Dasha** (KN Rao method, dual lords).
+- ✅ **Six-source Shadbala** ([shadbala.ts](supabase/functions/calculate-kundli/shadbala.ts)) —
+  Sthana/Dig/Kala/Cheshta/Naisargika/Drik in Rupas, **validated against
+  Jagannatha Hora to ±0.03 Rupa** across 3 reference charts.
+- ✅ **Parity harness + CI** — [parity_test.ts](supabase/functions/calculate-kundli/parity_test.ts)
+  diffs positions vs Swiss Ephemeris and Shadbala vs JHora;
+  [CI](.github/workflows/ci.yml) runs all suites (141 Deno + 10 Vitest) per PR.
+- ✅ **CONTRIBUTING.md + repo auto-mirror** — codified conventions
+  (parity-over-plausibility, version bumps) and a workflow that mirrors `main`
+  to the fork.
 - ✅ **PDF report export** — `render-report` renders the dossier to a multi-page
   PDF via PDFShift (key configured in Admin → API Keys).
 
@@ -50,35 +66,24 @@ The remaining gaps are **astronomical precision** (ephemeris, full Shadbala),
 
 ## Near-term
 
-### Engine accuracy & correctness
-- ⬜ **Swiss Ephemeris / VSOP87 upgrade.** The engine currently uses Keplerian
-  orbital elements (Meeus) with ~0.1–0.5° accuracy. Move to a higher-precision
-  ephemeris so positions, the ascendant, and house cusps match professional
-  software (AstroSage, Jagannatha Hora) to the arc-minute.
-- ⬜ **True vs. mean lunar nodes.** Make Rahu/Ketu computation explicitly
-  selectable (true node by default).
-- 🟡 **AstroSage parity test harness.** A celebrity dataset
-  (`indian_celebrity_kundli_data.xlsx`) exists — wire it into an automated
-  parity suite that diffs computed charts against known-good references and
-  fails CI on regressions. (KP/Jaimini unit tests exist; full chart parity does
-  not yet.)
-- ⬜ **Full Shadbala.** Replace the current simplified strength heuristic with
-  the classical six-source Shadbala (Sthana, Dig, Kala, Cheshta, Naisargika,
-  Drik) reported in Rupas/Virupas.
+### Finish the two engine follow-ups (small, additive)
+- ⬜ **KP 4-fold significators** — occupants / occupants' star-lords / house
+  lord / house-lord's star-lord, per house. Placidus cusps and cuspal sub-lords
+  already ship; this completes the KP significator scheme.
+- ⬜ **Chara Dasha sub-periods (antardasha).** Maha (sign) level ships; add the
+  antardasha breakdown.
 
-### Finish the stubbed systems
-- 🟡 **Jaimini Chara Dasha.** `computeCharaDasha` is stubbed pending parity
-  validation. Implement the KN Rao method and validate against AstroSage/JHora
-  before un-stubbing the dossier section.
-- 🟡 **KP cuspal sub-lords.** `computePlacidusCusps` is stubbed; KP currently
-  uses Whole Sign. Implement Placidus cusps, then cuspal sub-lords and the
-  4-fold significator scheme.
+### Engine accuracy polish
+- ⬜ **Exact Lahiri ayanamsa.** A ~0.007° systematic delta vs Swiss Ephemeris's
+  Lahiri remains (our linear-precession formula). Match SwissEph's Lahiri model
+  to close it. (Well below arc-minute; cosmetic.)
+- ⬜ **Full Shadbala extras** — Ishta/Kashta phala and Vimsopaka bala, building
+  on the shipped six-source Shadbala.
 
 ### Quality & testing
-- 🟡 **Engine unit coverage.** KP, Jaimini, and the dossier are covered; extend
-  to astronomy, vedic, divisional, dashas, yogas, doshas, ashtakavarga, panchang
-  plus golden-snapshot tests for full charts.
-- ⬜ **CI pipeline** — run lint + Vitest + `deno test`/`deno check` on every push/PR.
+- 🟡 **Engine unit coverage.** KP, Jaimini, Shadbala, the dossier, and a
+  Swiss-Eph/JHora parity harness are covered; extend to vedic, divisional,
+  dashas, yogas, doshas, ashtakavarga, panchang with golden-snapshot tests.
 
 ### Provider layer
 - 🟡 **Finish the provider abstraction.** `normalizers.ts` is a no-op and the
@@ -90,15 +95,16 @@ The remaining gaps are **astronomical precision** (ephemeris, full Shadbala),
 ## Mid-term
 
 ### Additional classical systems
-- ⬜ **More dasha systems** — Yogini, Ashtottari, Kalachakra (alongside the
-  in-progress Jaimini Chara Dasha).
-- ⬜ **Multiple house systems.** Only Whole Sign is implemented, though
-  `profiles.house_system` already stores the preference. Add Placidus, Sripati,
-  Equal, and KP (Placidus-based) cusps. *(Shares the Placidus work above.)*
+- ⬜ **More dasha systems** — Yogini, Ashtottari, Kalachakra (Vimshottari and
+  Jaimini Chara dasha already ship).
+- ⬜ **Multiple house systems in the chart.** Whole Sign is the default and
+  **Placidus cusps already exist** (computed for KP). Expose Placidus as a
+  selectable house system and add Sripati/Equal (`profiles.house_system` already
+  stores the preference).
 - ⬜ **Expanded yoga catalog** — grow well beyond the current 15+, organized by
   category with cancellation rules.
-- ⬜ **Extend the Jaimini toolkit** — Argala, Chara Dasha sub-periods, and Special
-  Lagnas, building on the shipped Chara Karakas / Arudha Padas.
+- ⬜ **Extend the Jaimini toolkit** — Argala and Special Lagnas, building on the
+  shipped Chara Karakas / Arudha Padas / Chara Dasha.
 
 ### Features
 - 🟡 **Muhurta (electional astrology).** A route exists; build out
@@ -142,7 +148,8 @@ The remaining gaps are **astronomical precision** (ephemeris, full Shadbala),
 - ⬜ **Security review** of RLS policies and the public share-token path.
 - ⬜ **Observability** — structured logging and error tracking for edge
   functions.
-- ⬜ **Documentation** — contributor guide, engine math notes, and an ADR log.
+- 🟡 **Documentation** — CONTRIBUTING.md ships; still want engine math notes and
+  an ADR log.
 
 ---
 
