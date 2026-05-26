@@ -305,6 +305,23 @@ const sampleChart = {
       { house: 12, label: "UL (Upapada Lagna)", sign: 5, signName: "Simha" },
     ],
   },
+  bhavaBala: {
+    houses: [
+      { house: 1, bhavadhipathiBala: 350, bhavaDigBala: 30, bhavaDrikBala: 5, totalVirupas: 385, totalRupas: 6.42 },
+      { house: 2, bhavadhipathiBala: 400, bhavaDigBala: 50, bhavaDrikBala: -2, totalVirupas: 448, totalRupas: 7.47 },
+      { house: 3, bhavadhipathiBala: 320, bhavaDigBala: 40, bhavaDrikBala: 0, totalVirupas: 360, totalRupas: 6.00 },
+      { house: 4, bhavadhipathiBala: 380, bhavaDigBala: 60, bhavaDrikBala: 10, totalVirupas: 450, totalRupas: 7.50 },
+      { house: 5, bhavadhipathiBala: 430, bhavaDigBala: 10, bhavaDrikBala: 3, totalVirupas: 443, totalRupas: 7.38 },
+      { house: 6, bhavadhipathiBala: 280, bhavaDigBala: 20, bhavaDrikBala: 0, totalVirupas: 300, totalRupas: 5.00 },
+      { house: 7, bhavadhipathiBala: 400, bhavaDigBala: 0, bhavaDrikBala: -5, totalVirupas: 395, totalRupas: 6.58 },
+      { house: 8, bhavadhipathiBala: 430, bhavaDigBala: 20, bhavaDrikBala: 8, totalVirupas: 458, totalRupas: 7.63 },
+      { house: 9, bhavadhipathiBala: 380, bhavaDigBala: 50, bhavaDrikBala: 0, totalVirupas: 430, totalRupas: 7.17 },
+      { house: 10, bhavadhipathiBala: 320, bhavaDigBala: 30, bhavaDrikBala: 4, totalVirupas: 354, totalRupas: 5.90 },
+      { house: 11, bhavadhipathiBala: 400, bhavaDigBala: 40, bhavaDrikBala: 0, totalVirupas: 440, totalRupas: 7.33 },
+      { house: 12, bhavadhipathiBala: 350, bhavaDigBala: 10, bhavaDrikBala: 0, totalVirupas: 360, totalRupas: 6.00 },
+    ],
+    rank: [8, 4, 2, 5, 11, 9, 7, 1, 3, 12, 10, 6],
+  },
 };
 
 const sampleTransits = [
@@ -409,6 +426,15 @@ Deno.test("dossier contains Shadbala data with six-source breakdown", () => {
   assertStringIncludes(d, "Strongest");
   assertStringIncludes(d, "Weakest");
   assertStringIncludes(d, "Strength rank");
+});
+
+Deno.test("dossier contains Bhava Bala data", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "BHAVA BALA");
+  assertStringIncludes(d, "Rupas");
+  assertStringIncludes(d, "Strongest");
+  assertStringIncludes(d, "Weakest");
+  assertStringIncludes(d, "House strength rank");
 });
 
 Deno.test("dossier contains Panchang data", () => {

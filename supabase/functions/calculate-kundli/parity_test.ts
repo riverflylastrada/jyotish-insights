@@ -51,6 +51,10 @@ interface ReferenceChart {
     shadbalaRupas?: Record<string, number>;
     /** Shadbala rank (strongest → weakest) */
     shadbalaRank?: string[];
+    /** Bhava Bala total Rupas per house 1–12 (PyJHora v4.8.5, Lahiri) */
+    bhavaBalaRupas?: Record<number, number>;
+    /** Bhava Bala rank (strongest → weakest house) */
+    bhavaBalaRank?: number[];
     /** Yogini Dasha: first 3 Maha lords + durations, and current Maha lord (PyJHora v4.8.5) */
     yoginiDasha?: {
       first3: Array<{ planet: string; durationYears: number }>;
@@ -143,6 +147,9 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
       shadbalaRupas: { sun: 8.07, moon: 7.82, mars: 6.07, mercury: 8.75, jupiter: 6.77, venus: 6.84, saturn: 6.32 },
       shadbalaRank: ["mercury", "sun", "moon", "venus", "jupiter", "saturn", "mars"],
+      // PyJHora v4.8.5 (Lahiri) — Bhava Bala (house strength in Rupas)
+      bhavaBalaRupas: { 1: 7.04, 2: 7.11, 3: 6.98, 4: 7.56, 5: 7.04, 6: 6.50, 7: 6.82, 8: 9.10, 9: 8.65, 10: 8.61, 11: 9.42, 12: 7.01 },
+      bhavaBalaRank: [11, 8, 9, 10, 4, 2, 1, 5, 12, 3, 7, 6],
       // PyJHora v4.8.5 (Lahiri) — Yogini & Ashtottari
       yoginiDasha: {
         first3: [
@@ -240,6 +247,9 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
       shadbalaRupas: { sun: 10.02, moon: 4.57, mars: 6.06, mercury: 8.62, jupiter: 8.00, venus: 4.37, saturn: 5.85 },
       shadbalaRank: ["sun", "mercury", "jupiter", "mars", "saturn", "moon", "venus"],
+      // PyJHora v4.8.5 (Lahiri) — Bhava Bala (house strength in Rupas)
+      bhavaBalaRupas: { 1: 10.44, 2: 9.50, 3: 5.04, 4: 6.72, 5: 8.50, 6: 6.71, 7: 5.77, 8: 8.75, 9: 6.90, 10: 5.37, 11: 9.29, 12: 4.90 },
+      bhavaBalaRank: [1, 2, 11, 8, 5, 9, 4, 6, 7, 10, 3, 12],
       yoginiDasha: {
         first3: [
           { planet: "Saturn",  durationYears: 6 },
@@ -336,6 +346,9 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
       shadbalaRupas: { sun: 7.28, moon: 4.45, mars: 4.20, mercury: 7.54, jupiter: 8.03, venus: 5.86, saturn: 7.77 },
       shadbalaRank: ["jupiter", "saturn", "mercury", "sun", "venus", "moon", "mars"],
+      // PyJHora v4.8.5 (Lahiri) — Bhava Bala (house strength in Rupas)
+      bhavaBalaRupas: { 1: 8.76, 2: 8.73, 3: 4.36, 4: 6.01, 5: 7.87, 6: 5.13, 7: 7.78, 8: 7.71, 9: 6.44, 10: 4.80, 11: 9.03, 12: 8.10 },
+      bhavaBalaRank: [11, 1, 2, 12, 5, 7, 8, 9, 4, 6, 10, 3],
       yoginiDasha: {
         first3: [
           { planet: "Sun",     durationYears: 2 },
@@ -543,6 +556,58 @@ for (const ref of REFERENCE_CHARTS) {
           SHADBALA_TOLERANCE_RUPAS,
           `${planet}: engine ${sb.planets[planet].totalRupas.toFixed(2)}R vs JHora ${jhoraRupas}R`,
         );
+      }
+    });
+  }
+
+  // ── Bhava Bala (house strength) ─────────────────────────────────────
+  Deno.test(`[${ref.label}] Bhava Bala is computed for 12 houses`, () => {
+    const bb = chart.bhavaBala as { houses: Array<{ house: number; totalRupas: number }>; rank: number[] };
+    assertEquals(typeof bb, "object", "bhavaBala should be an object");
+    assertEquals(bb.houses.length, 12, `Expected 12 houses, got ${bb.houses.length}`);
+    for (let h = 1; h <= 12; h++) {
+      const hd = bb.houses.find((x: { house: number }) => x.house === h);
+      assertEquals(!!hd, true, `Missing house ${h}`);
+      assertEquals(hd!.totalRupas > 0, true, `House ${h} totalRupas should be > 0`);
+    }
+    assertEquals(bb.rank.length, 12, "rank should have 12 entries");
+  });
+
+  // ── Bhava Bala Rupas parity with JHora (±0.5 Rupa tolerance) ──────
+  if (ref.expected.bhavaBalaRupas) {
+    const BHAVA_BALA_TOLERANCE_RUPAS = 0.5;
+    Deno.test(`[${ref.label}] Bhava Bala Rupas within ±${BHAVA_BALA_TOLERANCE_RUPAS}R of JHora`, () => {
+      const bb = chart.bhavaBala as { houses: Array<{ house: number; totalRupas: number }> };
+      for (const [houseStr, jhoraRupas] of Object.entries(ref.expected.bhavaBalaRupas!)) {
+        const houseNum = Number(houseStr);
+        const hd = bb.houses.find((x: { house: number }) => x.house === houseNum);
+        assertAlmostEquals(
+          hd!.totalRupas,
+          jhoraRupas,
+          BHAVA_BALA_TOLERANCE_RUPAS,
+          `House ${houseNum}: engine ${hd!.totalRupas.toFixed(2)}R vs JHora ${jhoraRupas}R`,
+        );
+      }
+    });
+  }
+
+  if (ref.expected.bhavaBalaRank) {
+    const BB_RANK_TOLERANCE_RUPAS = 0.5;
+    Deno.test(`[${ref.label}] Bhava Bala rank matches JHora`, () => {
+      const bb = chart.bhavaBala as { houses: Array<{ house: number; totalRupas: number }>; rank: number[] };
+      const expectedRank = ref.expected.bhavaBalaRank!;
+      const rupasOf = (h: number) => bb.houses.find(x => x.house === h)!.totalRupas;
+      for (let i = 0; i < expectedRank.length; i++) {
+        if (bb.rank[i] !== expectedRank[i]) {
+          // Allow transposition of adjacent-ranked houses whose Rupas are within tolerance
+          const j = bb.rank.indexOf(expectedRank[i]);
+          const swapOk = Math.abs(rupasOf(bb.rank[i]) - rupasOf(expectedRank[i])) < BB_RANK_TOLERANCE_RUPAS;
+          assertEquals(
+            swapOk,
+            true,
+            `Rank position ${i + 1}: expected H${expectedRank[i]}, got H${bb.rank[i]} (delta ${Math.abs(rupasOf(bb.rank[i]) - rupasOf(expectedRank[i])).toFixed(2)}R > ${BB_RANK_TOLERANCE_RUPAS}R)`,
+          );
+        }
       }
     });
   }
