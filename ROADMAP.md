@@ -11,18 +11,20 @@ grouped by horizon and theme.
 
 ## Where we are today
 
-The platform delivers an end-to-end experience: **Swiss-Ephemeris-grade**
-in-house chart computation, 16 divisional charts, Vimshottari + Jaimini Chara
-dasha, yogas, doshas, Ashtakavarga, Panchang, **six-source Shadbala**, **KP
-(with Placidus cuspal sub-lords)**, transits, 36-point compatibility, the
-multi-Guru debate engine, auth, a chart library with public sharing, an admin
-panel, and PDF report export. A Swiss-Ephemeris/JHora **parity harness** and
-**CI** guard accuracy on every PR.
+The platform delivers a **Swiss-Ephemeris-grade** engine: 16 divisional charts,
+Vimshottari + Yogini + Ashtottari + Jaimini Chara dashas, yogas, doshas,
+Ashtakavarga, Panchang, **six-source Shadbala**, **Bhava Bala**, **KP (with
+Placidus cuspal sub-lords)**, full **Jaimini** (Chara Karakas, Karakamsa, Arudha,
+Chara Dasha), **Varshphal** (annual chart, Muntha, Year Lord, Tajik yogas),
+transits, 36-point compatibility, the multi-Guru debate engine, auth, a chart
+library with public sharing, an admin panel, and PDF report export. Every
+calculation is JHora-validated by a **parity harness** + **CI** on each PR.
 
-The remaining gaps are **monetization/plan enforcement**, **breadth of timing
-systems** (more dashas, Varshphal), product features (Muhurta, transit alerts),
-and two small engine follow-ups (KP 4-fold significators, Chara Dasha
-sub-periods).
+**Engine vs. UI:** all of the above is computed and fed to the Guru Debate
+dossier, but many of the newer outputs have **no dedicated front-end view yet**
+— that's the upcoming **UI/UX phase** (see below). Remaining engine gaps are
+small: KP 4-fold significators, Chara Dasha sub-periods, Vimsopaka bala, and a
+few more dasha systems. Product gaps: Muhurta, transit alerts, monetization.
 
 ---
 
@@ -61,6 +63,18 @@ sub-periods).
   to the fork.
 - ✅ **PDF report export** — `render-report` renders the dossier to a multi-page
   PDF via PDFShift (key configured in Admin → API Keys).
+- ✅ **Bhava Bala** ([bhavabala.ts](supabase/functions/calculate-kundli/bhavabala.ts)) —
+  house strength (Bhavadhipathi + Dig + Drishti) in Rupas, JHora-validated.
+- ✅ **Yogini + Ashtottari dashas** ([yogini.ts](supabase/functions/calculate-kundli/yogini.ts),
+  [ashtottari.ts](supabase/functions/calculate-kundli/ashtottari.ts)) — Maha + Antar, JHora-validated.
+- ✅ **Varshphal (Tajik annual chart)** ([varshphal.ts](supabase/functions/calculate-kundli/varshphal.ts)) —
+  solar return, Muntha, Year Lord (full Panchavargeeya-Bala tie-break), JHora-validated.
+- ✅ **Tajik yogas** ([tajik_yogas.ts](supabase/functions/calculate-kundli/tajik_yogas.ts)) —
+  Ithasala, Eesarpha, Ishkavala, Induvara, Nakta, Yamaya on the annual chart, JHora-validated.
+
+> All engine work above is validated against **Jagannatha Hora (PyJHora)** and
+> surfaced in the Guru Debate dossier — but **not yet in dedicated UI** (see the
+> UI/UX phase).
 
 ---
 
@@ -89,6 +103,30 @@ sub-periods).
 - 🟡 **Finish the provider abstraction.** `normalizers.ts` is a no-op and the
   `vedicrishi` provider is a stub. `custom` is confirmed working against the
   edge function; remove dead paths or complete the VedicRishi adapter.
+
+---
+
+## UI/UX phase — surface the engine in the app
+
+**The plan: finish the engine features, then build the UI for them.** Every
+calculation below is computed and used by the Guru Debate gurus, but has **no
+dedicated front-end view** yet. This is the next major phase after the engine
+finishers.
+
+| Engine feature | Front-end work |
+|----------------|----------------|
+| Shadbala | ⬜ Planet-strength view (six balas + total Rupas + rank) — new section in ChartDetail or a "Strengths" page |
+| Bhava Bala | ⬜ House-strength view (bar chart / heatmap), alongside Shadbala |
+| Yogini + Ashtottari dashas | ⬜ Add as selectable systems on the **Dashas** page (currently Vimshottari only) |
+| Varshphal (annual chart) | ⬜ New **Varshphal** page: annual chart wheel, Muntha, Year Lord, year selector |
+| Tajik yogas | ⬜ Show active Tajik yogas within the Varshphal view |
+| KP (sub-lords, cuspal sub-lords, Ruling Planets, significators) | ⬜ New **KP** page: planet/cusp sub-lord tables + 4-fold significators |
+| Jaimini (Chara Karakas, Karakamsa, Arudha, Chara Dasha) | ⬜ New **Jaimini** page or section |
+| Navigation / IA | ⬜ Surface the new pages in the app nav; tie into the per-feature routes that already exist as placeholders |
+
+Cross-cutting UI/UX (also in this phase): responsive/mobile polish,
+accessibility pass, loading/empty/error states, and visual consistency across
+the new views.
 
 ---
 
