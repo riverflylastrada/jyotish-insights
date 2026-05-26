@@ -40,9 +40,9 @@ API is required.
   geocoding + client-side timezone offset).
 - **16 divisional charts (Vargas)** — D1 (Rasi) through D60 (Shashtiamsa) with
   per-varga significance and interpretation.
-- **Vimshottari Dasha** — a 120-year timeline drilled down to five sub-period
-  levels (Maha → Antar → Pratyantar → Sookshma → Prana), with the live "now"
-  marker computed dynamically.
+- **Dasha systems** — **Vimshottari** (120-yr, five sub-period levels Maha →
+  Antar → Pratyantar → Sookshma → Prana, live "now" marker), plus **Yogini**
+  (36-yr) and **Ashtottari** (108-yr) with Maha + Antar — all JHora-validated.
 - **Yogas** — 15+ classical yogas (Raja, Dhana, Pancha Mahapurusha, etc.) with
   strength rating and the planetary combinations that form them.
 - **Doshas** — Mangal, Kaal Sarp, Sade Sati, Pitra, Guru Chandal, and Shakat
@@ -53,6 +53,11 @@ API is required.
 - **Shadbala** — the full classical six-source strength (Sthana, Dig, Kala,
   Cheshta, Naisargika, Drik bala) in Rupas/Virupas with required minimums and
   rank, **validated against Jagannatha Hora to within ±0.03 Rupa**.
+- **Bhava Bala** — strength of each of the 12 houses (Bhavadhipathi + Dig +
+  Drishti bala) in Rupas, JHora-validated.
+- **Varshphal (Tajik annual chart)** — the solar-return chart, Muntha, Year
+  Lord (Varshesh via full Panchavargeeya-Bala tie-break), and **Tajik yogas**
+  (Ithasala, Eesarpha, Ishkavala, Induvara, Nakta, Yamaya) — JHora-validated.
 - **KP (Krishnamurti Paddhati)** — sign-lord / star-lord / sub-lord for every
   planet, **Placidus cuspal sub-lords**, and KP Ruling Planets.
 - **Jaimini** — 8 Chara Karakas (Atmakaraka → Darakaraka, with Rahu reversed),
@@ -63,6 +68,12 @@ API is required.
 - **Self-updating snapshots** — saved charts carry an engine version and
   auto-recalculate when the engine gains new data, so old charts gain new
   features (e.g. KP/Jaimini) without a manual recalculation.
+
+> **Engine vs. UI:** every calculation above is computed by the engine and fed
+> into the Guru Debate dossier, so the gurus reason from all of it. Dedicated
+> front-end views for the newer outputs (Shadbala, Bhava Bala, Yogini/Ashtottari
+> dashas, Varshphal, Tajik yogas, KP significators, Jaimini) are part of the
+> upcoming UI/UX phase — see [ROADMAP.md](ROADMAP.md).
 
 ### Interpretation & analysis
 - **Multi-Guru Debate** — pose a question and stream parallel readings from up
@@ -153,6 +164,8 @@ in TypeScript:
 | [vedic.ts](supabase/functions/calculate-kundli/vedic.ts) | Ayanamsa, sidereal conversion, nakshatra/pada, whole-sign houses, dignity, combustion |
 | [divisional.ts](supabase/functions/calculate-kundli/divisional.ts) | All 16 divisional (Varga) charts |
 | [dashas.ts](supabase/functions/calculate-kundli/dashas.ts) | Vimshottari Dasha to five levels |
+| [yogini.ts](supabase/functions/calculate-kundli/yogini.ts) | Yogini Dasha (36-yr), Maha + Antar |
+| [ashtottari.ts](supabase/functions/calculate-kundli/ashtottari.ts) | Ashtottari Dasha (108-yr), Maha + Antar |
 | [yogas.ts](supabase/functions/calculate-kundli/yogas.ts) | Classical yoga detection |
 | [doshas.ts](supabase/functions/calculate-kundli/doshas.ts) | Dosha detection + remedies |
 | [ashtakavarga.ts](supabase/functions/calculate-kundli/ashtakavarga.ts) | Bhinna- and Sarva-ashtakavarga |
@@ -160,6 +173,9 @@ in TypeScript:
 | [kp.ts](supabase/functions/calculate-kundli/kp.ts) | KP sub-lords, Placidus cuspal sub-lords, Ruling Planets |
 | [jaimini.ts](supabase/functions/calculate-kundli/jaimini.ts) | Chara Karakas, Karakamsa, Arudha Padas, Chara Dasha (KN Rao) |
 | [shadbala.ts](supabase/functions/calculate-kundli/shadbala.ts) | Six-source Shadbala in Rupas (JHora-validated) |
+| [bhavabala.ts](supabase/functions/calculate-kundli/bhavabala.ts) | Bhava Bala (house strength) in Rupas (JHora-validated) |
+| [varshphal.ts](supabase/functions/calculate-kundli/varshphal.ts) | Varshphal: annual chart, Muntha, Year Lord (JHora-validated) |
+| [tajik_yogas.ts](supabase/functions/calculate-kundli/tajik_yogas.ts) | Tajik yogas on the annual chart (Ithasala, Eesarpha, …) |
 | [engine.ts](supabase/functions/calculate-kundli/engine.ts) | Orchestrator → assembles the full `KundliData` (version-stamped) |
 
 Planetary positions use **VSOP87** (planets) and **ELP-2000/82** (Moon) with
