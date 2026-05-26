@@ -292,6 +292,20 @@ const sampleChart = {
       { planet: "sun", signLord: "Sun", starLord: "Sun", subLord: "Mercury" },
       { planet: "moon", signLord: "Moon", starLord: "Mercury", subLord: "Venus" },
     ],
+    houseSignificators: [
+      { house: 1, levelA: ["venus"], levelB: ["moon", "venus"], levelC: ["sun", "mercury", "rahu"], levelD: ["mars"], nodesActingFor: [], ordered: ["venus", "moon", "sun", "mercury", "rahu", "mars"] },
+      { house: 2, levelA: [], levelB: [], levelC: ["mars", "jupiter"], levelD: ["jupiter"], nodesActingFor: [], ordered: ["mars", "jupiter"] },
+      { house: 3, levelA: [], levelB: [], levelC: [], levelD: ["saturn"], nodesActingFor: [], ordered: ["saturn"] },
+      { house: 4, levelA: [], levelB: ["ketu"], levelC: [], levelD: ["saturn"], nodesActingFor: ["ketu"], ordered: ["ketu", "saturn"] },
+      { house: 5, levelA: [], levelB: [], levelC: [], levelD: ["jupiter"], nodesActingFor: [], ordered: ["jupiter"] },
+      { house: 6, levelA: [], levelB: [], levelC: [], levelD: ["mars"], nodesActingFor: [], ordered: ["mars"] },
+      { house: 7, levelA: [], levelB: [], levelC: [], levelD: ["venus"], nodesActingFor: [], ordered: ["venus"] },
+      { house: 8, levelA: [], levelB: [], levelC: [], levelD: ["mercury"], nodesActingFor: [], ordered: ["mercury"] },
+      { house: 9, levelA: [], levelB: [], levelC: [], levelD: ["moon"], nodesActingFor: [], ordered: ["moon"] },
+      { house: 10, levelA: ["saturn", "jupiter"], levelB: ["sun", "mercury", "rahu"], levelC: ["moon", "venus"], levelD: ["sun"], nodesActingFor: ["rahu"], ordered: ["saturn", "jupiter", "sun", "mercury", "rahu", "moon", "venus"] },
+      { house: 11, levelA: ["moon", "venus"], levelB: ["mars", "jupiter", "saturn"], levelC: [], levelD: ["mercury"], nodesActingFor: [], ordered: ["moon", "venus", "mars", "jupiter", "saturn", "mercury"] },
+      { house: 12, levelA: [], levelB: [], levelC: [], levelD: ["venus"], nodesActingFor: [], ordered: ["venus"] },
+    ],
   },
   jaimini: {
     charaKarakas: [
@@ -477,6 +491,15 @@ Deno.test("dossier contains KP sub-lord table", () => {
   assertStringIncludes(d, "KP SUB-LORDS");
   assertStringIncludes(d, "Sub-lord");
   assertStringIncludes(d, "Placidus cuspal sub-lords are not yet computed");
+});
+
+Deno.test("dossier contains KP 4-fold house significators", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "KP 4-FOLD HOUSE SIGNIFICATORS");
+  assertStringIncludes(d, "Level A");
+  assertStringIncludes(d, "House 1:");
+  assertStringIncludes(d, "House 10:");
+  assertStringIncludes(d, "Ordered:");
 });
 
 Deno.test("dossier contains Jaimini Chara Karakas and Arudha", () => {

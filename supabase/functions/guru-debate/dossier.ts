@@ -652,11 +652,34 @@ function sectionVarshphal(chart: any): string {
   return lines.join("\n");
 }
 
+function sectionKpSignificators(chart: any): string {
+  const sigs = chart?.kp?.houseSignificators;
+  if (!sigs || !Array.isArray(sigs) || sigs.length === 0) return "";
+
+  const lines = [`═══ KP 4-FOLD HOUSE SIGNIFICATORS ═══`];
+  lines.push(`Strength order: Level A (planets in star of occupants) > Level B (occupants) > Level C (planets in star of owner) > Level D (owner).`);
+  lines.push(`Nodes (Rahu/Ketu) act as agents of their dispositor, star-lord, conjoined, and aspecting planets.\n`);
+
+  for (const h of sigs) {
+    const parts: string[] = [`House ${h.house}:`];
+    parts.push(`  A: ${h.levelA.length > 0 ? h.levelA.map(capitalize).join(", ") : "none"}`);
+    parts.push(`  B: ${h.levelB.length > 0 ? h.levelB.map(capitalize).join(", ") : "none"}`);
+    parts.push(`  C: ${h.levelC.length > 0 ? h.levelC.map(capitalize).join(", ") : "none"}`);
+    parts.push(`  D: ${h.levelD.length > 0 ? h.levelD.map(capitalize).join(", ") : "none"}`);
+    if (h.nodesActingFor.length > 0) {
+      parts.push(`  Nodes acting: ${h.nodesActingFor.map(capitalize).join(", ")}`);
+    }
+    parts.push(`  Ordered: ${h.ordered.map(capitalize).join(" → ")}`);
+    lines.push(parts.join("\n"));
+  }
+
+  return lines.join("\n");
+}
+
 function sectionUnavailableSystems(): string {
   return [
     `═══ SYSTEMS NOT YET COMPUTED ═══`,
     `The following are not available in this chart snapshot — do NOT fabricate them:`,
-    `- KP 4-fold significators per house (occupants, star-lords, lord, lord's star-lord — pending)`,
     `- Sahams (Arabic parts)`,
   ].join("\n");
 }
@@ -689,6 +712,7 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionPanchang(chart),
     sectionDivisionalSummary(chart),
     sectionKP(chart),
+    sectionKpSignificators(chart),
     sectionJaimini(chart),
     sectionVarshphal(chart),
     sectionUnavailableSystems(),

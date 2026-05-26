@@ -90,6 +90,16 @@ export interface AshtakavargaData {
   sarva: number[];
 }
 
+export interface KpHouseSignificatorData {
+  house: number;
+  levelA: string[];
+  levelB: string[];
+  levelC: string[];
+  levelD: string[];
+  nodesActingFor: string[];
+  ordered: string[];
+}
+
 export interface KpData {
   planetSubLords: Array<{
     planet: string;
@@ -111,6 +121,7 @@ export interface KpData {
     moonStarLord: string;
     dayLord: string;
   };
+  houseSignificators?: KpHouseSignificatorData[];
 }
 
 export interface PlanetShadbalaData {
@@ -235,7 +246,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 9;
+export const CURRENT_SNAPSHOT_VERSION = 10;
 
 export interface KundliData {
   id: string;

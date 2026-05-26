@@ -4,11 +4,12 @@
  * Computes star-lord and sub-lord for any sidereal longitude
  * using the Vimshottari proportional sub-division scheme.
  *
- * Also provides KP Ruling Planets computation for transit-based analysis.
+ * Also provides KP Ruling Planets computation for transit-based analysis,
+ * and the KP 4-fold house significators for predictive work.
  */
 
 import { NAKSHATRA_LORDS, VIMSHOTTARI_SEQUENCE } from "./constants.ts";
-import { getSignLord, nakshatraIndex } from "./vedic.ts";
+import { getSignLord, nakshatraIndex, wholeSignHouse } from "./vedic.ts";
 import { rad, deg, norm360 } from "./astronomy.ts";
 import type { PlanetPos } from "./divisional.ts";
 
@@ -277,4 +278,202 @@ export function computeCuspalSubLords(
       subLord: lords.subLord,
     };
   });
+}
+
+// ─── KP 4-Fold House Significators ──────────────────────────────────────────
+
+export interface HouseSignificatorData {
+  house: number;
+  levelA: string[];
+  levelB: string[];
+  levelC: string[];
+  levelD: string[];
+  nodesActingFor: string[];
+  ordered: string[];
+}
+
+const PLANETS_FOR_SIG = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn', 'rahu', 'ketu'];
+const NODES = ['rahu', 'ketu'];
+
+/** Vedic graha-drishti: houses aspected from a planet's position (offsets from the planet's house). */
+function vedicAspectOffsets(planet: string): number[] {
+  switch (planet) {
+    case 'mars': return [4, 7, 8];
+    case 'jupiter': return [5, 7, 9];
+    case 'saturn': return [3, 7, 10];
+    default: return [7];
+  }
+}
+
+/**
+ * Compute the KP 4-fold significators for all 12 houses.
+ *
+ * Rules (descending strength):
+ *   Level A — planets in the star of occupant(s) of H
+ *   Level B — occupant(s) of H
+ *   Level C — planets in the star of the owner (sign lord) of H
+ *   Level D — the owner (sign lord) of H
+ *
+ * Node rules: Rahu/Ketu also signify the houses signified by their
+ * (a) sign-lord (dispositor), (b) star-lord, (c) conjoined planets,
+ * (d) aspecting planets. They are treated as strong primary significators.
+ */
+export function computeHouseSignificators(
+  d1Planets: PlanetPos[],
+  ascSign: number,
+): HouseSignificatorData[] {
+  const grahas = d1Planets.filter(p => p.planet !== 'ascendant');
+
+  // Pre-compute star-lord for every graha
+  const starLordMap: Record<string, string> = {};
+  for (const g of grahas) {
+    const nIdx = nakshatraIndex(g.longitude);
+    starLordMap[g.planet] = NAKSHATRA_LORDS[nIdx % 9];
+  }
+
+  // House number for each graha (Whole Sign)
+  const houseOf: Record<string, number> = {};
+  for (const g of grahas) {
+    houseOf[g.planet] = wholeSignHouse(g.signNumber, ascSign);
+  }
+
+  // Occupants per house (1–12)
+  const occupants: Record<number, string[]> = {};
+  for (let h = 1; h <= 12; h++) occupants[h] = [];
+  for (const g of grahas) {
+    occupants[houseOf[g.planet]].push(g.planet);
+  }
+
+  // Owner (sign lord) per house
+  const houseOwner: Record<number, string> = {};
+  for (let h = 1; h <= 12; h++) {
+    const houseSign = ((ascSign - 1 + (h - 1)) % 12) + 1;
+    houseOwner[h] = getSignLord(houseSign);
+  }
+
+  // Build reverse map: for a given planet, which planets have it as their star-lord?
+  const planetsInStarOf: Record<string, string[]> = {};
+  for (const name of PLANETS_FOR_SIG) planetsInStarOf[name] = [];
+  for (const g of grahas) {
+    const sl = starLordMap[g.planet];
+    const slLower = sl.toLowerCase();
+    if (planetsInStarOf[slLower]) {
+      planetsInStarOf[slLower].push(g.planet);
+    }
+  }
+
+  // Node agency: compute which houses each node "acts for" via its dispositor,
+  // star-lord, conjoined planets, and aspecting planets.
+  const nodeActsForHouses: Record<string, Set<number>> = { rahu: new Set(), ketu: new Set() };
+
+  for (const node of NODES) {
+    const nodeGraha = grahas.find(g => g.planet === node);
+    if (!nodeGraha) continue;
+
+    // Collect planets whose significators the node inherits
+    const agencyPlanets = new Set<string>();
+
+    // (a) Sign-lord (dispositor)
+    const dispositor = getSignLord(nodeGraha.signNumber);
+    agencyPlanets.add(dispositor);
+
+    // (b) Star-lord
+    const nodeStar = starLordMap[node].toLowerCase();
+    agencyPlanets.add(nodeStar);
+
+    // (c) Conjoined planets (same sign)
+    for (const g of grahas) {
+      if (g.planet === node) continue;
+      if (g.signNumber === nodeGraha.signNumber) agencyPlanets.add(g.planet);
+    }
+
+    // (d) Aspecting planets (planets whose Vedic drishti falls on node's house)
+    const nodeHouse = houseOf[node];
+    for (const g of grahas) {
+      if (g.planet === node) continue;
+      if (NODES.includes(g.planet)) continue; // nodes don't cast graha-drishti
+      const offsets = vedicAspectOffsets(g.planet);
+      for (const off of offsets) {
+        const aspectedHouse = ((houseOf[g.planet] - 1 + off) % 12) + 1;
+        if (aspectedHouse === nodeHouse) {
+          agencyPlanets.add(g.planet);
+        }
+      }
+    }
+
+    // Collect all houses that the agency planets signify (as occupant or owner)
+    for (const ap of agencyPlanets) {
+      // Houses occupied by the agency planet
+      if (houseOf[ap] !== undefined) {
+        nodeActsForHouses[node].add(houseOf[ap]);
+      }
+      // Houses owned by the agency planet
+      for (let h = 1; h <= 12; h++) {
+        if (houseOwner[h] === ap) nodeActsForHouses[node].add(h);
+      }
+    }
+  }
+
+  const result: HouseSignificatorData[] = [];
+
+  for (let h = 1; h <= 12; h++) {
+    const levelA: string[] = [];
+    const levelB: string[] = [];
+    const levelC: string[] = [];
+    const levelD: string[] = [];
+    const nodesActingFor: string[] = [];
+
+    // Level B: occupants of H
+    for (const occ of occupants[h]) {
+      levelB.push(occ);
+    }
+
+    // Level A: planets in the star of occupant(s) of H
+    for (const occ of occupants[h]) {
+      const inStar = planetsInStarOf[occ] ?? [];
+      for (const p of inStar) {
+        if (!levelA.includes(p)) levelA.push(p);
+      }
+    }
+
+    // Level D: owner (sign lord) of H
+    const owner = houseOwner[h];
+    levelD.push(owner);
+
+    // Level C: planets in the star of the owner of H
+    const inStarOfOwner = planetsInStarOf[owner] ?? [];
+    for (const p of inStarOfOwner) {
+      if (!levelC.includes(p)) levelC.push(p);
+    }
+
+    // Node agency: if a node acts for this house, include it
+    for (const node of NODES) {
+      if (nodeActsForHouses[node].has(h)) {
+        nodesActingFor.push(node);
+      }
+    }
+
+    // Ordered: A → B → C → D, de-duplicated, preserving strength order
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    for (const list of [levelA, levelB, levelC, levelD]) {
+      for (const p of list) {
+        if (!seen.has(p)) {
+          seen.add(p);
+          ordered.push(p);
+        }
+      }
+    }
+    // Add node agents that aren't already present
+    for (const n of nodesActingFor) {
+      if (!seen.has(n)) {
+        seen.add(n);
+        ordered.push(n);
+      }
+    }
+
+    result.push({ house: h, levelA, levelB, levelC, levelD, nodesActingFor, ordered });
+  }
+
+  return result;
 }

@@ -22,7 +22,7 @@ import { detectYogas } from "./yogas.ts";
 import { detectDoshas } from "./doshas.ts";
 import { computeAshtakavarga } from "./ashtakavarga.ts";
 import { computePanchang } from "./panchang.ts";
-import { computeKpPlanetSubLords, computePlacidusCusps, computeCuspalSubLords, computeRulingPlanets } from "./kp.ts";
+import { computeKpPlanetSubLords, computePlacidusCusps, computeCuspalSubLords, computeRulingPlanets, computeHouseSignificators } from "./kp.ts";
 import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha } from "./jaimini.ts";
 import { computeShadbala } from "./shadbala.ts";
 import { computeBhavaBala } from "./bhavabala.ts";
@@ -186,6 +186,9 @@ export function calculateKundli(details: BirthDetails) {
   // KP Ruling Planets (at chart time)
   const rulingPlanets = computeRulingPlanets(ascSid, moonSid, birthDate);
 
+  // KP 4-fold house significators
+  const houseSignificators = computeHouseSignificators(d1Planets, ascSign);
+
   // Jaimini: Chara Karakas, Karakamsa, Arudha Padas, Chara Dasha
   const charaKarakas = computeCharaKarakas(d1Planets);
   const ak = charaKarakas.find((ck) => ck.karaka === 'AK');
@@ -209,7 +212,7 @@ export function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 9,
+    snapshotVersion: 10,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -221,7 +224,7 @@ export function calculateKundli(details: BirthDetails) {
     ashtakavarga,
     shadbala,
     bhavaBala,
-    kp: { planetSubLords: kpPlanetSubLords, cuspalSubLords, rulingPlanets },
+    kp: { planetSubLords: kpPlanetSubLords, cuspalSubLords, rulingPlanets, houseSignificators },
     jaimini: {
       charaKarakas,
       atmakaraka: ak?.planet ?? 'unknown',
