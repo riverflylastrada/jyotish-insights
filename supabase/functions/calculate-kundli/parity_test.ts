@@ -51,6 +51,16 @@ interface ReferenceChart {
     shadbalaRupas?: Record<string, number>;
     /** Shadbala rank (strongest → weakest) */
     shadbalaRank?: string[];
+    /** Yogini Dasha: first 3 Maha lords + durations, and current Maha lord (PyJHora v4.8.5) */
+    yoginiDasha?: {
+      first3: Array<{ planet: string; durationYears: number }>;
+      currentMahaLord: string;
+    };
+    /** Ashtottari Dasha: first 3 Maha lords + durations, and current Maha lord (PyJHora v4.8.5) */
+    ashtottariDasha?: {
+      first3: Array<{ planet: string; durationYears: number }>;
+      currentMahaLord: string;
+    };
   };
 }
 
@@ -133,6 +143,23 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
       shadbalaRupas: { sun: 8.07, moon: 7.82, mars: 6.07, mercury: 8.75, jupiter: 6.77, venus: 6.84, saturn: 6.32 },
       shadbalaRank: ["mercury", "sun", "moon", "venus", "jupiter", "saturn", "mars"],
+      // PyJHora v4.8.5 (Lahiri) — Yogini & Ashtottari
+      yoginiDasha: {
+        first3: [
+          { planet: "Sun",     durationYears: 2 },
+          { planet: "Jupiter", durationYears: 3 },
+          { planet: "Mars",    durationYears: 4 },
+        ],
+        currentMahaLord: "Mars",
+      },
+      ashtottariDasha: {
+        first3: [
+          { planet: "Jupiter", durationYears: 19 },
+          { planet: "Rahu",    durationYears: 12 },
+          { planet: "Venus",   durationYears: 21 },
+        ],
+        currentMahaLord: "Venus",
+      },
     },
   },
   // ── Chart 2: Rajiv Gandhi ──────────────────────────────────────────────
@@ -213,6 +240,22 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
       shadbalaRupas: { sun: 10.02, moon: 4.57, mars: 6.06, mercury: 8.62, jupiter: 8.00, venus: 4.37, saturn: 5.85 },
       shadbalaRank: ["sun", "mercury", "jupiter", "mars", "saturn", "moon", "venus"],
+      yoginiDasha: {
+        first3: [
+          { planet: "Saturn",  durationYears: 6 },
+          { planet: "Venus",   durationYears: 7 },
+          { planet: "Rahu",    durationYears: 8 },
+        ],
+        currentMahaLord: "Venus",
+      },
+      ashtottariDasha: {
+        first3: [
+          { planet: "Moon",    durationYears: 15 },
+          { planet: "Mars",    durationYears: 8 },
+          { planet: "Mercury", durationYears: 17 },
+        ],
+        currentMahaLord: "Venus",
+      },
     },
   },
   // ── Chart 3: Amitabh Bachchan ──────────────────────────────────────────
@@ -293,6 +336,22 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // JHora (PyJHora v4.8.5, Lahiri) — authoritative reference
       shadbalaRupas: { sun: 7.28, moon: 4.45, mars: 4.20, mercury: 7.54, jupiter: 8.03, venus: 5.86, saturn: 7.77 },
       shadbalaRank: ["jupiter", "saturn", "mercury", "sun", "venus", "moon", "mars"],
+      yoginiDasha: {
+        first3: [
+          { planet: "Sun",     durationYears: 2 },
+          { planet: "Jupiter", durationYears: 3 },
+          { planet: "Mars",    durationYears: 4 },
+        ],
+        currentMahaLord: "Mercury",
+      },
+      ashtottariDasha: {
+        first3: [
+          { planet: "Mars",    durationYears: 8 },
+          { planet: "Mercury", durationYears: 17 },
+          { planet: "Saturn",  durationYears: 10 },
+        ],
+        currentMahaLord: "Sun",
+      },
     },
   },
 ];
@@ -485,6 +544,68 @@ for (const ref of REFERENCE_CHARTS) {
           `${planet}: engine ${sb.planets[planet].totalRupas.toFixed(2)}R vs JHora ${jhoraRupas}R`,
         );
       }
+    });
+  }
+
+  // ── Yogini Dasha parity (PyJHora v4.8.5, Lahiri) ─────────────────────
+  if (ref.expected.yoginiDasha) {
+    Deno.test(`[${ref.label}] Yogini Dasha — first 3 Maha lords + durations`, () => {
+      const yogini = chart.dashas.find((d: { system: string }) => d.system === "yogini");
+      assertEquals(!!yogini, true, "Yogini dasha system not found");
+      const timeline = yogini!.timeline;
+      for (let i = 0; i < ref.expected.yoginiDasha!.first3.length; i++) {
+        const exp = ref.expected.yoginiDasha!.first3[i];
+        assertEquals(
+          timeline[i].planet,
+          exp.planet,
+          `Yogini Maha #${i + 1}: expected ${exp.planet}, got ${timeline[i].planet}`,
+        );
+        assertEquals(
+          timeline[i].durationYears,
+          exp.durationYears,
+          `Yogini Maha #${i + 1} (${exp.planet}): expected ${exp.durationYears} yrs, got ${timeline[i].durationYears} yrs`,
+        );
+      }
+    });
+
+    Deno.test(`[${ref.label}] Yogini Dasha — current Maha lord`, () => {
+      const yogini = chart.dashas.find((d: { system: string }) => d.system === "yogini");
+      assertEquals(
+        yogini!.currentMahaDasha.planet,
+        ref.expected.yoginiDasha!.currentMahaLord,
+        `Current Yogini Maha: expected ${ref.expected.yoginiDasha!.currentMahaLord}, got ${yogini!.currentMahaDasha.planet}`,
+      );
+    });
+  }
+
+  // ── Ashtottari Dasha parity (PyJHora v4.8.5, Lahiri) ─────────────────
+  if (ref.expected.ashtottariDasha) {
+    Deno.test(`[${ref.label}] Ashtottari Dasha — first 3 Maha lords + durations`, () => {
+      const ashto = chart.dashas.find((d: { system: string }) => d.system === "ashtottari");
+      assertEquals(!!ashto, true, "Ashtottari dasha system not found");
+      const timeline = ashto!.timeline;
+      for (let i = 0; i < ref.expected.ashtottariDasha!.first3.length; i++) {
+        const exp = ref.expected.ashtottariDasha!.first3[i];
+        assertEquals(
+          timeline[i].planet,
+          exp.planet,
+          `Ashtottari Maha #${i + 1}: expected ${exp.planet}, got ${timeline[i].planet}`,
+        );
+        assertEquals(
+          timeline[i].durationYears,
+          exp.durationYears,
+          `Ashtottari Maha #${i + 1} (${exp.planet}): expected ${exp.durationYears} yrs, got ${timeline[i].durationYears} yrs`,
+        );
+      }
+    });
+
+    Deno.test(`[${ref.label}] Ashtottari Dasha — current Maha lord`, () => {
+      const ashto = chart.dashas.find((d: { system: string }) => d.system === "ashtottari");
+      assertEquals(
+        ashto!.currentMahaDasha.planet,
+        ref.expected.ashtottariDasha!.currentMahaLord,
+        `Current Ashtottari Maha: expected ${ref.expected.ashtottariDasha!.currentMahaLord}, got ${ashto!.currentMahaDasha.planet}`,
+      );
     });
   }
 }

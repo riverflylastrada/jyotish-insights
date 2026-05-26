@@ -16,6 +16,8 @@ import {
 } from "./vedic.ts";
 import { buildDivisionalCharts, type PlanetPos } from "./divisional.ts";
 import { buildVimshottari } from "./dashas.ts";
+import { buildYoginiDasha } from "./yogini.ts";
+import { buildAshtottariDasha } from "./ashtottari.ts";
 import { detectYogas } from "./yogas.ts";
 import { detectDoshas } from "./doshas.ts";
 import { computeAshtakavarga } from "./ashtakavarga.ts";
@@ -123,7 +125,11 @@ export function calculateKundli(details: BirthDetails) {
   // Vimshottari Dasha
   const moonSid = toSidereal(trop.moon, aya);
   const birthDate = new Date(`${details.dateOfBirth}T${details.timeOfBirth}`);
-  const dashas = [buildVimshottari(moonSid, birthDate)];
+  const dashas = [
+    buildVimshottari(moonSid, birthDate),
+    buildYoginiDasha(moonSid, birthDate),
+    buildAshtottariDasha(moonSid, birthDate),
+  ];
 
   // Yogas & Doshas
   const yogas = detectYogas(d1Planets);
@@ -179,7 +185,7 @@ export function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 5,
+    snapshotVersion: 6,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
