@@ -120,20 +120,21 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { planet: "mercury", karaka: "DK" },
         { planet: "rahu", karaka: "Karaka8" },
       ],
-      // Chara Dasha (KN Rao): Scorpio→Ketu, Aquarius→Rahu
+      // Chara Dasha (KN Rao, 9th-house even-footed direction, PVN Rao co-lord)
+      // 9th from Dhanu = Simha (even-footed) → REVERSE
       charaDasha: [
-        { sign: 9, durationYears: 11 },  // Dhanu: Jupiter in 8, fwd 11
-        { sign: 10, durationYears: 3 },   // Makara: Saturn in 7, bwd 3
-        { sign: 11, durationYears: 3 },   // Kumbha: Rahu in 2, fwd 3
-        { sign: 12, durationYears: 4 },   // Meena: Jupiter in 8, bwd 4
-        { sign: 1, durationYears: 3 },    // Mesha: Mars in 4, fwd 3
-        { sign: 2, durationYears: 9 },    // Vrishabha: Venus in 5, bwd 9
-        { sign: 3, durationYears: 3 },    // Mithuna: Mercury in 6, fwd 3
-        { sign: 4, durationYears: 5 },    // Karka: Moon in 11, bwd 5
-        { sign: 5, durationYears: 12 },   // Simha: Sun in 5, own sign
-        { sign: 6, durationYears: 12 },   // Kanya: Mercury in 6, own sign
-        { sign: 7, durationYears: 10 },   // Tula: Venus in 5, fwd 10
-        { sign: 8, durationYears: 12 },   // Vrischika: Ketu in 8, own sign
+        { sign: 9, durationYears: 11 },   // Dhanu: Jupiter@8, not-EF → 8−9+12=11
+        { sign: 8, durationYears: 8 },    // Vrischika: Ketu@8 (in sign) → use Mars@4, not-EF → 4−8+12=8
+        { sign: 7, durationYears: 10 },   // Tula: Venus@5, not-EF → 5−7+12=10
+        { sign: 6, durationYears: 12 },   // Kanya: Mercury@6, own sign
+        { sign: 5, durationYears: 12 },   // Simha: Sun@5, own sign
+        { sign: 4, durationYears: 5 },    // Karka: Moon@11, EF → 4−11+12=5
+        { sign: 3, durationYears: 3 },    // Mithuna: Mercury@6, not-EF → 6−3=3
+        { sign: 2, durationYears: 3 },    // Vrishabha: Venus@5, not-EF → 5−2=3
+        { sign: 1, durationYears: 3 },    // Mesha: Mars@4, not-EF → 4−1=3
+        { sign: 12, durationYears: 4 },   // Meena: Jupiter@8, EF → 12−8=4
+        { sign: 11, durationYears: 9 },   // Kumbha: Rahu@2, EF → 11−2=9
+        { sign: 10, durationYears: 3 },   // Makara: Saturn@7, EF → 10−7=3
       ],
       placidusCusps: [
         { cusp: 1, sign: 9, deg: 9.559 },
@@ -173,9 +174,9 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         currentMahaLord: "Venus",
       },
       // Chara Dasha antardasha — KN Rao rule: rotate maha progression by 1
-      // Progression: [9,10,11,12,1,2,3,4,5,6,7,8] → antardasha starts at index 1
+      // REVERSE progression: [9,8,7,6,5,4,3,2,1,12,11,10] → antardasha starts at index 1
       charaDashaAntar: {
-        firstMahaAntarSigns: [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        firstMahaAntarSigns: [8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9],
         antarDurationYears: 11 / 12,  // 0.9167
       },
     },
@@ -226,20 +227,21 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { planet: "sun", karaka: "DK" },
         { planet: "mars", karaka: "Karaka8" },
       ],
-      // Chara Dasha (KN Rao): Scorpio→Ketu, Aquarius→Rahu
+      // Chara Dasha (KN Rao, 9th-house even-footed direction, PVN Rao co-lord)
+      // 9th from Simha = Mesha (not even-footed) → FORWARD
       charaDasha: [
-        { sign: 5, durationYears: 12 },   // Simha: Sun in 5, own sign
-        { sign: 6, durationYears: 1 },    // Kanya: Mercury in 5, bwd 1
-        { sign: 7, durationYears: 10 },   // Tula: Venus in 5, fwd 10
-        { sign: 8, durationYears: 10 },   // Vrischika: Ketu in 10, bwd 10
-        { sign: 9, durationYears: 8 },    // Dhanu: Jupiter in 5, fwd 8
-        { sign: 10, durationYears: 7 },   // Makara: Saturn in 3, bwd 7
-        { sign: 11, durationYears: 5 },   // Kumbha: Rahu in 4, fwd 5
-        { sign: 12, durationYears: 7 },   // Meena: Jupiter in 5, bwd 7
-        { sign: 1, durationYears: 5 },    // Mesha: Mars in 6, fwd 5
-        { sign: 2, durationYears: 9 },    // Vrishabha: Venus in 5, bwd 9
-        { sign: 3, durationYears: 2 },    // Mithuna: Mercury in 5, fwd 2
-        { sign: 4, durationYears: 11 },   // Karka: Moon in 5, bwd 11
+        { sign: 5, durationYears: 12 },   // Simha: Sun@5, own sign
+        { sign: 6, durationYears: 1 },    // Kanya: Mercury@5, EF → 6−5=1
+        { sign: 7, durationYears: 10 },   // Tula: Venus@5, not-EF → 5−7+12=10
+        { sign: 8, durationYears: 2 },    // Vrischika: Ketu@10, Mars@6, neither in 8 → Ketu@10, not-EF → 10−8=2
+        { sign: 9, durationYears: 8 },    // Dhanu: Jupiter@5, not-EF → 5−9+12=8
+        { sign: 10, durationYears: 7 },   // Makara: Saturn@3, EF → 10−3=7
+        { sign: 11, durationYears: 7 },   // Kumbha: Rahu@4 (neither in 11), EF → 11−4=7
+        { sign: 12, durationYears: 7 },   // Meena: Jupiter@5, EF → 12−5=7
+        { sign: 1, durationYears: 5 },    // Mesha: Mars@6, not-EF → 6−1=5
+        { sign: 2, durationYears: 3 },    // Vrishabha: Venus@5, not-EF → 5−2=3
+        { sign: 3, durationYears: 2 },    // Mithuna: Mercury@5, not-EF → 5−3=2
+        { sign: 4, durationYears: 11 },   // Karka: Moon@5, EF → 4−5+12=11
       ],
       placidusCusps: [
         { cusp: 1, sign: 5, deg: 28.809 },
@@ -332,20 +334,21 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { planet: "moon", karaka: "DK" },
         { planet: "jupiter", karaka: "Karaka8" },
       ],
-      // Chara Dasha (KN Rao): Scorpio→Ketu, Aquarius→Rahu
+      // Chara Dasha (KN Rao, 9th-house even-footed direction, PVN Rao co-lord)
+      // 9th from Kumbha = Tula (not even-footed) → FORWARD
       charaDasha: [
-        { sign: 11, durationYears: 6 },   // Kumbha: Rahu in 5, fwd 6
-        { sign: 12, durationYears: 8 },   // Meena: Jupiter in 4, bwd 8
-        { sign: 1, durationYears: 5 },    // Mesha: Mars in 6, fwd 5
-        { sign: 2, durationYears: 8 },    // Vrishabha: Venus in 6, bwd 8
-        { sign: 3, durationYears: 3 },    // Mithuna: Mercury in 6, fwd 3
-        { sign: 4, durationYears: 9 },    // Karka: Moon in 7, bwd 9
-        { sign: 5, durationYears: 1 },    // Simha: Sun in 6, fwd 1
-        { sign: 6, durationYears: 12 },   // Kanya: Mercury in 6, own sign
-        { sign: 7, durationYears: 11 },   // Tula: Venus in 6, fwd 11
-        { sign: 8, durationYears: 9 },    // Vrischika: Ketu in 11, bwd 9
-        { sign: 9, durationYears: 7 },    // Dhanu: Jupiter in 4, fwd 7
-        { sign: 10, durationYears: 8 },   // Makara: Saturn in 2, bwd 8
+        { sign: 11, durationYears: 6 },   // Kumbha: Rahu@5 (neither in 11), EF → 11−5=6
+        { sign: 12, durationYears: 8 },   // Meena: Jupiter@4, EF → 12−4=8
+        { sign: 1, durationYears: 5 },    // Mesha: Mars@6, not-EF → 6−1=5
+        { sign: 2, durationYears: 4 },    // Vrishabha: Venus@6, not-EF → 6−2=4
+        { sign: 3, durationYears: 3 },    // Mithuna: Mercury@6, not-EF → 6−3=3
+        { sign: 4, durationYears: 9 },    // Karka: Moon@7, EF → 4−7+12=9
+        { sign: 5, durationYears: 11 },   // Simha: Sun@6, EF → 5−6+12=11
+        { sign: 6, durationYears: 12 },   // Kanya: Mercury@6, own sign
+        { sign: 7, durationYears: 11 },   // Tula: Venus@6, not-EF → 6−7+12=11
+        { sign: 8, durationYears: 3 },    // Vrischika: Ketu@11, Mars@6, neither in 8 → Ketu@11, not-EF → 11−8=3
+        { sign: 9, durationYears: 7 },    // Dhanu: Jupiter@4, not-EF → 4−9+12=7
+        { sign: 10, durationYears: 8 },   // Makara: Saturn@2, EF → 10−2=8
       ],
       placidusCusps: [
         { cusp: 1, sign: 11, deg: 21.560 },

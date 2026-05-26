@@ -204,22 +204,27 @@ function charaDashaLord(sign: number): string {
   return lords[sign] ?? 'sun';
 }
 
-/** Odd signs: Aries, Gemini, Leo, Libra, Sagittarius, Aquarius. */
-function isOddSign(sign: number): boolean {
-  return [1, 3, 5, 7, 9, 11].includes(sign);
-}
+/**
+ * Even-footed signs (samapada): Cancer, Leo, Virgo, Capricorn, Aquarius, Pisces.
+ * Used for both the Savya/Apasavya direction rule and the duration counting
+ * direction — matching PyJHora's `even_footed_signs` constant.
+ */
+const EVEN_FOOTED_SIGNS = new Set([4, 5, 6, 10, 11, 12]);
 
 /**
- * Chara Dasha — KN Rao method.
+ * Chara Dasha — KN Rao method (Savya/Apasavya direction + even-footed counting).
  *
- * Rules:
- * 1. 12 sign-dashas starting from the Lagna sign.
- * 2. Sequence: forward (zodiacal) if Lagna is odd, reverse if even.
- * 3. Duration: count from the sign to its lord's sign — forward for odd
- *    signs, backward for even. Count is inclusive (sign itself = 1),
- *    years = count − 1. If lord is in the sign itself, years = 12.
- *    Clamp 1–12.
- * 4. Dual lords: Scorpio → Ketu, Aquarius → Rahu.
+ * Rules (aligned with PyJHora `_dhasa_progression_knrao_method` +
+ * `_dhasa_duration_pvnrao_method`):
+ * 1. Seed = Lagna sign.  12 Maha-sign periods.
+ * 2. Direction: compute the 9th sign from the Lagna.  If it is an
+ *    even-footed sign → REVERSE (apasavya); else FORWARD (savya).
+ * 3. Duration: if the dasha sign is even-footed, count forward from the
+ *    lord's sign to the dasha sign; else count forward from the dasha
+ *    sign to the lord's sign.  Years = count (lord-in-own-sign ⇒ 12).
+ *    For Scorpio / Aquarius, when one co-lord occupies the sign use the
+ *    other co-lord's position (PyJHora PVN Rao special case).
+ * 4. Dual lords: Scorpio → Mars / Ketu, Aquarius → Saturn / Rahu.
  */
 /**
  * Sidereal year in days (used by PyJHora for proportional sub-period dating).
@@ -249,7 +254,9 @@ export function computeCharaDasha(
     }
   }
 
-  const forward = isOddSign(ascSign);
+  // Direction: 9th sign from Lagna; reverse if even-footed (PyJHora rule)
+  const ninth = ((ascSign - 1 + 8) % 12) + 1;
+  const forward = !EVEN_FOOTED_SIGNS.has(ninth);
 
   // Step 1: build the maha progression (12 signs in order)
   const progression: number[] = [];
@@ -263,20 +270,44 @@ export function computeCharaDasha(
     progression.push(sign);
   }
 
-  // Step 2: compute maha durations
+  // Step 2: compute maha durations (even-footed counting direction)
   const mahaDurations: number[] = [];
   for (const sign of progression) {
     const lord = charaDashaLord(sign);
-    const lordSign = planetSign[lord];
+    let lordSign = planetSign[lord];
     if (lordSign === undefined) return null;
+
+    // PVN Rao special case for Scorpio / Aquarius:
+    // When one co-lord occupies the sign, use the other co-lord's position.
+    if (sign === 8) {
+      // Scorpio: co-lords Mars & Ketu
+      const marsSign = planetSign['mars'];
+      const ketuSign = planetSign['ketu'];
+      if (marsSign !== undefined && ketuSign !== undefined) {
+        if (marsSign === 8 && ketuSign === 8) { mahaDurations.push(12); continue; }
+        if (marsSign === 8 && ketuSign !== 8) { lordSign = ketuSign; }
+        else if (ketuSign === 8 && marsSign !== 8) { lordSign = marsSign; }
+      }
+    } else if (sign === 11) {
+      // Aquarius: co-lords Saturn & Rahu
+      const satSign = planetSign['saturn'];
+      const rahuSign = planetSign['rahu'];
+      if (satSign !== undefined && rahuSign !== undefined) {
+        if (satSign === 11 && rahuSign === 11) { mahaDurations.push(12); continue; }
+        if (satSign === 11 && rahuSign !== 11) { lordSign = rahuSign; }
+        else if (rahuSign === 11 && satSign !== 11) { lordSign = satSign; }
+      }
+    }
 
     let years: number;
     if (lordSign === sign) {
       years = 12;
-    } else if (isOddSign(sign)) {
-      years = ((lordSign - sign + 12) % 12);
-    } else {
+    } else if (EVEN_FOOTED_SIGNS.has(sign)) {
+      // Even-footed: count forward from lord's sign → dasha sign
       years = ((sign - lordSign + 12) % 12);
+    } else {
+      // Not even-footed: count forward from dasha sign → lord's sign
+      years = ((lordSign - sign + 12) % 12);
     }
     years = Math.max(1, Math.min(12, years));
     mahaDurations.push(years);
