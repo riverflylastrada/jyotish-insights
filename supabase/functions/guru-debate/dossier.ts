@@ -575,10 +575,21 @@ function sectionJaimini(chart: any): string {
   }
 
   if (j.charaDasha?.timeline?.length) {
-    lines.push(`Chara Dasha (KN Rao): currently ${j.charaDasha.currentSignName ?? "see timeline"}.`);
+    const mahaLabel = j.charaDasha.currentSignName ?? "see timeline";
+    const antarLabel = j.charaDasha.currentAntarSignName
+      ? `, Antar: ${j.charaDasha.currentAntarSignName}`
+      : "";
+    lines.push(`Chara Dasha (KN Rao): current Maha: ${mahaLabel}${antarLabel}.`);
     for (const d of j.charaDasha.timeline) {
-      const marker = d.signName === j.charaDasha.currentSignName ? " ◄ current" : "";
+      const isCurMaha = d.signName === j.charaDasha.currentSignName;
+      const marker = isCurMaha ? " ◄ current Maha" : "";
       lines.push(`  ${d.signName}: ${d.durationYears} yrs (${d.startDate?.slice(0,10)} → ${d.endDate?.slice(0,10)})${marker}`);
+      if (isCurMaha && d.children?.length) {
+        for (const a of d.children) {
+          const aMarker = a.signName === j.charaDasha.currentAntarSignName ? " ◄ current Antar" : "";
+          lines.push(`    Antar ${a.signName}: ${a.durationYears.toFixed(2)} yrs (${a.startDate?.slice(0,10)} → ${a.endDate?.slice(0,10)})${aMarker}`);
+        }
+      }
     }
   } else {
     lines.push(`Chara Dasha: not yet computed — do NOT fabricate.`);

@@ -65,6 +65,11 @@ interface ReferenceChart {
       first3: Array<{ planet: string; durationYears: number }>;
       currentMahaLord: string;
     };
+    /** Chara Dasha antardasha: first Maha's 12 antardasha signs (KN Rao rule) */
+    charaDashaAntar?: {
+      firstMahaAntarSigns: number[];
+      antarDurationYears: number;
+    };
   };
 }
 
@@ -167,6 +172,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         ],
         currentMahaLord: "Venus",
       },
+      // Chara Dasha antardasha — KN Rao rule: rotate maha progression by 1
+      // Progression: [9,10,11,12,1,2,3,4,5,6,7,8] → antardasha starts at index 1
+      charaDashaAntar: {
+        firstMahaAntarSigns: [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        antarDurationYears: 11 / 12,  // 0.9167
+      },
     },
   },
   // ── Chart 2: Rajiv Gandhi ──────────────────────────────────────────────
@@ -265,6 +276,13 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
           { planet: "Mercury", durationYears: 17 },
         ],
         currentMahaLord: "Venus",
+      },
+      // Chara Dasha antardasha — KN Rao rule: rotate maha progression by 1
+      // Progression: [5,6,7,8,9,10,11,12,1,2,3,4] → antardasha starts at index 1
+      // Matches PyJHora chara_method=1 exactly for Rajiv
+      charaDashaAntar: {
+        firstMahaAntarSigns: [6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5],
+        antarDurationYears: 12 / 12,  // 1.0
       },
     },
   },
@@ -365,6 +383,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         ],
         currentMahaLord: "Sun",
       },
+      // Chara Dasha antardasha — KN Rao rule: rotate maha progression by 1
+      // Progression: [11,12,1,2,3,4,5,6,7,8,9,10] → antardasha starts at index 1
+      charaDashaAntar: {
+        firstMahaAntarSigns: [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        antarDurationYears: 6 / 12,  // 0.5
+      },
     },
   },
 ];
@@ -457,6 +481,47 @@ for (const ref of REFERENCE_CHARTS) {
           act.durationYears,
           exp.durationYears,
           `Dasha #${i + 1} (${signName(exp.sign)}): expected ${exp.durationYears} yrs, got ${act.durationYears} yrs`,
+        );
+      }
+    });
+  }
+
+  // ── Chara Dasha antardasha (first Maha's 12 sub-periods) ───────────────
+  if (ref.expected.charaDashaAntar) {
+    Deno.test(`[${ref.label}] Chara Dasha first-Maha antardasha sequence`, () => {
+      const timeline = chart.jaimini?.charaDasha?.timeline;
+      if (!timeline) {
+        console.log(`  ⊘ Chara Dasha not yet implemented — skipping`);
+        return;
+      }
+      const firstMaha = timeline[0];
+      assertEquals(firstMaha.children.length, 12, "First Maha should have 12 antardasha children");
+      const expSigns = ref.expected.charaDashaAntar!.firstMahaAntarSigns;
+      const expDur = ref.expected.charaDashaAntar!.antarDurationYears;
+      for (let i = 0; i < 12; i++) {
+        const a = firstMaha.children[i];
+        assertEquals(
+          a.sign,
+          expSigns[i],
+          `Antar #${i + 1}: expected sign ${expSigns[i]} (${signName(expSigns[i])}), got ${a.sign} (${signName(a.sign)})`,
+        );
+        assertAlmostEquals(
+          a.durationYears,
+          expDur,
+          0.001,
+          `Antar #${i + 1} (${signName(expSigns[i])}): expected ~${expDur.toFixed(4)} yrs, got ${a.durationYears} yrs`,
+        );
+      }
+    });
+
+    Deno.test(`[${ref.label}] Chara Dasha all Mahas have 12 antardashas`, () => {
+      const timeline = chart.jaimini?.charaDasha?.timeline;
+      if (!timeline) return;
+      for (const maha of timeline) {
+        assertEquals(
+          maha.children.length,
+          12,
+          `${signName(maha.sign)} Maha should have 12 antardasha children, got ${maha.children.length}`,
         );
       }
     });

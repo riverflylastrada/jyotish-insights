@@ -318,6 +318,22 @@ const sampleChart = {
       { house: 1, label: "AL (Arudha Lagna)", sign: 6, signName: "Kanya" },
       { house: 12, label: "UL (Upapada Lagna)", sign: 5, signName: "Simha" },
     ],
+    charaDasha: {
+      timeline: [
+        { sign: 8, signName: "Vrischika", startDate: "1980-08-15T09:00:00.000Z", endDate: "1990-08-15T09:00:00.000Z", durationYears: 10, children: [
+          { sign: 7, signName: "Tula", startDate: "1980-08-15T09:00:00.000Z", endDate: "1981-06-15T09:00:00.000Z", durationYears: 0.8333 },
+        ] },
+        { sign: 7, signName: "Tula", startDate: "1990-08-15T09:00:00.000Z", endDate: "2000-08-15T09:00:00.000Z", durationYears: 10, children: [] },
+        { sign: 6, signName: "Kanya", startDate: "2000-08-15T09:00:00.000Z", endDate: "2028-08-15T09:00:00.000Z", durationYears: 12, children: [
+          { sign: 5, signName: "Simha", startDate: "2025-08-15T09:00:00.000Z", endDate: "2026-08-15T09:00:00.000Z", durationYears: 1.0 },
+          { sign: 4, signName: "Karka", startDate: "2026-08-15T09:00:00.000Z", endDate: "2027-08-15T09:00:00.000Z", durationYears: 1.0 },
+        ] },
+      ],
+      currentSign: 6,
+      currentSignName: "Kanya",
+      currentAntarSign: 5,
+      currentAntarSignName: "Simha",
+    },
   },
   bhavaBala: {
     houses: [
@@ -502,11 +518,14 @@ Deno.test("dossier contains KP 4-fold house significators", () => {
   assertStringIncludes(d, "Ordered:");
 });
 
-Deno.test("dossier contains Jaimini Chara Karakas and Arudha", () => {
+Deno.test("dossier contains Jaimini Chara Karakas, Arudha, and Chara Dasha current", () => {
   const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
   assertStringIncludes(d, "JAIMINI");
   assertStringIncludes(d, "Chara Karakas:");
   assertStringIncludes(d, "AL (Arudha Lagna): Kanya");
+  assertStringIncludes(d, "Chara Dasha (KN Rao): current Maha: Kanya, Antar: Simha.");
+  assertStringIncludes(d, "current Maha");
+  assertStringIncludes(d, "current Antar");
 });
 
 Deno.test("dossier contains Varshphal section when present", () => {

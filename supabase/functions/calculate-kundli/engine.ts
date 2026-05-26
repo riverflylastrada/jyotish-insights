@@ -212,7 +212,7 @@ export function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 10,
+    snapshotVersion: 11,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -235,10 +235,15 @@ export function calculateKundli(details: BirthDetails) {
         const current = charaDashaTimeline.find(
           (d) => new Date(d.startDate) <= now && now < new Date(d.endDate),
         );
+        const currentAntar = current?.children.find(
+          (a) => new Date(a.startDate) <= now && now < new Date(a.endDate),
+        );
         return {
           timeline: charaDashaTimeline,
           currentSign: current?.sign,
           currentSignName: current?.signName,
+          currentAntarSign: currentAntar?.sign,
+          currentAntarSignName: currentAntar?.signName,
         };
       })() : undefined,
     },

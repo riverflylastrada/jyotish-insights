@@ -173,12 +173,21 @@ export function computeArudhaPadas(d1Planets: PlanetPos[], ascSign: number): Aru
 
 // ─── Chara Dasha ────────────────────────────────────────────────────────────
 
+export interface CharaDashaAntarPeriod {
+  sign: number;
+  signName: string;
+  startDate: string;
+  endDate: string;
+  durationYears: number;
+}
+
 export interface CharaDashaPeriod {
   sign: number;
   signName: string;
   startDate: string;
   endDate: string;
   durationYears: number;
+  children: CharaDashaAntarPeriod[];
 }
 
 /**
@@ -212,6 +221,21 @@ function isOddSign(sign: number): boolean {
  *    Clamp 1–12.
  * 4. Dual lords: Scorpio → Ketu, Aquarius → Rahu.
  */
+/**
+ * Sidereal year in days (used by PyJHora for proportional sub-period dating).
+ */
+const SIDEREAL_YEAR_DAYS = 365.242198781;
+
+/**
+ * Add fractional years to a Date using sidereal-year days.
+ * This matches PyJHora's JD-based arithmetic more closely than
+ * calendar-year addition.
+ */
+function addSiderealYears(base: Date, years: number): Date {
+  const ms = years * SIDEREAL_YEAR_DAYS * 86_400_000;
+  return new Date(base.getTime() + ms);
+}
+
 export function computeCharaDasha(
   d1Planets: PlanetPos[],
   ascSign: number,
@@ -226,52 +250,82 @@ export function computeCharaDasha(
   }
 
   const forward = isOddSign(ascSign);
-  const timeline: CharaDashaPeriod[] = [];
-  let cursor = new Date(birthDate);
 
+  // Step 1: build the maha progression (12 signs in order)
+  const progression: number[] = [];
   for (let i = 0; i < 12; i++) {
-    // Determine the i-th sign in the dasha sequence
     let sign: number;
     if (forward) {
       sign = ((ascSign - 1 + i) % 12) + 1;
     } else {
       sign = ((ascSign - 1 - i + 120) % 12) + 1;
     }
+    progression.push(sign);
+  }
 
-    // Find the lord and the lord's sign
+  // Step 2: compute maha durations
+  const mahaDurations: number[] = [];
+  for (const sign of progression) {
     const lord = charaDashaLord(sign);
     const lordSign = planetSign[lord];
-    if (lordSign === undefined) continue;
+    if (lordSign === undefined) return null;
 
-    // Count from the sign to the lord's sign (inclusive, sign = 1)
-    // years = inclusiveCount − 1 = steps forward/backward
     let years: number;
     if (lordSign === sign) {
       years = 12;
     } else if (isOddSign(sign)) {
-      // Count forward (zodiacal)
       years = ((lordSign - sign + 12) % 12);
     } else {
-      // Count backward (reverse zodiacal)
       years = ((sign - lordSign + 12) % 12);
     }
-
-    // Clamp 1–12
     years = Math.max(1, Math.min(12, years));
+    mahaDurations.push(years);
+  }
 
-    const startDate = new Date(cursor);
-    const endDate = new Date(cursor);
-    endDate.setFullYear(endDate.getFullYear() + years);
+  // Step 3: antardasha order — KN Rao rule (PyJHora _antardhasa method=1):
+  // rotate the maha progression by 1 (skip first, put at end).
+  // Applied as a per-parent rotation: for maha at index i, antardashas
+  // run progression[(i+1)%12] … progression[i].
+  const timeline: CharaDashaPeriod[] = [];
+  let cursor = new Date(birthDate);
+
+  for (let i = 0; i < 12; i++) {
+    const sign = progression[i];
+    const years = mahaDurations[i];
+    const mahaStart = new Date(cursor);
+    const mahaEnd = addSiderealYears(mahaStart, years);
+
+    // Build antardasha children
+    const antarDuration = years / 12;
+    const children: CharaDashaAntarPeriod[] = [];
+    let antarCursor = new Date(mahaStart);
+
+    for (let j = 1; j <= 12; j++) {
+      const antarSign = progression[(i + j) % 12];
+      const antarStart = new Date(antarCursor);
+      const antarEnd = addSiderealYears(antarStart, antarDuration);
+
+      children.push({
+        sign: antarSign,
+        signName: SIGN_NAMES[(antarSign - 1) % 12],
+        startDate: antarStart.toISOString(),
+        endDate: antarEnd.toISOString(),
+        durationYears: Math.round(antarDuration * 10000) / 10000,
+      });
+
+      antarCursor = antarEnd;
+    }
 
     timeline.push({
       sign,
       signName: SIGN_NAMES[(sign - 1) % 12],
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate: mahaStart.toISOString(),
+      endDate: mahaEnd.toISOString(),
       durationYears: years,
+      children,
     });
 
-    cursor = new Date(endDate);
+    cursor = mahaEnd;
   }
 
   return timeline;
