@@ -133,7 +133,7 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { sign: 2, durationYears: 3 },    // Vrishabha: Venus@5, not-EF → 5−2=3
         { sign: 1, durationYears: 3 },    // Mesha: Mars@4, not-EF → 4−1=3
         { sign: 12, durationYears: 4 },   // Meena: Jupiter@8, EF → 12−8=4
-        { sign: 11, durationYears: 9 },   // Kumbha: Rahu@2, EF → 11−2=9
+        { sign: 11, durationYears: 4 },   // Kumbha: stronger=Saturn@7, EF → 11−7=4
         { sign: 10, durationYears: 3 },   // Makara: Saturn@7, EF → 10−7=3
       ],
       placidusCusps: [
@@ -233,10 +233,10 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { sign: 5, durationYears: 12 },   // Simha: Sun@5, own sign
         { sign: 6, durationYears: 1 },    // Kanya: Mercury@5, EF → 6−5=1
         { sign: 7, durationYears: 10 },   // Tula: Venus@5, not-EF → 5−7+12=10
-        { sign: 8, durationYears: 2 },    // Vrischika: Ketu@10, Mars@6, neither in 8 → Ketu@10, not-EF → 10−8=2
+        { sign: 8, durationYears: 2 },    // Vrischika: stronger=Ketu@10, not-EF → 10−8=2
         { sign: 9, durationYears: 8 },    // Dhanu: Jupiter@5, not-EF → 5−9+12=8
         { sign: 10, durationYears: 7 },   // Makara: Saturn@3, EF → 10−3=7
-        { sign: 11, durationYears: 7 },   // Kumbha: Rahu@4 (neither in 11), EF → 11−4=7
+        { sign: 11, durationYears: 8 },   // Kumbha: stronger=Saturn@3, EF → 11−3=8
         { sign: 12, durationYears: 7 },   // Meena: Jupiter@5, EF → 12−5=7
         { sign: 1, durationYears: 5 },    // Mesha: Mars@6, not-EF → 6−1=5
         { sign: 2, durationYears: 3 },    // Vrishabha: Venus@5, not-EF → 5−2=3
@@ -337,7 +337,7 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // Chara Dasha (KN Rao, 9th-house even-footed direction, PVN Rao co-lord)
       // 9th from Kumbha = Tula (not even-footed) → FORWARD
       charaDasha: [
-        { sign: 11, durationYears: 6 },   // Kumbha: Rahu@5 (neither in 11), EF → 11−5=6
+        { sign: 11, durationYears: 9 },   // Kumbha: stronger=Saturn@2, EF → 11−2=9
         { sign: 12, durationYears: 8 },   // Meena: Jupiter@4, EF → 12−4=8
         { sign: 1, durationYears: 5 },    // Mesha: Mars@6, not-EF → 6−1=5
         { sign: 2, durationYears: 4 },    // Vrishabha: Venus@6, not-EF → 6−2=4
@@ -346,7 +346,7 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { sign: 5, durationYears: 11 },   // Simha: Sun@6, EF → 5−6+12=11
         { sign: 6, durationYears: 12 },   // Kanya: Mercury@6, own sign
         { sign: 7, durationYears: 11 },   // Tula: Venus@6, not-EF → 6−7+12=11
-        { sign: 8, durationYears: 3 },    // Vrischika: Ketu@11, Mars@6, neither in 8 → Ketu@11, not-EF → 11−8=3
+        { sign: 8, durationYears: 10 },   // Vrischika: stronger=Mars@6, not-EF → 6−8+12=10
         { sign: 9, durationYears: 7 },    // Dhanu: Jupiter@4, not-EF → 4−9+12=7
         { sign: 10, durationYears: 8 },   // Makara: Saturn@2, EF → 10−2=8
       ],
@@ -390,7 +390,7 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // Progression: [11,12,1,2,3,4,5,6,7,8,9,10] → antardasha starts at index 1
       charaDashaAntar: {
         firstMahaAntarSigns: [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-        antarDurationYears: 6 / 12,  // 0.5
+        antarDurationYears: 9 / 12,  // 0.75
       },
     },
   },

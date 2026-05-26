@@ -211,6 +211,115 @@ function charaDashaLord(sign: number): string {
  */
 const EVEN_FOOTED_SIGNS = new Set([4, 5, 6, 10, 11, 12]);
 
+// ─── Stronger co-lord determination (PyJHora `stronger_planet_from_planet_positions`) ──
+
+/** Traditional (Parashari) sign dispositors, 1-indexed. */
+const DISPOSITOR: Record<number, string> = {
+  1: 'mars', 2: 'venus', 3: 'mercury', 4: 'moon',
+  5: 'sun', 6: 'mercury', 7: 'venus', 8: 'mars',
+  9: 'jupiter', 10: 'saturn', 11: 'saturn', 12: 'jupiter',
+};
+
+/** Rasi modality: Dual(3) > Fixed(2) > Movable(1).  1-indexed signs. */
+const FIXED_SIGNS = new Set([2, 5, 8, 11]);
+const DUAL_SIGNS  = new Set([3, 6, 9, 12]);
+function rasiModality(sign: number): number {
+  if (DUAL_SIGNS.has(sign))  return 3;
+  if (FIXED_SIGNS.has(sign)) return 2;
+  return 1;
+}
+
+/** Exaltation signs per planet (1-indexed). */
+const EXALTED_IN: Record<string, Set<number>> = {
+  mars:    new Set([10]),
+  saturn:  new Set([7]),
+  rahu:    new Set([2, 3]),
+  ketu:    new Set([8, 9]),
+};
+
+/**
+ * Jaimini rasi drishti table (1-indexed).
+ * Movable → 3 fixed signs (skip adjacent).
+ * Fixed → 3 movable signs (skip adjacent).
+ * Dual → all other duals.
+ */
+const RASI_DRISHTI: Record<number, number[]> = {
+  1: [5, 8, 11],   2: [4, 7, 10],   3: [6, 9, 12],
+  4: [2, 8, 11],   5: [1, 7, 10],   6: [3, 9, 12],
+  7: [2, 5, 11],   8: [1, 4, 10],   9: [3, 6, 12],
+  10: [2, 5, 8],  11: [1, 4, 7],   12: [3, 6, 9],
+};
+
+/**
+ * Determine the stronger co-lord for a dual-lord sign when neither
+ * co-lord occupies the sign.  Implements PyJHora's `_stronger_planet_new`
+ * + Rule 5b fallback (longitude tiebreaker).
+ *
+ * @returns planet name of the stronger co-lord
+ */
+function strongerCoLord(
+  planet1: string,             // e.g. 'mars' or 'saturn'
+  planet2: string,             // e.g. 'ketu' or 'rahu'
+  planetSign: Record<string, number>,
+  planetDeg: Record<string, number>,
+): string {
+  const h1 = planetSign[planet1];
+  const h2 = planetSign[planet2];
+  if (h1 === undefined || h2 === undefined) return planet1;
+
+  // Build house→planet count
+  const houseCount: Record<number, number> = {};
+  for (const s of Object.values(planetSign)) {
+    houseCount[s] = (houseCount[s] ?? 0) + 1;
+  }
+
+  // Rule 1: planet joined by more planets
+  const conj1 = (houseCount[h1] ?? 1) - 1;
+  const conj2 = (houseCount[h2] ?? 1) - 1;
+  if (conj1 > conj2) return planet1;
+  if (conj2 > conj1) return planet2;
+
+  // Rule 2: how many of {Jupiter, Mercury, dispositor} conjoin or aspect
+  function rule2Score(pSign: number): number {
+    let count = 0;
+    const disp = DISPOSITOR[pSign];
+    const checklist = new Set(['jupiter', 'mercury']);
+    if (disp) checklist.add(disp);
+
+    for (const target of checklist) {
+      const ts = planetSign[target];
+      if (ts === undefined) continue;
+      // Conjoin
+      if (ts === pSign) { count++; continue; }
+      // Rasi drishti: does 'target' (in sign ts) aspect pSign?
+      const aspects = RASI_DRISHTI[ts];
+      if (aspects && aspects.includes(pSign)) count++;
+    }
+    return count;
+  }
+  const r2a = rule2Score(h1);
+  const r2b = rule2Score(h2);
+  if (r2a > r2b) return planet1;
+  if (r2b > r2a) return planet2;
+
+  // Rule 3: exalted planet is stronger
+  const ex1 = EXALTED_IN[planet1]?.has(h1) ?? false;
+  const ex2 = EXALTED_IN[planet2]?.has(h2) ?? false;
+  if (ex1 && !ex2) return planet1;
+  if (ex2 && !ex1) return planet2;
+
+  // Rule 4: rasi modality (Dual > Fixed > Movable)
+  const m1 = rasiModality(h1);
+  const m2 = rasiModality(h2);
+  if (m1 > m2) return planet1;
+  if (m2 > m1) return planet2;
+
+  // Rule 5b: more advanced longitude in sign
+  const deg1 = planetDeg[planet1] ?? 0;
+  const deg2 = planetDeg[planet2] ?? 0;
+  return deg1 >= deg2 ? planet1 : planet2;
+}
+
 /**
  * Chara Dasha — KN Rao method (Savya/Apasavya direction + even-footed counting).
  *
@@ -246,11 +355,13 @@ export function computeCharaDasha(
   ascSign: number,
   birthDate: Date,
 ): CharaDashaPeriod[] | null {
-  // Build a map from planet name → sign number
+  // Build maps from planet name → sign number and planet name → degree in sign
   const planetSign: Record<string, number> = {};
+  const planetDeg: Record<string, number> = {};
   for (const p of d1Planets) {
     if (p.planet !== 'ascendant') {
       planetSign[p.planet] = p.signNumber;
+      planetDeg[p.planet]  = p.signDegree;
     }
   }
 
@@ -277,25 +388,33 @@ export function computeCharaDasha(
     let lordSign = planetSign[lord];
     if (lordSign === undefined) return null;
 
-    // PVN Rao special case for Scorpio / Aquarius:
-    // When one co-lord occupies the sign, use the other co-lord's position.
+    // PVN Rao dual-lord handling for Scorpio / Aquarius:
+    // 1. Both co-lords in the sign → 12.
+    // 2. One co-lord in the sign → use the other co-lord's position.
+    // 3. Neither in the sign → use the stronger co-lord (PyJHora rules).
     if (sign === 8) {
-      // Scorpio: co-lords Mars & Ketu
       const marsSign = planetSign['mars'];
       const ketuSign = planetSign['ketu'];
       if (marsSign !== undefined && ketuSign !== undefined) {
         if (marsSign === 8 && ketuSign === 8) { mahaDurations.push(12); continue; }
         if (marsSign === 8 && ketuSign !== 8) { lordSign = ketuSign; }
         else if (ketuSign === 8 && marsSign !== 8) { lordSign = marsSign; }
+        else {
+          const stronger = strongerCoLord('mars', 'ketu', planetSign, planetDeg);
+          lordSign = planetSign[stronger]!;
+        }
       }
     } else if (sign === 11) {
-      // Aquarius: co-lords Saturn & Rahu
       const satSign = planetSign['saturn'];
       const rahuSign = planetSign['rahu'];
       if (satSign !== undefined && rahuSign !== undefined) {
         if (satSign === 11 && rahuSign === 11) { mahaDurations.push(12); continue; }
         if (satSign === 11 && rahuSign !== 11) { lordSign = rahuSign; }
         else if (rahuSign === 11 && satSign !== 11) { lordSign = satSign; }
+        else {
+          const stronger = strongerCoLord('saturn', 'rahu', planetSign, planetDeg);
+          lordSign = planetSign[stronger]!;
+        }
       }
     }
 
