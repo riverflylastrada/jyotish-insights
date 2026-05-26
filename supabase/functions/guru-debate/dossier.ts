@@ -587,12 +587,32 @@ function sectionJaimini(chart: any): string {
   return lines.join("\n");
 }
 
+function sectionVarshphal(chart: any): string {
+  const vp = chart?.varshphal;
+  if (!vp) return "";
+
+  const lines: string[] = [`═══ VARSHPHAL (Annual Tajik Chart — Year ${vp.years}) ═══`];
+  lines.push(`Year Lord (Varshesh): ${capitalize(vp.yearLord)}`);
+  lines.push(`Annual Lagna: ${signName(vp.annualAscSign)} ${fmtDeg(vp.annualAscDeg)}`);
+  lines.push(`Muntha: ${signName(vp.munthaSign)} (House ${vp.munthaHouse})`);
+
+  lines.push(`\nAnnual Planet Positions:`);
+  const header = `  ${pad("Planet", 10)} ${pad("Sign", 12)} ${pad("Deg", 7)} House`;
+  lines.push(header);
+  for (const p of vp.planets ?? []) {
+    const h = ((p.signNumber - vp.annualAscSign + 12) % 12) + 1;
+    lines.push(
+      `  ${pad(capitalize(p.planet), 10)} ${pad(signName(p.signNumber), 12)} ${fmtDeg(p.signDegree).padStart(7)} ${String(h).padStart(2)}`
+    );
+  }
+  return lines.join("\n");
+}
+
 function sectionUnavailableSystems(): string {
   return [
     `═══ SYSTEMS NOT YET COMPUTED ═══`,
     `The following are not available in this chart snapshot — do NOT fabricate them:`,
     `- KP 4-fold significators per house (occupants, star-lords, lord, lord's star-lord — pending)`,
-    `- Varshphal (annual/solar return chart)`,
     `- Sahams (Arabic parts)`,
   ].join("\n");
 }
@@ -626,6 +646,7 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionDivisionalSummary(chart),
     sectionKP(chart),
     sectionJaimini(chart),
+    sectionVarshphal(chart),
     sectionUnavailableSystems(),
   ].filter(Boolean).join("\n\n");
 }

@@ -395,7 +395,7 @@ Deno.test("dossier contains Ashtottari dasha section", () => {
 Deno.test("dossier lists unavailable systems", () => {
   const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
   assertStringIncludes(d, "SYSTEMS NOT YET COMPUTED");
-  assertStringIncludes(d, "Varshphal");
+  assertStringIncludes(d, "Sahams");
   assertStringIncludes(d, "NOT fabricate");
 });
 
@@ -484,4 +484,40 @@ Deno.test("dossier contains Jaimini Chara Karakas and Arudha", () => {
   assertStringIncludes(d, "JAIMINI");
   assertStringIncludes(d, "Chara Karakas:");
   assertStringIncludes(d, "AL (Arudha Lagna): Kanya");
+});
+
+Deno.test("dossier contains Varshphal section when present", () => {
+  const chartWithVarshphal = {
+    ...sampleChart,
+    varshphal: {
+      years: 45,
+      varshaPraveshJd: 2460910.678,
+      annualAscSign: 6,
+      annualAscDeg: 22.21,
+      planets: [
+        { planet: "sun", signNumber: 5, signDegree: 6.10, signName: "Simha", nakshatra: "Pushya", nakshatraPada: 1, houseNumber: 12, isRetrograde: false, longitude: 126.10 },
+        { planet: "moon", signNumber: 5, signDegree: 5.17, signName: "Simha", nakshatra: "Pushya", nakshatraPada: 1, houseNumber: 12, isRetrograde: false, longitude: 125.17 },
+      ],
+      munthaSign: 4,
+      munthaHouse: 11,
+      yearLord: "sun",
+    },
+  };
+  const d = buildChartDossier(chartWithVarshphal, sampleTransits, fixedNow);
+  assertStringIncludes(d, "VARSHPHAL");
+  assertStringIncludes(d, "Year Lord (Varshesh): Sun");
+  assertStringIncludes(d, "Karka (House 11)");
+  assertStringIncludes(d, "Annual Lagna: Kanya");
+});
+
+Deno.test("dossier omits Varshphal section when not present", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  // Should not contain VARSHPHAL header (but should not error)
+  assertEquals(d.includes("VARSHPHAL"), false);
+});
+
+Deno.test("dossier unavailable systems no longer lists Varshphal", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  // Varshphal is now computed, so it should not appear in "not yet computed" list
+  assertEquals(d.includes("Varshphal (annual/solar return chart)"), false);
 });

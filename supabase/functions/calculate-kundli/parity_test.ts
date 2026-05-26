@@ -674,3 +674,143 @@ for (const ref of REFERENCE_CHARTS) {
     });
   }
 }
+
+// ─── Varshphal (Annual Tajik Chart) Parity Tests ────────────────────────────
+// Validated against SwissEph (Lahiri) via PyJHora v4.8.5.
+// Fixed reference year: the Varsha containing 2026-06-01.
+// years is 1-indexed: years=N → the Nth solar return from birth.
+
+import { computeVarshphal } from "./varshphal.ts";
+
+interface VarshphalReference {
+  label: string;
+  birthDetails: BirthDetails;
+  years: number;
+  expected: {
+    annualAscSign: number;
+    annualAscDeg: number;
+    planets: Array<{ planet: string; sign: number; deg: number }>;
+    munthaSign: number;
+    munthaHouse: number;
+    yearLord: string;
+  };
+}
+
+const VARSHPHAL_REFS: VarshphalReference[] = [
+  {
+    label: "Dev Chart",
+    birthDetails: REFERENCE_CHARTS[0].birthDetails,
+    years: 43, // Solar return ~Aug 2025 (Varsha containing 2026-06-01)
+    expected: {
+      annualAscSign: 6,   // Kanya
+      annualAscDeg: 22.21,
+      planets: [
+        { planet: "sun",     sign: 5,  deg: 6.10 },
+        { planet: "moon",    sign: 5,  deg: 5.17 },
+        { planet: "mars",    sign: 6,  deg: 16.01 },
+        { planet: "mercury", sign: 4,  deg: 18.24 },
+        { planet: "jupiter", sign: 3,  deg: 22.02 },
+        { planet: "venus",   sign: 4,  deg: 2.80 },
+        { planet: "saturn",  sign: 12, deg: 6.39 },
+        { planet: "rahu",    sign: 11, deg: 24.89 },
+        { planet: "ketu",    sign: 5,  deg: 24.89 },
+      ],
+      munthaSign: 4,    // Karka
+      munthaHouse: 11,
+      yearLord: "sun",
+    },
+  },
+  {
+    label: "Rajiv Gandhi",
+    birthDetails: REFERENCE_CHARTS[1].birthDetails,
+    years: 82, // Solar return ~Aug 2025
+    expected: {
+      annualAscSign: 3,   // Mithuna
+      annualAscDeg: 8.26,
+      planets: [
+        { planet: "sun",     sign: 5,  deg: 3.87 },
+        { planet: "moon",    sign: 4,  deg: 4.37 },
+        { planet: "mars",    sign: 6,  deg: 14.54 },
+        { planet: "mercury", sign: 4,  deg: 15.40 },
+        { planet: "jupiter", sign: 3,  deg: 21.57 },
+        { planet: "venus",   sign: 4,  deg: 0.05 },
+        { planet: "saturn",  sign: 12, deg: 6.53 },
+        { planet: "rahu",    sign: 11, deg: 25.01 },
+        { planet: "ketu",    sign: 5,  deg: 25.01 },
+      ],
+      munthaSign: 3,    // Mithuna
+      munthaHouse: 1,
+      yearLord: "sun",
+    },
+  },
+  {
+    label: "Amitabh Bachchan",
+    birthDetails: REFERENCE_CHARTS[2].birthDetails,
+    years: 84, // Solar return ~Oct 2025
+    expected: {
+      annualAscSign: 3,   // Mithuna
+      annualAscDeg: 16.32,
+      planets: [
+        { planet: "sun",     sign: 6,  deg: 24.43 },
+        { planet: "moon",    sign: 2,  deg: 27.74 },
+        { planet: "mars",    sign: 7,  deg: 19.00 },
+        { planet: "mercury", sign: 7,  deg: 13.19 },
+        { planet: "jupiter", sign: 3,  deg: 29.42 },
+        { planet: "venus",   sign: 6,  deg: 3.09 },
+        { planet: "saturn",  sign: 12, deg: 2.77 },
+        { planet: "rahu",    sign: 11, deg: 22.26 },
+        { planet: "ketu",    sign: 5,  deg: 22.26 },
+      ],
+      munthaSign: 11,   // Kumbha
+      munthaHouse: 9,
+      yearLord: "mercury",
+    },
+  },
+];
+
+const VP_DEG_TOLERANCE = 0.1;   // ≤0.1° for most planets
+const VP_NODE_TOLERANCE = 1.0;  // Rahu/Ketu: mean node divergence up to ~1°
+
+for (const ref of VARSHPHAL_REFS) {
+  const vp = computeVarshphal(ref.birthDetails, ref.years);
+
+  Deno.test(`[${ref.label}] Varshphal — annual ascendant sign`, () => {
+    assertEquals(vp.annualAscSign, ref.expected.annualAscSign,
+      `Annual Asc sign: expected ${ref.expected.annualAscSign}, got ${vp.annualAscSign}`);
+  });
+
+  Deno.test(`[${ref.label}] Varshphal — annual ascendant degree (±${VP_DEG_TOLERANCE}°)`, () => {
+    assertAlmostEquals(vp.annualAscDeg, ref.expected.annualAscDeg, VP_DEG_TOLERANCE,
+      `Annual Asc deg: expected ${ref.expected.annualAscDeg}, got ${vp.annualAscDeg}`);
+  });
+
+  for (const ep of ref.expected.planets) {
+    const actual = vp.planets.find(p => p.planet === ep.planet);
+    const tol = (ep.planet === "rahu" || ep.planet === "ketu") ? VP_NODE_TOLERANCE : VP_DEG_TOLERANCE;
+
+    Deno.test(`[${ref.label}] Varshphal — ${ep.planet} sign`, () => {
+      assertEquals(actual!.signNumber, ep.sign,
+        `${ep.planet} sign: expected ${ep.sign}, got ${actual!.signNumber}`);
+    });
+
+    Deno.test(`[${ref.label}] Varshphal — ${ep.planet} degree (±${tol}°)`, () => {
+      assertAlmostEquals(actual!.signDegree, ep.deg, tol,
+        `${ep.planet} deg: expected ${ep.deg}, got ${actual!.signDegree}`);
+    });
+  }
+
+  Deno.test(`[${ref.label}] Varshphal — Muntha sign`, () => {
+    assertEquals(vp.munthaSign, ref.expected.munthaSign,
+      `Muntha sign: expected ${ref.expected.munthaSign}, got ${vp.munthaSign}`);
+  });
+
+  Deno.test(`[${ref.label}] Varshphal — Muntha house`, () => {
+    assertEquals(vp.munthaHouse, ref.expected.munthaHouse,
+      `Muntha house: expected ${ref.expected.munthaHouse}, got ${vp.munthaHouse}`);
+  });
+
+  Deno.test(`[${ref.label}] Varshphal — Year Lord`, () => {
+    assertEquals(vp.yearLord, ref.expected.yearLord,
+      `Year Lord: expected ${ref.expected.yearLord}, got ${vp.yearLord}`);
+  });
+}

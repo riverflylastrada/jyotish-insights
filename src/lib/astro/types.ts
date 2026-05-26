@@ -172,13 +172,44 @@ export interface JaiminiData {
   };
 }
 
+export interface VarshphalPlanetData {
+  planet: string;
+  longitude: number;
+  signNumber: number;
+  signName: string;
+  signDegree: number;
+  nakshatra: string;
+  nakshatraPada: 1 | 2 | 3 | 4;
+  houseNumber: number;
+  isRetrograde: boolean;
+}
+
+export interface VarshphalData {
+  /** Years elapsed since birth for this annual chart. */
+  years: number;
+  /** Julian Day of the Varsha Pravesh (solar return) instant. */
+  varshaPraveshJd: number;
+  /** Annual chart ascendant sign (1–12). */
+  annualAscSign: number;
+  /** Annual chart ascendant degree within sign. */
+  annualAscDeg: number;
+  /** All 9 planet positions in the annual chart. */
+  planets: VarshphalPlanetData[];
+  /** Muntha sign (1–12). */
+  munthaSign: number;
+  /** Muntha's house placement in the annual chart. */
+  munthaHouse: number;
+  /** Year Lord (Varshesh) planet name (Panchadhikari method). */
+  yearLord: string;
+}
+
 /**
  * Current engine snapshot version. Saved chart snapshots older than this
  * (or with no version) are automatically recalculated on next load.
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 7;
+export const CURRENT_SNAPSHOT_VERSION = 8;
 
 export interface KundliData {
   id: string;
@@ -205,6 +236,7 @@ export interface KundliData {
   bhavaBala?: BhavaBalaData;
   kp?: KpData;
   jaimini?: JaiminiData;
+  varshphal?: VarshphalData;
   raw: unknown;
 }
 

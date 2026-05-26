@@ -26,6 +26,7 @@ import { computeKpPlanetSubLords, computePlacidusCusps, computeCuspalSubLords, c
 import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha } from "./jaimini.ts";
 import { computeShadbala } from "./shadbala.ts";
 import { computeBhavaBala } from "./bhavabala.ts";
+import { computeVarshphal } from "./varshphal.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -194,12 +195,15 @@ export function calculateKundli(details: BirthDetails) {
   const arudhaPadas = computeArudhaPadas(d1Planets, ascSign);
   const charaDashaTimeline = computeCharaDasha(d1Planets, ascSign, birthDate);
 
+  // Varshphal (annual Tajik chart for the current year)
+  const varshphal = computeVarshphal(details);
+
   return {
     id: crypto.randomUUID(),
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 7,
+    snapshotVersion: 8,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -229,6 +233,7 @@ export function calculateKundli(details: BirthDetails) {
         };
       })() : undefined,
     },
+    varshphal,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
   };
 }
