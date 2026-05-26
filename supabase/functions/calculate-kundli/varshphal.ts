@@ -25,6 +25,9 @@ import type { BirthDetails } from "./engine.ts";
 /** Tropical year length in days (same as PyJHora const.tropical_year). */
 const TROPICAL_YEAR = 365.24219;
 
+/** Sidereal year length in days (PyJHora const.sidereal_year — used for Year Lord JD). */
+const SIDEREAL_YEAR = 365.256364;
+
 /** Planet index → name mapping for Year Lord. */
 const PLANET_BY_INDEX: Record<number, string> = {
   0: "sun", 1: "moon", 2: "mars", 3: "mercury",
@@ -132,34 +135,194 @@ const TRI_RASI_NIGHT: Record<number, number> = {
   7: 3, 8: 2, 9: 0, 10: 5, 11: 0, 12: 5,
 };
 
+// ─── Panchavargeeya Bala (PVB) ──────────────────────────────────────────────
+
 /**
- * Compute Varshesh (Year Lord) via Panchadhikari method.
+ * House-strength table [planet 0–6][sign 0–11].
+ * Values: 5=OWNER, 4=MULATRIKONA, 3=FRIEND, 2=NEUTRAL, 1=ENEMY, 0=DEBILITATED.
+ * Matches PyJHora's house.house_strengths_of_planets.
+ */
+const HOUSE_STRENGTH: number[][] = [
+  /* Sun */     [4,1,2,2,5,2,0,3,3,1,1,3],
+  /* Moon */    [2,4,3,5,3,3,2,0,2,2,2,2],
+  /* Mars */    [5,2,1,0,3,1,2,5,3,4,2,3],
+  /* Mercury */ [2,3,5,1,3,5,3,2,2,2,2,0],
+  /* Jupiter */ [3,1,1,4,3,3,1,3,5,0,2,5],
+  /* Venus */   [2,5,3,1,1,0,5,2,3,3,3,4],
+  /* Saturn */  [0,3,3,1,1,3,4,1,2,5,5,2],
+];
+
+const _HS_FRIEND = 3;
+const _HS_ENEMY = 1;
+
+/** Deep debilitation longitudes (Sun–Saturn), absolute sidereal. */
+const DEBILITATION_LONGS = [190.0, 213.0, 118.0, 345.0, 275.0, 177.0, 20.0];
+
+/** Hadda (terms) lords per sign (0-indexed). Each entry: [planetIdx, boundDeg]. */
+const HADDA_LORDS: [number, number][][] = [
+  [[4,6],[5,12],[3,20],[2,25],[6,30]], [[5,8],[3,14],[5,22],[6,27],[2,30]],
+  [[3,6],[5,12],[4,17],[2,24],[6,30]], [[2,7],[5,13],[3,19],[4,26],[6,30]],
+  [[4,6],[5,11],[6,18],[3,24],[2,30]], [[3,7],[5,17],[4,21],[2,28],[6,30]],
+  [[6,6],[3,14],[4,21],[5,28],[2,30]], [[2,7],[5,11],[3,19],[4,24],[6,30]],
+  [[4,12],[5,17],[3,21],[2,26],[6,30]], [[3,7],[4,14],[5,22],[6,26],[2,30]],
+  [[3,7],[5,13],[4,20],[2,25],[6,50]], [[5,12],[4,16],[3,19],[2,28],[6,30]],
+];
+
+/** Planetary friendships: planet → list of friends (indices). */
+const FRIENDLY: Record<number, number[]> = {
+  0:[1,2,4], 1:[0,3], 2:[0,1,4], 3:[0,5], 4:[0,1,2], 5:[3,6], 6:[3,5],
+};
+
+/** Planetary enmities: planet → list of enemies (indices). */
+const ENEMY_OF: Record<number, number[]> = {
+  0:[5,6], 1:[], 2:[3], 3:[1], 4:[3,5], 5:[0,1], 6:[0,1,2],
+};
+
+/** PVB strength threshold (must exceed to select via PVB). */
+const PVB_THRESHOLD = 10;
+
+/** Map planet name → index (Sun=0..Saturn=6). */
+const PLANET_INDEX: Record<string, number> = {
+  sun:0, moon:1, mars:2, mercury:3, jupiter:4, venus:5, saturn:6,
+};
+
+/**
+ * Compute Panchavargeeya Bala for all 7 planets at given sidereal longitudes.
  *
- * 5 candidates (in priority order):
- * 1. Lord of Sun-sign (day) or Moon-sign (night)
- * 2. Lord of natal lagna sign
- * 3. Lord of Muntha sign
- * 4. Lord of annual ascendant sign
- * 5. Trirashi lord of the annual ascendant (day/night)
+ * Five components (Kshetra, Uchcha, Hadda, Drekkana, Navamsa) averaged.
+ * Matches PyJHora's strength.pancha_vargeeya_bala.
+ */
+function computePVB(longitudes: number[]): number[] {
+  const pvb: number[] = [];
+  for (let p = 0; p < 7; p++) {
+    const lon = longitudes[p];
+    const sign0 = Math.floor(lon / 30);
+    const deg = lon % 30;
+    const hs = HOUSE_STRENGTH[p][sign0];
+
+    // 1. Kshetra Bala (dignity in D1)
+    const kb = hs > _HS_FRIEND ? 30 : hs === _HS_FRIEND ? 15 : hs === _HS_ENEMY ? 7.5 : 0;
+
+    // 2. Uchcha Bala (Saravali formula: distance from debilitation / 3)
+    let pd = (lon + 360 - DEBILITATION_LONGS[p]) % 360;
+    if (pd > 180) pd = 360 - pd;
+    const ub = pd / 3;
+
+    // 3. Hadda Bala (terms)
+    let haddaLord = HADDA_LORDS[sign0][HADDA_LORDS[sign0].length - 1][0];
+    for (const [lord, bound] of HADDA_LORDS[sign0]) {
+      if (deg <= bound) { haddaLord = lord; break; }
+    }
+    const hb = p === haddaLord ? 15
+      : (FRIENDLY[p] ?? []).includes(haddaLord) ? 7.5
+      : (ENEMY_OF[p] ?? []).includes(haddaLord) ? 3.75 : 0;
+
+    // 4. Drekkana Bala (dignity in D3 — Parashara method)
+    const d3Sign = deg < 10 ? sign0 : deg < 20 ? (sign0 + 4) % 12 : (sign0 + 8) % 12;
+    const d3hs = HOUSE_STRENGTH[p][d3Sign];
+    const db = d3hs > _HS_FRIEND ? 10 : d3hs === _HS_FRIEND ? 5 : d3hs === _HS_ENEMY ? 2.5 : 0;
+
+    // 5. Navamsa Bala (dignity in D9)
+    const d9Sign = (sign0 * 9 + Math.floor(deg / (30 / 9))) % 12;
+    const d9hs = HOUSE_STRENGTH[p][d9Sign];
+    const nb = d9hs > _HS_FRIEND ? 5 : d9hs === _HS_FRIEND ? 2.5 : d9hs === _HS_ENEMY ? 1.25 : 0;
+
+    pvb.push((kb + ub + hb + db + nb) / 4.0);
+  }
+  return pvb;
+}
+
+// ─── Tajik Aspect Helpers ───────────────────────────────────────────────────
+
+/**
+ * Check if planet at `planetSign` has Tajik benefic aspect on `targetSign`.
+ * Benefic = trine (5th/9th) or sextile (3rd/11th) from planet → target.
+ * Distance formula: (target − planet + 12) % 12 ∈ {2, 4, 8, 10}.
+ */
+function hasBeneficAspect(planetSign: number, targetSign: number): boolean {
+  const dist = (targetSign - planetSign + 12) % 12;
+  return dist === 2 || dist === 4 || dist === 8 || dist === 10;
+}
+
+/**
+ * Check if planet at `planetSign` has Tajik malefic aspect on `targetSign`.
+ * Malefic = conjunction (1st), square (4th/10th), opposition (7th).
+ * Distance formula: (target − planet + 12) % 12 ∈ {0, 3, 6, 9}.
+ */
+function hasMaleficAspect(planetSign: number, targetSign: number): boolean {
+  const dist = (targetSign - planetSign + 12) % 12;
+  return dist === 0 || dist === 3 || dist === 6 || dist === 9;
+}
+
+// ─── Varshesh (Year Lord) ───────────────────────────────────────────────────
+
+/**
+ * Compute Varshesh (Year Lord) via Panchadhikari + Panchavargeeya Bala tie-break.
  *
- * Then filter by which candidate occupies or has 7th-aspect on the lagna house.
- * If exactly one → Year Lord. Otherwise fallback to candidates[0].
+ * Algorithm (matches PyJHora tajaka._get_the_lord_of_tajaka_chart):
+ * 1. Build 5 candidates from the Year Lord chart (at birthJd + years*sidereal_year)
+ * 2. Filter by Tajik benefic aspect on annual ascendant → single → lord
+ * 3. If none benefic → filter by malefic aspect → single → lord
+ * 4. Multiple → compute PVB for all candidates, highest above threshold wins
+ * 5. Fallback → candidates[0]
  *
- * Note: PyJHora uses full Panchavargeeya Bala for tie-breaking;
- * this implementation uses a simplified occupancy/aspect check.
+ * Note: The Year Lord chart uses a JD computed with sidereal year (matching
+ * PyJHora's tajaka.year_value = const.sidereal_year), which differs slightly
+ * from the solar return JD used for the annual chart display.
  */
 function computeYearLord(
-  annualPlanets: VarshphalPlanet[],
-  annualAscSign: number,
+  birthJd: number,
+  years: number,
   natalAscSign: number,
-  munthaSign: number,
-  isNightBirth: boolean,
+  lat: number,
+  lon: number,
+  tzOffset: number,
+  ayaKey: AyanamsaKey,
+  nodeType: NodeType,
 ): string {
-  // Build planet-to-house map
-  const planetHouseMap: Record<string, number> = {};
-  for (const p of annualPlanets) {
-    planetHouseMap[p.planet] = p.houseNumber;
+  // Year Lord chart JD: birth_jd_local + years*sidereal_year - tz/24
+  // Since birth_jd_local = birthJd(UT) + tz/24, the tz terms cancel:
+  //   chart_jd = birthJd(UT) + years * SIDEREAL_YEAR
+  const chartJd = birthJd + years * SIDEREAL_YEAR;
+
+  // Compute positions at chartJd
+  const chartT = julianCenturies(chartJd);
+  const chartAya = ayanamsa(ayaKey, chartJd);
+  const chartTrop = tropicalPositions(chartJd, lat, lon, nodeType);
+  const chartAscSid = norm360(toSidereal(chartTrop.ascendant, chartAya));
+  const annAscSign = signNumber(chartAscSid);
+
+  // Get sidereal longitudes for Sun–Saturn
+  const planetKeys = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"];
+  const longitudes: number[] = planetKeys.map(key => {
+    const tropLon = (chartTrop as unknown as Record<string, number>)[key];
+    return norm360(toSidereal(tropLon, chartAya));
+  });
+  const planetSigns: Record<string, number> = {};
+  for (let i = 0; i < planetKeys.length; i++) {
+    planetSigns[planetKeys[i]] = signNumber(longitudes[i]);
   }
+
+  // Night determination: extract time-of-day from "local JD" and compare with
+  // approximate sunrise/sunset (PyJHora convention).
+  const localJd = birthJd + tzOffset / 24 + years * SIDEREAL_YEAR;
+  const tobHrs = ((localJd % 1) * 24 + 12) % 24;
+
+  // Approximate day length from solar declination
+  const tropSunForDec = (chartTrop as unknown as Record<string, number>).sun;
+  const obliq = obliquity(chartT);
+  const decRad = Math.asin(Math.sin(obliq * Math.PI / 180) * Math.sin(tropSunForDec * Math.PI / 180));
+  const latRad = lat * Math.PI / 180;
+  let cosHA = -Math.tan(latRad) * Math.tan(decRad);
+  cosHA = Math.max(-1, Math.min(1, cosHA));
+  const haRad = Math.acos(cosHA);
+  const dayLen = 2 * (haRad * 180 / Math.PI) / 15;
+  const sunrise = 12 - dayLen / 2;
+  const sunset = 12 + dayLen / 2;
+  const isNight = tobHrs < sunrise || tobHrs > sunset;
+
+  // Muntha for candidates (PyJHora: (annAscSign - 1 + years) % 12 + 1)
+  const munthaSign = ((annAscSign - 1 + years) % 12) + 1;
 
   // Gather 5 candidates (planet names, unique, in order)
   const candidates: string[] = [];
@@ -167,13 +330,11 @@ function computeYearLord(
     if (!candidates.includes(planet)) candidates.push(planet);
   };
 
-  // 1. Lord of Sun-sign (day) or Moon-sign (night)
-  if (isNightBirth) {
-    const moonPlanet = annualPlanets.find(p => p.planet === "moon");
-    if (moonPlanet) addCandidate(getSignLord(moonPlanet.signNumber));
+  // 1. Lord of Moon-sign (night) or Sun-sign (day)
+  if (isNight) {
+    addCandidate(getSignLord(planetSigns["moon"]));
   } else {
-    const sunPlanet = annualPlanets.find(p => p.planet === "sun");
-    if (sunPlanet) addCandidate(getSignLord(sunPlanet.signNumber));
+    addCandidate(getSignLord(planetSigns["sun"]));
   }
 
   // 2. Lord of natal lagna sign
@@ -183,26 +344,42 @@ function computeYearLord(
   addCandidate(getSignLord(munthaSign));
 
   // 4. Lord of annual ascendant sign
-  addCandidate(getSignLord(annualAscSign));
+  addCandidate(getSignLord(annAscSign));
 
   // 5. Trirashi lord of annual ascendant
-  const triLord = isNightBirth
-    ? TRI_RASI_NIGHT[annualAscSign]
-    : TRI_RASI_DAY[annualAscSign];
+  const triLord = isNight
+    ? TRI_RASI_NIGHT[annAscSign]
+    : TRI_RASI_DAY[annAscSign];
   if (triLord !== undefined) {
     addCandidate(PLANET_BY_INDEX[triLord] ?? "sun");
   }
 
-  // Filter: which candidates occupy or have 7th aspect on lagna (house 1)?
-  const aspecting = candidates.filter(c => {
-    const h = planetHouseMap[c];
-    if (h === undefined) return false;
-    return h === 1 || h === 7; // occupies lagna or aspects from 7th
-  });
+  // Filter by Tajik benefic aspect on annual ascendant
+  const benefic = candidates.filter(c => hasBeneficAspect(planetSigns[c], annAscSign));
+  if (benefic.length === 1) return benefic[0];
 
-  if (aspecting.length === 1) return aspecting[0];
+  // If no benefic, try malefic aspect
+  if (benefic.length === 0) {
+    const malefic = candidates.filter(c => hasMaleficAspect(planetSigns[c], annAscSign));
+    if (malefic.length === 1) return malefic[0];
+  }
 
-  // Fallback: first candidate (primary Panchadhikari candidate)
+  // Multiple benefic/malefic or no aspects: PVB tie-break among ALL candidates
+  const pvb = computePVB(longitudes);
+  let bestCandidate = candidates[0];
+  let bestScore = -1;
+  for (const c of candidates) {
+    const idx = PLANET_INDEX[c];
+    if (idx !== undefined && pvb[idx] > bestScore) {
+      bestScore = pvb[idx];
+      bestCandidate = c;
+    }
+  }
+
+  // Only select via PVB if above threshold
+  if (bestScore > PVB_THRESHOLD) return bestCandidate;
+
+  // Fallback: first candidate
   return candidates[0] ?? "sun";
 }
 
@@ -293,18 +470,17 @@ export function computeVarshphal(
   const munthaSign = computeMuntha(natalAscSign, years);
   const munthaHouse = wholeSignHouse(munthaSign, annualAscSign);
 
-  // Year Lord (Varshesh)
-  // Determine night birth: compare birth local time to sunrise/sunset at VP moment
-  // Simplified: use birth hour vs 6:00/18:00 as a rough day/night check
-  const birthLocalHour = hour + minute / 60 + second / 3600;
-  const isNightBirth = birthLocalHour >= 18 || birthLocalHour < 6;
-
+  // Year Lord (Varshesh) — computed at a separate JD (birthJd + years*sidereal_year)
+  // matching PyJHora's tajaka.lord_of_the_year convention with full PVB tie-break.
   const yearLord = computeYearLord(
-    planets,
-    annualAscSign,
+    birthJd,
+    years,
     natalAscSign,
-    munthaSign,
-    isNightBirth,
+    lat,
+    lon,
+    tzOffset,
+    details.ayanamsa as AyanamsaKey,
+    nodeType,
   );
 
   return {

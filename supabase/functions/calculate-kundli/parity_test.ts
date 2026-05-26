@@ -763,7 +763,7 @@ const VARSHPHAL_REFS: VarshphalReference[] = [
       ],
       munthaSign: 11,   // Kumbha
       munthaHouse: 9,
-      yearLord: "mercury",
+      yearLord: "saturn",
     },
   },
 ];
