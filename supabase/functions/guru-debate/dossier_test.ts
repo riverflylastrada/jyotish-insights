@@ -334,6 +334,14 @@ const sampleChart = {
       currentAntarSign: 5,
       currentAntarSignName: "Simha",
     },
+    specialLagnas: [
+      { name: "Bhava Lagna", longitude: 120.5, sign: 5, signName: "Simha", degree: 0.5 },
+      { name: "Hora Lagna", longitude: 45.2, sign: 2, signName: "Vrishabha", degree: 15.2 },
+    ],
+    argala: [
+      { house: 1, argala: { from2nd: [], from4th: ["jupiter"], from5th: [], from11th: ["sun"] }, virodha: { from12th: [], from10th: [], from9th: [], from3rd: [] } },
+      { house: 5, argala: { from2nd: ["saturn"], from4th: [], from5th: [], from11th: [] }, virodha: { from12th: ["moon"], from10th: [], from9th: [], from3rd: [] } },
+    ],
   },
   bhavaBala: {
     houses: [
@@ -526,6 +534,19 @@ Deno.test("dossier contains Jaimini Chara Karakas, Arudha, and Chara Dasha curre
   assertStringIncludes(d, "Chara Dasha (KN Rao): current Maha: Kanya, Antar: Simha.");
   assertStringIncludes(d, "current Maha");
   assertStringIncludes(d, "current Antar");
+});
+
+Deno.test("dossier contains Special Lagnas section", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "Special Lagnas:");
+  assertStringIncludes(d, "Bhava Lagna: Simha");
+  assertStringIncludes(d, "Hora Lagna: Vrishabha");
+});
+
+Deno.test("dossier contains Argala section", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "Argala");
+  assertStringIncludes(d, "House 1:");
 });
 
 Deno.test("dossier contains Varshphal section when present", () => {

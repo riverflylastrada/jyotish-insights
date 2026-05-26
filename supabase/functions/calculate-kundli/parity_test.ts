@@ -70,6 +70,14 @@ interface ReferenceChart {
       firstMahaAntarSigns: number[];
       antarDurationYears: number;
     };
+    /** Special Lagnas: sign + degree for 6 alternative ascendants (PyJHora v4.8.5, Lahiri) */
+    specialLagnas?: Array<{ name: string; sign: number; deg: number }>;
+    /** Argala per house: planets at each argala/virodha offset (PyJHora v4.8.5, Lahiri) */
+    argala?: Array<{
+      house: number;
+      argala: [string[], string[], string[], string[]];
+      virodha: [string[], string[], string[], string[]];
+    }>;
   };
 }
 
@@ -179,6 +187,30 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         firstMahaAntarSigns: [8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9],
         antarDurationYears: 11 / 12,  // 0.9167
       },
+      // PyJHora v4.8.5 (Lahiri) — Special Lagnas
+      specialLagnas: [
+        { name: "Bhava Lagna",     sign: 9,  deg: 23.8646 },
+        { name: "Hora Lagna",      sign: 2,  deg: 11.7788 },
+        { name: "Ghati Lagna",     sign: 4,  deg: 5.5213 },
+        { name: "Vighati Lagna",   sign: 5,  deg: 0.7996 },
+        { name: "Pranapada Lagna", sign: 9,  deg: 2.3988 },
+        { name: "Sree Lagna",      sign: 6,  deg: 23.7395 },
+      ],
+      // PyJHora v4.8.5 (Lahiri) — Argala per house
+      argala: [
+        { house: 1,  argala: [[], [], [], ["saturn"]], virodha: [["jupiter","ketu"], ["mercury"], ["sun","venus"], ["moon"]] },
+        { house: 2,  argala: [["moon"], [], ["rahu"], ["jupiter","ketu"]], virodha: [[], ["saturn"], ["mercury"], []] },
+        { house: 3,  argala: [[], ["rahu"], [], []], virodha: [[], ["jupiter","ketu"], ["saturn"], []] },
+        { house: 4,  argala: [[], [], ["mars"], []], virodha: [["moon"], [], ["jupiter","ketu"], ["rahu"]] },
+        { house: 5,  argala: [["rahu"], ["mars"], ["sun","venus"], ["moon"]], virodha: [[], [], [], []] },
+        { house: 6,  argala: [[], ["sun","venus"], ["mercury"], []], virodha: [[], ["moon"], [], ["mars"]] },
+        { house: 7,  argala: [["mars"], ["mercury"], ["saturn"], []], virodha: [["rahu"], [], ["moon"], ["sun","venus"]] },
+        { house: 8,  argala: [["sun","venus"], ["saturn"], ["jupiter","ketu"], ["rahu"]], virodha: [[], [], [], ["mercury"]] },
+        { house: 9,  argala: [["mercury"], ["jupiter","ketu"], [], []], virodha: [["mars"], ["rahu"], [], ["saturn"]] },
+        { house: 10, argala: [["saturn"], [], [], ["mars"]], virodha: [["sun","venus"], [], ["rahu"], ["jupiter","ketu"]] },
+        { house: 11, argala: [["jupiter","ketu"], [], ["moon"], ["sun","venus"]], virodha: [["mercury"], ["mars"], [], []] },
+        { house: 12, argala: [[], ["moon"], [], ["mercury"]], virodha: [["saturn"], ["sun","venus"], ["mars"], []] },
+      ],
     },
   },
   // ── Chart 2: Rajiv Gandhi ──────────────────────────────────────────────
@@ -286,6 +318,28 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         firstMahaAntarSigns: [6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5],
         antarDurationYears: 12 / 12,  // 1.0
       },
+      specialLagnas: [
+        { name: "Bhava Lagna",     sign: 6,  deg: 0.7143 },
+        { name: "Hora Lagna",      sign: 6,  deg: 27.4089 },
+        { name: "Ghati Lagna",     sign: 9,  deg: 17.4930 },
+        { name: "Vighati Lagna",   sign: 10, deg: 15.7003 },
+        { name: "Pranapada Lagna", sign: 6,  deg: 25.4369 },
+        { name: "Sree Lagna",      sign: 9,  deg: 25.3387 },
+      ],
+      argala: [
+        { house: 1,  argala: [["mars"], [], [], ["saturn"]], virodha: [["rahu"], [], [], []] },
+        { house: 2,  argala: [[], [], ["ketu"], ["rahu"]], virodha: [["sun","moon","mercury","jupiter","venus"], ["saturn"], [], []] },
+        { house: 3,  argala: [[], ["ketu"], [], ["sun","moon","mercury","jupiter","venus"]], virodha: [["mars"], ["rahu"], ["saturn"], []] },
+        { house: 4,  argala: [[], [], [], ["mars"]], virodha: [[], ["sun","moon","mercury","jupiter","venus"], ["rahu"], ["ketu"]] },
+        { house: 5,  argala: [["ketu"], [], [], []], virodha: [[], ["mars"], ["sun","moon","mercury","jupiter","venus"], []] },
+        { house: 6,  argala: [[], [], [], []], virodha: [[], [], ["mars"], []] },
+        { house: 7,  argala: [[], [], ["saturn"], []], virodha: [["ketu"], [], [], []] },
+        { house: 8,  argala: [[], ["saturn"], ["rahu"], ["ketu"]], virodha: [[], [], [], []] },
+        { house: 9,  argala: [[], ["rahu"], ["sun","moon","mercury","jupiter","venus"], []], virodha: [[], ["ketu"], [], ["saturn"]] },
+        { house: 10, argala: [["saturn"], ["sun","moon","mercury","jupiter","venus"], ["mars"], []], virodha: [[], [], ["ketu"], ["rahu"]] },
+        { house: 11, argala: [["rahu"], ["mars"], [], []], virodha: [[], [], [], ["sun","moon","mercury","jupiter","venus"]] },
+        { house: 12, argala: [["sun","moon","mercury","jupiter","venus"], [], [], []], virodha: [["saturn"], [], [], ["mars"]] },
+      ],
     },
   },
   // ── Chart 3: Amitabh Bachchan ──────────────────────────────────────────
@@ -392,6 +446,28 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         firstMahaAntarSigns: [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
         antarDurationYears: 9 / 12,  // 0.75
       },
+      specialLagnas: [
+        { name: "Bhava Lagna",     sign: 11, deg: 23.6265 },
+        { name: "Hora Lagna",      sign: 4,  deg: 23.0086 },
+        { name: "Ghati Lagna",     sign: 7,  deg: 21.1550 },
+        { name: "Vighati Lagna",   sign: 5,  deg: 17.1719 },
+        { name: "Pranapada Lagna", sign: 2,  deg: 10.4949 },
+        { name: "Sree Lagna",      sign: 3,  deg: 16.0685 },
+      ],
+      argala: [
+        { house: 1,  argala: [[], ["saturn"], [], []], virodha: [[], [], ["moon"], []] },
+        { house: 2,  argala: [[], [], ["jupiter"], []], virodha: [["ketu"], [], [], ["saturn"]] },
+        { house: 3,  argala: [["saturn"], ["jupiter"], ["rahu"], ["ketu"]], virodha: [[], [], [], []] },
+        { house: 4,  argala: [[], ["rahu"], ["sun","mars","mercury","venus"], []], virodha: [[], ["ketu"], [], ["jupiter"]] },
+        { house: 5,  argala: [["jupiter"], ["sun","mars","mercury","venus"], ["moon"], []], virodha: [["saturn"], [], ["ketu"], ["rahu"]] },
+        { house: 6,  argala: [["rahu"], ["moon"], [], ["saturn"]], virodha: [[], [], [], ["sun","mars","mercury","venus"]] },
+        { house: 7,  argala: [["sun","mars","mercury","venus"], [], [], []], virodha: [["jupiter"], ["saturn"], [], ["moon"]] },
+        { house: 8,  argala: [["moon"], [], [], ["jupiter"]], virodha: [["rahu"], [], ["saturn"], []] },
+        { house: 9,  argala: [[], [], ["ketu"], ["rahu"]], virodha: [["sun","mars","mercury","venus"], ["jupiter"], [], []] },
+        { house: 10, argala: [[], ["ketu"], [], ["sun","mars","mercury","venus"]], virodha: [["moon"], ["rahu"], ["jupiter"], []] },
+        { house: 11, argala: [[], [], [], ["moon"]], virodha: [[], ["sun","mars","mercury","venus"], ["rahu"], ["ketu"]] },
+        { house: 12, argala: [["ketu"], [], ["saturn"], []], virodha: [[], ["moon"], ["sun","mars","mercury","venus"], []] },
+      ],
     },
   },
 ];
@@ -740,6 +816,58 @@ for (const ref of REFERENCE_CHARTS) {
         `Current Ashtottari Maha: expected ${ref.expected.ashtottariDasha!.currentMahaLord}, got ${ashto!.currentMahaDasha.planet}`,
       );
     });
+  }
+
+  // ── Special Lagnas ──────────────────────────────────────────────────────
+  if (ref.expected.specialLagnas) {
+    const SPECIAL_LAGNA_TOL = 0.1;  // ≤0.1° tolerance per spec
+    const sl = chart.jaimini!.specialLagnas!;
+
+    for (const exp of ref.expected.specialLagnas) {
+      const actual = sl.find((l: { name: string }) => l.name === exp.name);
+
+      Deno.test(`[${ref.label}] ${exp.name} sign = ${signName(exp.sign)}`, () => {
+        assertEquals(actual?.sign, exp.sign,
+          `${exp.name}: expected ${signName(exp.sign)}, got ${signName(actual?.sign ?? 0)}`);
+      });
+
+      Deno.test(`[${ref.label}] ${exp.name} degree ≈ ${exp.deg.toFixed(2)}° (±${SPECIAL_LAGNA_TOL}°)`, () => {
+        assertAlmostEquals(actual!.degree, exp.deg, SPECIAL_LAGNA_TOL);
+      });
+    }
+  }
+
+  // ── Argala ──────────────────────────────────────────────────────────────
+  if (ref.expected.argala) {
+    const argala = chart.jaimini!.argala!;
+
+    for (const exp of ref.expected.argala) {
+      const actual = argala.find((a: { house: number }) => a.house === exp.house)!;
+      const offsets = ["from2nd", "from4th", "from5th", "from11th"] as const;
+      const vOffsets = ["from12th", "from10th", "from9th", "from3rd"] as const;
+
+      for (let i = 0; i < 4; i++) {
+        const argalaLabel = ["2nd", "4th", "5th", "11th"][i];
+        Deno.test(`[${ref.label}] Argala H${exp.house} ${argalaLabel}`, () => {
+          assertEquals(
+            actual.argala[offsets[i]].slice().sort(),
+            exp.argala[i].slice().sort(),
+            `H${exp.house} argala ${argalaLabel}: expected [${exp.argala[i]}], got [${actual.argala[offsets[i]]}]`,
+          );
+        });
+      }
+
+      for (let i = 0; i < 4; i++) {
+        const virodhaLabel = ["12th", "10th", "9th", "3rd"][i];
+        Deno.test(`[${ref.label}] Virodha H${exp.house} ${virodhaLabel}`, () => {
+          assertEquals(
+            actual.virodha[vOffsets[i]].slice().sort(),
+            exp.virodha[i].slice().sort(),
+            `H${exp.house} virodha ${virodhaLabel}: expected [${exp.virodha[i]}], got [${actual.virodha[vOffsets[i]]}]`,
+          );
+        });
+      }
+    }
   }
 }
 

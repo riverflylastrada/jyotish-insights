@@ -24,6 +24,8 @@ import { computeAshtakavarga } from "./ashtakavarga.ts";
 import { computePanchang } from "./panchang.ts";
 import { computeKpPlanetSubLords, computePlacidusCusps, computeCuspalSubLords, computeRulingPlanets, computeHouseSignificators } from "./kp.ts";
 import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha } from "./jaimini.ts";
+import { computeSpecialLagnas } from "./special_lagna.ts";
+import { computeArgala } from "./argala.ts";
 import { computeShadbala } from "./shadbala.ts";
 import { computeBhavaBala } from "./bhavabala.ts";
 import { computeVarshphal } from "./varshphal.ts";
@@ -199,6 +201,14 @@ export function calculateKundli(details: BirthDetails) {
   const arudhaPadas = computeArudhaPadas(d1Planets, ascSign);
   const charaDashaTimeline = computeCharaDasha(d1Planets, ascSign, birthDate);
 
+  // Jaimini: Special Lagnas & Argala
+  const sunSidAtBirth = toSidereal(trop.sun, aya);
+  const birthHours = hour + minute / 60 + second / 3600;
+  const specialLagnas = computeSpecialLagnas(
+    jd, lat, lon, tzOffset, aya, sunSidAtBirth, moonSid, ascSid, birthHours,
+  );
+  const argala = computeArgala(d1Planets, ascSign);
+
   // Varshphal (annual Tajik chart for the current year)
   const varshphal = computeVarshphal(details);
 
@@ -212,7 +222,7 @@ export function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 11,
+    snapshotVersion: 12,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -246,6 +256,8 @@ export function calculateKundli(details: BirthDetails) {
           currentAntarSignName: currentAntar?.signName,
         };
       })() : undefined,
+      specialLagnas,
+      argala,
     },
     varshphal,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },

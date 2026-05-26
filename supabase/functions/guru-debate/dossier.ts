@@ -574,6 +574,33 @@ function sectionJaimini(chart: any): string {
     }
   }
 
+  if (j.specialLagnas?.length) {
+    lines.push(`\nSpecial Lagnas:`);
+    for (const sl of j.specialLagnas) {
+      lines.push(`  ${sl.name}: ${sl.signName} ${fmtDeg(sl.degree)}`);
+    }
+  }
+
+  if (j.argala?.length) {
+    lines.push(`\nArgala (key interventions):`);
+    for (const a of j.argala) {
+      const fmt = (label: string, planets: string[]) =>
+        planets?.length ? `${label}: ${planets.map(capitalize).join(", ")}` : "";
+      const parts = [
+        fmt("2nd", a.argala?.from2nd), fmt("4th", a.argala?.from4th),
+        fmt("5th", a.argala?.from5th), fmt("11th", a.argala?.from11th),
+      ].filter(Boolean);
+      if (parts.length > 0) {
+        const vParts = [
+          fmt("12th", a.virodha?.from12th), fmt("10th", a.virodha?.from10th),
+          fmt("9th", a.virodha?.from9th), fmt("3rd", a.virodha?.from3rd),
+        ].filter(Boolean);
+        const virodhaStr = vParts.length > 0 ? ` | Virodha: ${vParts.join("; ")}` : "";
+        lines.push(`  House ${a.house}: Argala: ${parts.join("; ")}${virodhaStr}`);
+      }
+    }
+  }
+
   if (j.charaDasha?.timeline?.length) {
     const mahaLabel = j.charaDasha.currentSignName ?? "see timeline";
     const antarLabel = j.charaDasha.currentAntarSignName
@@ -692,6 +719,7 @@ function sectionUnavailableSystems(): string {
     `═══ SYSTEMS NOT YET COMPUTED ═══`,
     `The following are not available in this chart snapshot — do NOT fabricate them:`,
     `- Sahams (Arabic parts)`,
+    `- Sudarshana Chakra`,
   ].join("\n");
 }
 
