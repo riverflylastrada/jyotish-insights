@@ -23,7 +23,7 @@ calculation is JHora-validated by a **parity harness** + **CI** on each PR.
 **Engine vs. UI:** all of the above is computed and fed to the Guru Debate
 dossier, but many of the newer outputs have **no dedicated front-end view yet**
 — that's the upcoming **UI/UX phase** (see below). Remaining engine gaps are
-small: KP 4-fold significators, Chara Dasha sub-periods, Vimsopaka bala, and a
+small: Jaimini extras (Special Lagnas, Argala), Vimsopaka/vargeeya bala, and a
 few more dasha systems. Product gaps: Muhurta, transit alerts, monetization.
 
 ---
@@ -71,6 +71,13 @@ few more dasha systems. Product gaps: Muhurta, transit alerts, monetization.
   solar return, Muntha, Year Lord (full Panchavargeeya-Bala tie-break), JHora-validated.
 - ✅ **Tajik yogas** ([tajik_yogas.ts](supabase/functions/calculate-kundli/tajik_yogas.ts)) —
   Ithasala, Eesarpha, Ishkavala, Induvara, Nakta, Yamaya on the annual chart, JHora-validated.
+- ✅ **KP 4-fold house significators** ([kp.ts](supabase/functions/calculate-kundli/kp.ts)) —
+  occupants / occupants' star-lords / owner / owner's star-lords per house, with
+  Rahu/Ketu node agency. (Rule-validated; **completes the KP system**.)
+- ✅ **Chara Dasha antardasha** ([jaimini.ts](supabase/functions/calculate-kundli/jaimini.ts)) —
+  KN Rao sub-periods on the existing Maha-level dasha. Along the way the Maha
+  rule was corrected to match JHora (Savya/Apasavya direction + stronger-co-lord
+  durations for dual-lord signs); GJC & Rajiv now match PyJHora exactly.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced in the Guru Debate dossier — but **not yet in dedicated UI** (see the
@@ -80,12 +87,12 @@ few more dasha systems. Product gaps: Muhurta, transit alerts, monetization.
 
 ## Near-term
 
-### Finish the two engine follow-ups (small, additive)
-- ⬜ **KP 4-fold significators** — occupants / occupants' star-lords / house
-  lord / house-lord's star-lord, per house. Placidus cusps and cuspal sub-lords
-  already ship; this completes the KP significator scheme.
-- ⬜ **Chara Dasha sub-periods (antardasha).** Maha (sign) level ships; add the
-  antardasha breakdown.
+### Remaining engine additions (small, additive)
+- 🟡 **Jaimini extras** — Special Lagnas (Bhava/Hora/Ghati/Vighati/Pranapada/Sree)
+  and Argala / Virodha Argala. *(In progress.)*
+- ⬜ **Vimsopaka / vargeeya bala** — Pancha-vargeeya + Dwadasa-vargeeya divisional
+  strength (PyJHora has both). Completes the strength suite.
+- ⬜ **More dasha systems** — Kalachakra (and the other nakshatra dashas) as desired.
 
 ### Engine accuracy polish
 - ⬜ **Exact Lahiri ayanamsa.** A ~0.007° systematic delta vs Swiss Ephemeris's
@@ -133,16 +140,15 @@ the new views.
 ## Mid-term
 
 ### Additional classical systems
-- ⬜ **More dasha systems** — Yogini, Ashtottari, Kalachakra (Vimshottari and
+- ⬜ **More dasha systems** — Kalachakra (Vimshottari, Yogini, Ashtottari, and
   Jaimini Chara dasha already ship).
 - ⬜ **Multiple house systems in the chart.** Whole Sign is the default and
   **Placidus cusps already exist** (computed for KP). Expose Placidus as a
   selectable house system and add Sripati/Equal (`profiles.house_system` already
-  stores the preference).
+  stores the preference). *(Best paired with the UI/UX phase — it's a
+  user-selectable setting, and changing the default house assignment is risky.)*
 - ⬜ **Expanded yoga catalog** — grow well beyond the current 15+, organized by
   category with cancellation rules.
-- ⬜ **Extend the Jaimini toolkit** — Argala and Special Lagnas, building on the
-  shipped Chara Karakas / Arudha Padas / Chara Dasha.
 
 ### Features
 - 🟡 **Muhurta (electional astrology).** A route exists; build out
