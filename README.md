@@ -50,12 +50,14 @@ API is required.
 - **Ashtakavarga** — full Bhinnashtakavarga (per-planet) and Sarvashtakavarga
   (aggregate) bindu tables, rendered as a house-strength heatmap.
 - **Panchang** — Tithi, Vara, Nakshatra, Yoga, and Karana, plus sunrise/sunset.
-- **Shadbala-style strength scores** for each planet (dignity, combustion,
-  retrogression, and house placement weighted into a 0–100 score).
+- **Shadbala** — the full classical six-source strength (Sthana, Dig, Kala,
+  Cheshta, Naisargika, Drik bala) in Rupas/Virupas with required minimums and
+  rank, **validated against Jagannatha Hora to within ±0.03 Rupa**.
 - **KP (Krishnamurti Paddhati)** — sign-lord / star-lord / sub-lord for every
-  planet, plus KP Ruling Planets. *(Placidus cuspal sub-lords in progress.)*
+  planet, **Placidus cuspal sub-lords**, and KP Ruling Planets.
 - **Jaimini** — 8 Chara Karakas (Atmakaraka → Darakaraka, with Rahu reversed),
-  Karakamsa, and Arudha Padas (Arudha Lagna, Upapada). *(Chara Dasha in progress.)*
+  Karakamsa, Arudha Padas (Arudha Lagna, Upapada), and **Chara Dasha** (KN Rao
+  method).
 - Selectable **Ayanamsa** (Lahiri, Raman, Krishnamurti, Yukteshwar) and chart
   style (North / South Indian).
 - **Self-updating snapshots** — saved charts carry an engine version and
@@ -145,7 +147,9 @@ in TypeScript:
 
 | Module | Responsibility |
 |--------|----------------|
-| [astronomy.ts](supabase/functions/calculate-kundli/astronomy.ts) | Julian Day, planetary longitudes (Meeus / JPL Keplerian elements), ascendant, sidereal time, retrogression, sunrise/sunset |
+| [astronomy.ts](supabase/functions/calculate-kundli/astronomy.ts) | Julian Day, ascendant, sidereal time (apparent), obliquity/nutation, retrogression, sunrise/sunset |
+| [vsop87.ts](supabase/functions/calculate-kundli/vsop87.ts) | VSOP87D planetary positions (Sun–Saturn) with light-time + aberration |
+| [elp82.ts](supabase/functions/calculate-kundli/elp82.ts) | ELP-2000/82 Moon, IAU 1980 nutation, true/mean node |
 | [vedic.ts](supabase/functions/calculate-kundli/vedic.ts) | Ayanamsa, sidereal conversion, nakshatra/pada, whole-sign houses, dignity, combustion |
 | [divisional.ts](supabase/functions/calculate-kundli/divisional.ts) | All 16 divisional (Varga) charts |
 | [dashas.ts](supabase/functions/calculate-kundli/dashas.ts) | Vimshottari Dasha to five levels |
@@ -153,12 +157,15 @@ in TypeScript:
 | [doshas.ts](supabase/functions/calculate-kundli/doshas.ts) | Dosha detection + remedies |
 | [ashtakavarga.ts](supabase/functions/calculate-kundli/ashtakavarga.ts) | Bhinna- and Sarva-ashtakavarga |
 | [panchang.ts](supabase/functions/calculate-kundli/panchang.ts) | Tithi, Vara, Nakshatra, Yoga, Karana |
-| [kp.ts](supabase/functions/calculate-kundli/kp.ts) | KP sub-lords (sign/star/sub) and Ruling Planets (cuspal sub-lords pending Placidus) |
-| [jaimini.ts](supabase/functions/calculate-kundli/jaimini.ts) | Chara Karakas, Karakamsa, Arudha Padas (Chara Dasha pending parity) |
+| [kp.ts](supabase/functions/calculate-kundli/kp.ts) | KP sub-lords, Placidus cuspal sub-lords, Ruling Planets |
+| [jaimini.ts](supabase/functions/calculate-kundli/jaimini.ts) | Chara Karakas, Karakamsa, Arudha Padas, Chara Dasha (KN Rao) |
+| [shadbala.ts](supabase/functions/calculate-kundli/shadbala.ts) | Six-source Shadbala in Rupas (JHora-validated) |
 | [engine.ts](supabase/functions/calculate-kundli/engine.ts) | Orchestrator → assembles the full `KundliData` (version-stamped) |
 
-Planetary positions use Keplerian orbital elements (Meeus, *Astronomical
-Algorithms*), giving ~0.1–0.5° accuracy — sufficient for astrological purposes.
+Planetary positions use **VSOP87** (planets) and **ELP-2000/82** (Moon) with
+nutation and a true node — matching **Swiss Ephemeris to the arc-minute** (the
+parity harness asserts ≤0.05° for planets, ≤0.1° for the Moon). Shadbala matches
+Jagannatha Hora to within ±0.03 Rupa.
 
 > **Provider abstraction.** The frontend ([src/lib/astro/](src/lib/astro/))
 > defines an `AstroProvider` interface with `mock`, `vedicrishi`, and `custom`
@@ -352,17 +359,20 @@ npm run test          # run once
 npm run test:watch    # watch mode
 ```
 
-**Edge functions** — Deno tests for the engine and dossier (KP, Jaimini, and the
-chart dossier builder):
+**Edge functions** — Deno tests for the engine and dossier, including a
+**parity harness** ([parity_test.ts](supabase/functions/calculate-kundli/parity_test.ts))
+that diffs computed charts against **Swiss Ephemeris** (positions) and
+**Jagannatha Hora** (Shadbala) reference values for 3 reference charts:
 
 ```bash
 deno test supabase/functions/calculate-kundli/ supabase/functions/guru-debate/
 deno check supabase/functions/calculate-kundli/engine.ts
 ```
 
-> Coverage spans the KP/Jaimini engines and the dossier builder. The next
-> priority is a parity-test harness diffing computed charts against reference
-> software (AstroSage / JHora) — see the [Roadmap](ROADMAP.md).
+**CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs both suites
+on every PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions
+(parity-over-plausibility, snapshot version bumps) that all changes — human or
+automated — follow.
 
 ---
 
