@@ -65,6 +65,8 @@ export interface VarshphalData {
   munthaHouse: number;
   /** Year Lord (Varshesh) planet name (Panchadhikari method). */
   yearLord: string;
+  /** Tajik yogas detected on the annual chart. */
+  tajikYogas?: import("./tajik_yogas.ts").TajikYogaResult;
 }
 
 // ─── Solar Return (Varsha Pravesh) ──────────────────────────────────────────

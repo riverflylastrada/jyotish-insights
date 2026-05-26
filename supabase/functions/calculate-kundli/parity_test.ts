@@ -814,3 +814,146 @@ for (const ref of VARSHPHAL_REFS) {
       `Year Lord: expected ${ref.expected.yearLord}, got ${vp.yearLord}`);
   });
 }
+
+// ─── Tajik Yogas Parity Tests ───────────────────────────────────────────────
+// Validated against PyJHora v4.8.5 tajaka_yoga.py on the same annual charts.
+// Same fixed reference years as the Varshphal tests above.
+
+import { detectTajikYogas } from "./tajik_yogas.ts";
+
+interface TajikYogaReference {
+  label: string;
+  birthDetails: BirthDetails;
+  years: number;
+  expected: {
+    ithasala: Array<{ planet1: string; planet2: string; ithasalaType: 1 | 2 | 3 }>;
+    eesarpha: Array<{ planet1: string; planet2: string }>;
+    ishkavala: boolean;
+    induvara: boolean;
+    nakta: Array<{ mediator: string; planet1: string; planet2: string }>;
+    yamaya: Array<{ mediator: string; planet1: string; planet2: string }>;
+  };
+}
+
+const TAJIK_YOGA_REFS: TajikYogaReference[] = [
+  {
+    label: "Dev Chart",
+    birthDetails: REFERENCE_CHARTS[0].birthDetails,
+    years: 43,
+    expected: {
+      ithasala: [
+        { planet1: "sun", planet2: "moon", ithasalaType: 2 },
+        { planet1: "sun", planet2: "venus", ithasalaType: 1 },
+        { planet1: "mars", planet2: "jupiter", ithasalaType: 1 },
+        { planet1: "mercury", planet2: "jupiter", ithasalaType: 1 },
+        { planet1: "venus", planet2: "saturn", ithasalaType: 1 },
+      ],
+      eesarpha: [
+        { planet1: "moon", planet2: "venus" },
+        { planet1: "mars", planet2: "mercury" },
+      ],
+      ishkavala: false,
+      induvara: false,
+      nakta: [],
+      yamaya: [],
+    },
+  },
+  {
+    label: "Rajiv Gandhi",
+    birthDetails: REFERENCE_CHARTS[1].birthDetails,
+    years: 82,
+    expected: {
+      ithasala: [
+        { planet1: "sun", planet2: "venus", ithasalaType: 1 },
+        { planet1: "moon", planet2: "saturn", ithasalaType: 1 },
+        { planet1: "mars", planet2: "jupiter", ithasalaType: 1 },
+        { planet1: "mercury", planet2: "jupiter", ithasalaType: 1 },
+        { planet1: "venus", planet2: "saturn", ithasalaType: 1 },
+      ],
+      eesarpha: [
+        { planet1: "sun", planet2: "moon" },
+        { planet1: "moon", planet2: "venus" },
+        { planet1: "mars", planet2: "mercury" },
+        { planet1: "mars", planet2: "saturn" },
+      ],
+      ishkavala: false,
+      induvara: false,
+      nakta: [],
+      yamaya: [],
+    },
+  },
+  {
+    label: "Amitabh Bachchan",
+    birthDetails: REFERENCE_CHARTS[2].birthDetails,
+    years: 84,
+    expected: {
+      ithasala: [
+        { planet1: "sun", planet2: "jupiter", ithasalaType: 1 },
+        { planet1: "moon", planet2: "jupiter", ithasalaType: 1 },
+        { planet1: "mars", planet2: "mercury", ithasalaType: 1 },
+      ],
+      eesarpha: [
+        { planet1: "sun", planet2: "moon" },
+        { planet1: "sun", planet2: "mars" },
+        { planet1: "venus", planet2: "saturn" },
+      ],
+      ishkavala: false,
+      induvara: false,
+      nakta: [],
+      yamaya: [],
+    },
+  },
+];
+
+for (const ref of TAJIK_YOGA_REFS) {
+  const vp = computeVarshphal(ref.birthDetails, ref.years);
+  const tajik = detectTajikYogas(vp.planets, vp.annualAscSign);
+
+  Deno.test(`[${ref.label}] Tajik — Ishkavala`, () => {
+    assertEquals(tajik.ishkavala, ref.expected.ishkavala,
+      `Ishkavala: expected ${ref.expected.ishkavala}, got ${tajik.ishkavala}`);
+  });
+
+  Deno.test(`[${ref.label}] Tajik — Induvara`, () => {
+    assertEquals(tajik.induvara, ref.expected.induvara,
+      `Induvara: expected ${ref.expected.induvara}, got ${tajik.induvara}`);
+  });
+
+  Deno.test(`[${ref.label}] Tajik — Ithasala pairs match PyJHora`, () => {
+    const actual = tajik.ithasala.map(y => `${y.planet1}-${y.planet2}`).sort();
+    const expected = ref.expected.ithasala.map(y => `${y.planet1}-${y.planet2}`).sort();
+    assertEquals(actual, expected,
+      `Ithasala pairs: expected [${expected}], got [${actual}]`);
+  });
+
+  Deno.test(`[${ref.label}] Tajik — Ithasala types match PyJHora`, () => {
+    for (const exp of ref.expected.ithasala) {
+      const act = tajik.ithasala.find(
+        y => y.planet1 === exp.planet1 && y.planet2 === exp.planet2,
+      );
+      assertEquals(act?.ithasalaType, exp.ithasalaType,
+        `Ithasala ${exp.planet1}-${exp.planet2}: expected type ${exp.ithasalaType}, got ${act?.ithasalaType}`);
+    }
+  });
+
+  Deno.test(`[${ref.label}] Tajik — Eesarpha pairs match PyJHora`, () => {
+    const actual = tajik.eesarpha.map(y => `${y.planet1}-${y.planet2}`).sort();
+    const expected = ref.expected.eesarpha.map(y => `${y.planet1}-${y.planet2}`).sort();
+    assertEquals(actual, expected,
+      `Eesarpha pairs: expected [${expected}], got [${actual}]`);
+  });
+
+  Deno.test(`[${ref.label}] Tajik — Nakta triples match PyJHora`, () => {
+    const actual = tajik.nakta.map(y => `${y.mediator}:${y.planet1}-${y.planet2}`).sort();
+    const expected = ref.expected.nakta.map(y => `${y.mediator}:${y.planet1}-${y.planet2}`).sort();
+    assertEquals(actual, expected,
+      `Nakta triples: expected [${expected}], got [${actual}]`);
+  });
+
+  Deno.test(`[${ref.label}] Tajik — Yamaya triples match PyJHora`, () => {
+    const actual = tajik.yamaya.map(y => `${y.mediator}:${y.planet1}-${y.planet2}`).sort();
+    const expected = ref.expected.yamaya.map(y => `${y.mediator}:${y.planet1}-${y.planet2}`).sort();
+    assertEquals(actual, expected,
+      `Yamaya triples: expected [${expected}], got [${actual}]`);
+  });
+}
