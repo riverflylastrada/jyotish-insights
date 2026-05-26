@@ -27,6 +27,7 @@ import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha }
 import { computeShadbala } from "./shadbala.ts";
 import { computeBhavaBala } from "./bhavabala.ts";
 import { computeVarshphal } from "./varshphal.ts";
+import { detectTajikYogas } from "./tajik_yogas.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -198,12 +199,17 @@ export function calculateKundli(details: BirthDetails) {
   // Varshphal (annual Tajik chart for the current year)
   const varshphal = computeVarshphal(details);
 
+  // Tajik yogas on the annual chart
+  if (varshphal) {
+    varshphal.tajikYogas = detectTajikYogas(varshphal.planets, varshphal.annualAscSign);
+  }
+
   return {
     id: crypto.randomUUID(),
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 8,
+    snapshotVersion: 9,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry

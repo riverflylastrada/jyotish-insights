@@ -510,6 +510,49 @@ Deno.test("dossier contains Varshphal section when present", () => {
   assertStringIncludes(d, "Annual Lagna: Kanya");
 });
 
+Deno.test("dossier contains Tajik yogas when present in Varshphal", () => {
+  const chartWithTajikYogas = {
+    ...sampleChart,
+    varshphal: {
+      years: 43,
+      varshaPraveshJd: 2460910.678,
+      annualAscSign: 6,
+      annualAscDeg: 22.21,
+      planets: [
+        { planet: "sun", signNumber: 5, signDegree: 6.10, signName: "Simha", nakshatra: "Pushya", nakshatraPada: 1, houseNumber: 12, isRetrograde: false, longitude: 126.10 },
+        { planet: "moon", signNumber: 5, signDegree: 5.17, signName: "Simha", nakshatra: "Pushya", nakshatraPada: 1, houseNumber: 12, isRetrograde: false, longitude: 125.17 },
+      ],
+      munthaSign: 4,
+      munthaHouse: 11,
+      yearLord: "sun",
+      tajikYogas: {
+        ithasala: [
+          { yoga: "ithasala", planet1: "sun", planet2: "moon", ithasalaType: 2 },
+          { yoga: "ithasala", planet1: "sun", planet2: "venus", ithasalaType: 1 },
+        ],
+        eesarpha: [
+          { yoga: "eesarpha", planet1: "moon", planet2: "venus" },
+        ],
+        nakta: [],
+        yamaya: [],
+        ishkavala: false,
+        induvara: false,
+      },
+    },
+  };
+  const d = buildChartDossier(chartWithTajikYogas, sampleTransits, fixedNow);
+  assertStringIncludes(d, "Tajik Yogas (Annual Chart):");
+  assertStringIncludes(d, "Ithasala (applying");
+  assertStringIncludes(d, "Sun\u2013Moon [Poorna]");
+  assertStringIncludes(d, "Sun\u2013Venus [Varthamaana]");
+  assertStringIncludes(d, "Eesarpha (separating");
+  assertStringIncludes(d, "Moon\u2013Venus");
+  assertStringIncludes(d, "Ishkavala: absent");
+  assertStringIncludes(d, "Induvara: absent");
+  assertStringIncludes(d, "Nakta: none");
+  assertStringIncludes(d, "Yamaya: none");
+});
+
 Deno.test("dossier omits Varshphal section when not present", () => {
   const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
   // Should not contain VARSHPHAL header (but should not error)

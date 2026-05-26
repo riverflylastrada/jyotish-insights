@@ -184,6 +184,30 @@ export interface VarshphalPlanetData {
   isRetrograde: boolean;
 }
 
+export interface TajikPairYogaData {
+  yoga: 'ithasala' | 'eesarpha';
+  planet1: string;
+  planet2: string;
+  /** 1 = Varthamaana, 2 = Poorna, 3 = Bhavishya (Ithasala only). */
+  ithasalaType?: 1 | 2 | 3;
+}
+
+export interface TajikTripleYogaData {
+  yoga: 'nakta' | 'yamaya';
+  mediator: string;
+  planet1: string;
+  planet2: string;
+}
+
+export interface TajikYogaResultData {
+  ithasala: TajikPairYogaData[];
+  eesarpha: TajikPairYogaData[];
+  nakta: TajikTripleYogaData[];
+  yamaya: TajikTripleYogaData[];
+  ishkavala: boolean;
+  induvara: boolean;
+}
+
 export interface VarshphalData {
   /** Years elapsed since birth for this annual chart. */
   years: number;
@@ -201,6 +225,8 @@ export interface VarshphalData {
   munthaHouse: number;
   /** Year Lord (Varshesh) planet name (Panchadhikari method). */
   yearLord: string;
+  /** Tajik yogas detected on the annual chart. */
+  tajikYogas?: TajikYogaResultData;
 }
 
 /**
@@ -209,7 +235,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 8;
+export const CURRENT_SNAPSHOT_VERSION = 9;
 
 export interface KundliData {
   id: string;

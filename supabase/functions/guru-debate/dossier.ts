@@ -605,6 +605,50 @@ function sectionVarshphal(chart: any): string {
       `  ${pad(capitalize(p.planet), 10)} ${pad(signName(p.signNumber), 12)} ${fmtDeg(p.signDegree).padStart(7)} ${String(h).padStart(2)}`
     );
   }
+
+  // Tajik Yogas
+  const ty = vp.tajikYogas;
+  if (ty) {
+    lines.push(`\nTajik Yogas (Annual Chart):`);
+    if (ty.ithasala.length > 0) {
+      lines.push(`  Ithasala (applying — promise/forming):`);
+      for (const y of ty.ithasala) {
+        const typeLabel = y.ithasalaType === 1 ? "Varthamaana"
+          : y.ithasalaType === 2 ? "Poorna"
+          : y.ithasalaType === 3 ? "Bhavishya" : "";
+        lines.push(`    ${capitalize(y.planet1)}–${capitalize(y.planet2)} [${typeLabel}]`);
+      }
+    } else {
+      lines.push(`  Ithasala: none`);
+    }
+    if (ty.eesarpha.length > 0) {
+      lines.push(`  Eesarpha (separating — declining):`);
+      for (const y of ty.eesarpha) {
+        lines.push(`    ${capitalize(y.planet1)}–${capitalize(y.planet2)}`);
+      }
+    } else {
+      lines.push(`  Eesarpha: none`);
+    }
+    lines.push(`  Ishkavala: ${ty.ishkavala ? "present" : "absent"}`);
+    lines.push(`  Induvara: ${ty.induvara ? "present" : "absent"}`);
+    if (ty.nakta.length > 0) {
+      lines.push(`  Nakta (fast-planet mediation):`);
+      for (const y of ty.nakta) {
+        lines.push(`    ${capitalize(y.mediator)} mediates ${capitalize(y.planet1)}–${capitalize(y.planet2)}`);
+      }
+    } else {
+      lines.push(`  Nakta: none`);
+    }
+    if (ty.yamaya.length > 0) {
+      lines.push(`  Yamaya (slow-planet mediation):`);
+      for (const y of ty.yamaya) {
+        lines.push(`    ${capitalize(y.mediator)} mediates ${capitalize(y.planet1)}–${capitalize(y.planet2)}`);
+      }
+    } else {
+      lines.push(`  Yamaya: none`);
+    }
+  }
+
   return lines.join("\n");
 }
 
