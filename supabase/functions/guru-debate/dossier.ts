@@ -273,6 +273,48 @@ function sectionDashas(chart: any): string {
   return lines.join("\n");
 }
 
+function sectionYoginiDasha(chart: any): string {
+  const yogini = chart?.dashas?.find((d: any) => d.system === "yogini");
+  if (!yogini) return "";
+
+  const maha = yogini.currentMahaDasha;
+  if (!maha) return "";
+
+  const lines = [`═══ YOGINI DASHA (36-year cycle) ═══`];
+  lines.push(`Current Mahadasha: ${maha.planet} (${maha.startDate?.slice(0, 10)} to ${maha.endDate?.slice(0, 10)})`);
+
+  const now = Date.now();
+  const currentAntar = maha.children?.find(
+    (a: any) => new Date(a.startDate).getTime() <= now && new Date(a.endDate).getTime() > now,
+  );
+  if (currentAntar) {
+    lines.push(`Current Antardasha: ${currentAntar.planet} (${currentAntar.startDate?.slice(0, 10)} to ${currentAntar.endDate?.slice(0, 10)})`);
+  }
+
+  return lines.join("\n");
+}
+
+function sectionAshtottariDasha(chart: any): string {
+  const ashto = chart?.dashas?.find((d: any) => d.system === "ashtottari");
+  if (!ashto) return "";
+
+  const maha = ashto.currentMahaDasha;
+  if (!maha) return "";
+
+  const lines = [`═══ ASHTOTTARI DASHA (108-year cycle) ═══`];
+  lines.push(`Current Mahadasha: ${maha.planet} (${maha.startDate?.slice(0, 10)} to ${maha.endDate?.slice(0, 10)})`);
+
+  const now = Date.now();
+  const currentAntar = maha.children?.find(
+    (a: any) => new Date(a.startDate).getTime() <= now && new Date(a.endDate).getTime() > now,
+  );
+  if (currentAntar) {
+    lines.push(`Current Antardasha: ${currentAntar.planet} (${currentAntar.startDate?.slice(0, 10)} to ${currentAntar.endDate?.slice(0, 10)})`);
+  }
+
+  return lines.join("\n");
+}
+
 function sectionYogas(chart: any): string {
   const yogas = chart?.yogas;
   if (!yogas || yogas.length === 0) return "";
@@ -542,6 +584,8 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionSadeSatiStatus(transits, natalMoonSign),
     sectionDoubleTransit(transits, ascSign, natalMoonSign),
     sectionDashas(chart),
+    sectionYoginiDasha(chart),
+    sectionAshtottariDasha(chart),
     sectionYogas(chart),
     sectionDoshas(chart),
     sectionAshtakavarga(chart),

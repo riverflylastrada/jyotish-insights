@@ -172,6 +172,60 @@ const sampleChart = {
         },
       ],
     },
+    {
+      system: "yogini",
+      currentMahaDasha: {
+        level: "maha",
+        planet: "Mars",
+        startDate: "2023-01-01T00:00:00.000Z",
+        endDate: "2027-01-01T00:00:00.000Z",
+        durationYears: 4,
+        children: [
+          {
+            level: "antar",
+            planet: "Mars",
+            startDate: "2023-01-01T00:00:00.000Z",
+            endDate: "2023-07-01T00:00:00.000Z",
+            durationYears: 0.5,
+          },
+          {
+            level: "antar",
+            planet: "Mercury",
+            startDate: "2025-07-01T00:00:00.000Z",
+            endDate: "2026-01-01T00:00:00.000Z",
+            durationYears: 0.5,
+          },
+          {
+            level: "antar",
+            planet: "Saturn",
+            startDate: "2026-01-01T00:00:00.000Z",
+            endDate: "2026-07-01T00:00:00.000Z",
+            durationYears: 0.5,
+          },
+        ],
+      },
+      timeline: [],
+    },
+    {
+      system: "ashtottari",
+      currentMahaDasha: {
+        level: "maha",
+        planet: "Venus",
+        startDate: "2010-01-01T00:00:00.000Z",
+        endDate: "2031-01-01T00:00:00.000Z",
+        durationYears: 21,
+        children: [
+          {
+            level: "antar",
+            planet: "Jupiter",
+            startDate: "2024-01-01T00:00:00.000Z",
+            endDate: "2027-09-01T00:00:00.000Z",
+            durationYears: 3.69,
+          },
+        ],
+      },
+      timeline: [],
+    },
   ],
   yogas: [
     {
@@ -307,6 +361,18 @@ Deno.test("dossier contains current Antardasha", () => {
 Deno.test("dossier contains Atmakaraka", () => {
   const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
   assertStringIncludes(d, "Atmakaraka");
+});
+
+Deno.test("dossier contains Yogini dasha section", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "YOGINI DASHA");
+  assertStringIncludes(d, "Mars");
+});
+
+Deno.test("dossier contains Ashtottari dasha section", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "ASHTOTTARI DASHA");
+  assertStringIncludes(d, "Venus");
 });
 
 Deno.test("dossier lists unavailable systems", () => {

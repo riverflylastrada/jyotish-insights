@@ -164,7 +164,7 @@ export interface JaiminiData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 5;
+export const CURRENT_SNAPSHOT_VERSION = 6;
 
 export interface KundliData {
   id: string;
