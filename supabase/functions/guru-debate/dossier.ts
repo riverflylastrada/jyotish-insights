@@ -348,20 +348,53 @@ function sectionShadbala(chart: any): string {
   const sb = chart?.shadbala;
   if (!sb || typeof sb !== "object") return "";
 
-  const entries = Object.entries(sb) as Array<[string, number]>;
-  if (entries.length === 0) return "";
-
-  const lines = [`═══ SHADBALA (Strength Scores, 0-100) ═══`];
-  lines.push(entries.map(([p, s]) => `${p}: ${s}`).join(" | "));
-
-  let strongest = entries[0];
-  let weakest = entries[0];
-  for (const e of entries) {
-    if (e[1] > strongest[1]) strongest = e;
-    if (e[1] < weakest[1]) weakest = e;
+  // New full Shadbala format: { planets: Record<string, {...}>, rank: string[] }
+  const planets = sb.planets;
+  if (!planets || typeof planets !== "object") {
+    // Fallback: old 0-100 format
+    const entries = Object.entries(sb) as Array<[string, number]>;
+    if (entries.length === 0) return "";
+    const lines = [`═══ SHADBALA (Strength Scores, 0-100) ═══`];
+    lines.push(entries.map(([p, s]) => `${p}: ${s}`).join(" | "));
+    return lines.join("\n");
   }
-  lines.push(`Strongest: ${strongest[0]} (${strongest[1]})`);
-  lines.push(`Weakest: ${weakest[0]} (${weakest[1]})`);
+
+  const lines = [`═══ SHADBALA (Six-Source Planetary Strength — Virupas & Rupas) ═══`];
+
+  // Header row
+  const header = `${pad("Planet", 10)}| ${pad("Sthana", 8)}| ${pad("Dig", 8)}| ${pad("Kala", 8)}| ${pad("Cheshta", 8)}| ${pad("Naisarg", 8)}| ${pad("Drik", 8)}| ${pad("Total(V)", 9)}| ${pad("Rupas", 7)}| ${pad("Req", 5)}| Ratio`;
+  lines.push(header);
+
+  for (const [planet, data] of Object.entries(planets) as Array<[string, any]>) {
+    lines.push(
+      `${pad(planet, 10)}| ${pad(String(data.sthanaBala), 8)}| ${pad(String(data.digBala), 8)}| ${pad(String(data.kalaBala), 8)}| ${pad(String(data.cheshtaBala), 8)}| ${pad(String(data.naisargikaBala), 8)}| ${pad(String(data.drikBala), 8)}| ${pad(String(data.totalVirupas), 9)}| ${pad(String(data.totalRupas), 7)}| ${pad(String(data.required), 5)}| ${data.ratio}`,
+    );
+  }
+
+  // Rank
+  const rank = sb.rank;
+  if (rank?.length) {
+    lines.push(`Strength rank (strongest → weakest): ${rank.join(", ")}`);
+  }
+
+  // Strongest / Weakest
+  const entries = Object.entries(planets) as Array<[string, any]>;
+  if (entries.length > 0) {
+    let strongest = entries[0];
+    let weakest = entries[0];
+    for (const e of entries) {
+      if (e[1].totalRupas > strongest[1].totalRupas) strongest = e;
+      if (e[1].totalRupas < weakest[1].totalRupas) weakest = e;
+    }
+    lines.push(`Strongest: ${strongest[0]} (${strongest[1].totalRupas} Rupas, ratio ${strongest[1].ratio})`);
+    lines.push(`Weakest: ${weakest[0]} (${weakest[1].totalRupas} Rupas, ratio ${weakest[1].ratio})`);
+
+    // Note planets below required minimum
+    const belowMin = entries.filter(([, d]) => d.totalRupas < d.required);
+    if (belowMin.length > 0) {
+      lines.push(`Below required minimum: ${belowMin.map(([p, d]) => `${p} (${d.totalRupas}/${d.required})`).join(", ")}`);
+    }
+  }
 
   return lines.join("\n");
 }
