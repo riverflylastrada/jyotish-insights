@@ -31,6 +31,7 @@ import { computeBhavaBala } from "./bhavabala.ts";
 import { computeVarshphal } from "./varshphal.ts";
 import { detectTajikYogas } from "./tajik_yogas.ts";
 import { computeVargeeyaBala } from "./vargeeya_bala.ts";
+import { buildKalachakraDasha } from "./kalachakra.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -135,6 +136,7 @@ export function calculateKundli(details: BirthDetails) {
     buildVimshottari(moonSid, birthDate),
     buildYoginiDasha(moonSid, birthDate),
     buildAshtottariDasha(moonSid, birthDate),
+    buildKalachakraDasha(moonSid, birthDate),
   ];
 
   // Yogas & Doshas

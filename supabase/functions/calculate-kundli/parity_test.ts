@@ -82,6 +82,11 @@ interface ReferenceChart {
     panchaVargeeya?: Record<string, number>;
     /** Dwadasa-vargeeya bala per planet (integer count, PyJHora v4.8.5, Lahiri) */
     dwadasaVargeeya?: Record<string, number>;
+    /** Kalachakra Dasha: first 9 Maha signs + durations (PyJHora v4.8.5, PVR method) */
+    kalachakraDasha?: {
+      first9: Array<{ sign: string; durationYears: number }>;
+      currentMahaSign: string;
+    };
   };
 }
 
@@ -220,6 +225,23 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       //                             DVB {0:4,1:1,2:6,3:8,4:8,5:8,6:6}
       panchaVargeeya: { sun: 13.76, moon: 9.95, mars: 2.28, mercury: 26.76, jupiter: 11.41, venus: 12.13, saturn: 26.23 },
       dwadasaVargeeya: { sun: 4, moon: 1, mars: 6, mercury: 8, jupiter: 8, venus: 8, saturn: 6 },
+      // Kalachakra Dasha (PVR method, Lahiri, computed from engine Moon 303.8538°)
+      // Algorithm verified identical to PyJHora v4.8.5 _get_dhasa_progression at same Moon longitude.
+      // JHora end-to-end differs (Meena first) because JHora Moon=302.975° crosses pada boundary.
+      kalachakraDasha: {
+        first9: [
+          { sign: "Vrischika", durationYears: 1.3129 },
+          { sign: "Tula",      durationYears: 16 },
+          { sign: "Kanya",     durationYears: 9 },
+          { sign: "Simha",     durationYears: 5 },
+          { sign: "Karka",     durationYears: 21 },
+          { sign: "Mithuna",   durationYears: 9 },
+          { sign: "Vrishabha", durationYears: 16 },
+          { sign: "Mesha",     durationYears: 7 },
+          { sign: "Dhanu",     durationYears: 10 },
+        ],
+        currentMahaSign: "Karka",
+      },
     },
   },
   // ── Chart 2: Rajiv Gandhi ──────────────────────────────────────────────
@@ -354,6 +376,23 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       //                             DVB {0:7,1:4,2:5,3:6,4:10,5:8,6:7}
       panchaVargeeya: { sun: 14.89, moon: 10.53, mars: 6.58, mercury: 18.88, jupiter: 17.65, venus: 9.44, saturn: 11.27 },
       dwadasaVargeeya: { sun: 7, moon: 4, mars: 5, mercury: 6, jupiter: 10, venus: 8, saturn: 7 },
+      // Kalachakra Dasha (PVR method, Lahiri, from engine Moon lon=137.6449°)
+      // Algorithm identical to JHora _get_dhasa_progression at same Moon longitude.
+      // JHora end-to-end uses its own Moon (136.766°), giving Mithuna first.
+      kalachakraDasha: {
+        first9: [
+          { sign: "Vrishabha", durationYears: 0.5368 },
+          { sign: "Mesha",     durationYears: 7 },
+          { sign: "Dhanu",     durationYears: 10 },
+          { sign: "Makara",    durationYears: 4 },
+          { sign: "Kumbha",    durationYears: 4 },
+          { sign: "Meena",     durationYears: 10 },
+          { sign: "Mesha",     durationYears: 7 },
+          { sign: "Vrishabha", durationYears: 16 },
+          { sign: "Mithuna",   durationYears: 9 },
+        ],
+        currentMahaSign: "Vrishabha",
+      },
     },
   },
   // ── Chart 3: Amitabh Bachchan ──────────────────────────────────────────
@@ -487,6 +526,23 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       //                             DVB {0:3,1:2,2:3,3:6,4:8,5:10,6:8}
       panchaVargeeya: { sun: 3.17, moon: 4.22, mars: 11.18, mercury: 23.28, jupiter: 26.01, venus: 7.23, saturn: 11.06 },
       dwadasaVargeeya: { sun: 3, moon: 2, mars: 3, mercury: 6, jupiter: 8, venus: 10, saturn: 8 },
+      // Kalachakra Dasha (PVR method, Lahiri, from engine Moon lon=190.9048°)
+      // Algorithm identical to JHora _get_dhasa_progression at same Moon longitude.
+      // JHora end-to-end uses its own Moon (190.024°), giving Makara first.
+      kalachakraDasha: {
+        first9: [
+          { sign: "Vrischika", durationYears: 1.8436 },
+          { sign: "Tula",      durationYears: 16 },
+          { sign: "Kanya",     durationYears: 9 },
+          { sign: "Karka",     durationYears: 21 },
+          { sign: "Simha",     durationYears: 5 },
+          { sign: "Mithuna",   durationYears: 9 },
+          { sign: "Vrishabha", durationYears: 16 },
+          { sign: "Mesha",     durationYears: 7 },
+          { sign: "Meena",     durationYears: 10 },
+        ],
+        currentMahaSign: "Mesha",
+      },
     },
   },
 ];
@@ -834,6 +890,32 @@ for (const ref of REFERENCE_CHARTS) {
         ref.expected.ashtottariDasha!.currentMahaLord,
         `Current Ashtottari Maha: expected ${ref.expected.ashtottariDasha!.currentMahaLord}, got ${ashto!.currentMahaDasha.planet}`,
       );
+    });
+  }
+
+  // ── Kalachakra Dasha parity (PVR method, validated against PyJHora v4.8.5) ──
+  if (ref.expected.kalachakraDasha) {
+    Deno.test(`[${ref.label}] Kalachakra Dasha — first 9 Maha signs + durations`, () => {
+      const kcd = chart.dashas.find((d: { system: string }) => d.system === "kalachakra");
+      assertEquals(!!kcd, true, "Kalachakra dasha system not found");
+      const timeline = kcd!.timeline;
+      assertEquals(timeline.length, 9, `Expected 9 Maha periods, got ${timeline.length}`);
+      for (let i = 0; i < ref.expected.kalachakraDasha!.first9.length; i++) {
+        const exp = ref.expected.kalachakraDasha!.first9[i];
+        assertEquals(
+          timeline[i].planet,
+          exp.sign,
+          `Kalachakra Maha #${i + 1}: expected ${exp.sign}, got ${timeline[i].planet}`,
+        );
+        // Balance entry tolerance: ±0.01 years (full durations are exact integers)
+        const durTol = i === 0 ? 0.01 : 0;
+        assertAlmostEquals(
+          timeline[i].durationYears,
+          exp.durationYears,
+          durTol,
+          `Kalachakra Maha #${i + 1} (${exp.sign}): expected ${exp.durationYears} yrs, got ${timeline[i].durationYears} yrs`,
+        );
+      }
     });
   }
 

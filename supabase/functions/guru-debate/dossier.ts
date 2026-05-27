@@ -339,6 +339,38 @@ function sectionAshtottariDasha(chart: any): string {
   return lines.join("\n");
 }
 
+function sectionKalachakraDasha(chart: any): string {
+  const kcd = chart?.dashas?.find((d: any) => d.system === "kalachakra");
+  if (!kcd) return "";
+
+  const maha = kcd.currentMahaDasha;
+  if (!maha) return "";
+
+  const lines = [`═══ KALACHAKRA DASHA (sign-based, Savya/Apasavya cycle) ═══`];
+  lines.push(`Current Mahadasha: ${maha.planet} (${maha.startDate?.slice(0, 10)} to ${maha.endDate?.slice(0, 10)})`);
+
+  const now = Date.now();
+  const currentAntar = maha.children?.find(
+    (a: any) => new Date(a.startDate).getTime() <= now && new Date(a.endDate).getTime() > now,
+  );
+  if (currentAntar) {
+    lines.push(`Current Antardasha: ${currentAntar.planet} (${currentAntar.startDate?.slice(0, 10)} to ${currentAntar.endDate?.slice(0, 10)})`);
+  }
+
+  const timeline = kcd.timeline ?? [];
+  const currentIdx = timeline.findIndex(
+    (p: any) => new Date(p.startDate).getTime() <= now && new Date(p.endDate).getTime() > now,
+  );
+  if (currentIdx >= 0) {
+    const upcoming = timeline.slice(currentIdx + 1, currentIdx + 4);
+    if (upcoming.length > 0) {
+      lines.push(`Next upcoming: ${upcoming.map((p: any) => `${p.planet} (${p.startDate?.slice(0, 10)} to ${p.endDate?.slice(0, 10)})`).join(", ")}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 function sectionYogas(chart: any): string {
   const yogas = chart?.yogas;
   if (!yogas || yogas.length === 0) return "";
@@ -788,6 +820,7 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionDashas(chart),
     sectionYoginiDasha(chart),
     sectionAshtottariDasha(chart),
+    sectionKalachakraDasha(chart),
     sectionYogas(chart),
     sectionDoshas(chart),
     sectionAshtakavarga(chart),

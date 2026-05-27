@@ -10,7 +10,7 @@ const SYSTEM_META: Record<DashaSystem['system'], { label: string; cycle: string;
   yogini:      { label: 'Yogini',      cycle: '36 year cycle',  tagline: 'Eight yoginis ruling shorter dasha periods.' },
   ashtottari:  { label: 'Ashtottari',  cycle: '108 year cycle', tagline: 'Ashtottari maha-dasha sequence used in some lineages.' },
   char:        { label: 'Char',        cycle: '—',              tagline: 'Char dasha.' },
-  kalachakra:  { label: 'Kalachakra',  cycle: '—',              tagline: 'Kalachakra dasha.' },
+  kalachakra:  { label: 'Kalachakra',  cycle: 'sign-based cycle', tagline: 'Sign-based dasha using Savya/Apasavya nakshatra-pada groups.' },
 };
 
 const SYSTEM_ORDER: DashaSystem['system'][] = ['vimshottari', 'yogini', 'ashtottari', 'char', 'kalachakra'];
