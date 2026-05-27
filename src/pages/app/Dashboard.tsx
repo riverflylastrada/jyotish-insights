@@ -154,22 +154,23 @@ export default function Dashboard() {
 
   const chartData = activeProfile?.snapshot || computedSnapshots[activeProfile?.id] || null;
 
-  // Compute daily transits if snapshot exists
-  let auspiciousScore = 75;
-  let moonHouseText = "Moon is transiting your 1st house. Great day for a fresh reset.";
-  let dashaText = "You are currently entering a crucial spiritual phase of your cycle.";
-  let activeMaha = "Jupiter";
-  let activeAntar = "Saturn";
-  let natalMoonSign = "Cancer";
-  let natalLagnaSign = "Scorpio";
+  // Every feed value is derived from real data below. `null` means "not available
+  // yet" and renders as an honest placeholder — never a fabricated specific.
+  let auspiciousScore: number | null = null;
+  let moonHouseText: string | null = null;
+  let dashaText: string | null = null;
+  let activeMaha: string | null = null;
+  let activeAntar: string | null = null;
+  let natalMoonSign: string | null = null;
+  let natalLagnaSign: string | null = null;
 
   if (chartData) {
     const d1 = chartData.divisionalCharts?.find(c => c.varga === 'D1');
     const moonNatal = d1?.planets?.find((p: any) => p.planet === 'moon');
     const ascendant = d1?.planets?.find((p: any) => p.planet === 'ascendant') || chartData.ascendant;
     
-    natalMoonSign = moonNatal?.signName || "Cancer";
-    natalLagnaSign = ascendant?.signName || "Scorpio";
+    natalMoonSign = moonNatal?.signName ?? null;
+    natalLagnaSign = ascendant?.signName ?? null;
 
     const tMoon = transits.find(p => p.planet === 'moon');
     if (tMoon && moonNatal) {
@@ -260,7 +261,7 @@ export default function Dashboard() {
             }
           );
           
-          activeAntar = currentAntar?.planet || children[0]?.planet || "Jupiter";
+          activeAntar = currentAntar?.planet || children[0]?.planet || null;
 
           // Tailored Vimshottari guidance
           const dashaGuidance: Record<string, string> = {
@@ -274,7 +275,8 @@ export default function Dashboard() {
             Rahu: "Unconventional growth, ambition, technological expertise, and learning through intense desire. Watch out for illusions.",
             Ketu: "Excellent for spiritual detachment, deep meditation, yogic research, letting go of outdated patterns, and sudden insights."
           };
-          dashaText = dashaGuidance[activeMaha] || "A major foundational shift is manifesting in your Vimshottari sequence. Focus on patience and steady self-study.";
+          const mahaKey = activeMaha.charAt(0).toUpperCase() + activeMaha.slice(1).toLowerCase();
+          dashaText = dashaGuidance[mahaKey] || "A major foundational shift is manifesting in your Vimshottari sequence. Focus on patience and steady self-study.";
         }
       }
     }
@@ -329,19 +331,21 @@ export default function Dashboard() {
                 stroke="hsl(var(--brand-saffron))"
                 strokeWidth="8"
                 strokeDasharray={2 * Math.PI * 78}
-                strokeDashoffset={2 * Math.PI * 78 * (1 - auspiciousScore / 100)}
+                strokeDashoffset={2 * Math.PI * 78 * (1 - (auspiciousScore ?? 0) / 100)}
                 strokeLinecap="round"
                 className="transition-all duration-1000 ease-out"
               />
             </svg>
             <div className="text-center z-10">
-              <span className="font-display text-4xl font-bold text-text-primary">{auspiciousScore}%</span>
+              <span className="font-display text-4xl font-bold text-text-primary">{auspiciousScore !== null ? `${auspiciousScore}%` : '—'}</span>
               <span className="block text-[10px] text-text-muted mt-1 uppercase font-bold tracking-widest">Auspicious</span>
             </div>
           </div>
 
           <div className="mt-6 text-xs text-text-secondary px-4 leading-relaxed font-medium">
-            {auspiciousScore >= 80 ? (
+            {auspiciousScore === null ? (
+              "Live transit data is unavailable right now. Open this chart to refresh today's gochara."
+            ) : auspiciousScore >= 80 ? (
               "Highly auspicious. Perfect alignment for launching key ventures, travel, or critical agreements."
             ) : auspiciousScore >= 60 ? (
               "Moderate auspiciousness. Suitable for routine transactions, research projects, and consultations."
@@ -360,12 +364,14 @@ export default function Dashboard() {
               <h3 className="font-display text-h3 text-text-primary">Today's Transit Impact (Chandra Gochara)</h3>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              {moonHouseText}
+              {moonHouseText ?? "Live transit data isn't available yet. Reopen this chart to refresh today's Moon gochara."}
             </p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs">
-              <span className="rounded bg-elevated px-2.5 py-1 text-text-tertiary font-mono">Natal Moon: {natalMoonSign}</span>
-              <span className="rounded bg-elevated px-2.5 py-1 text-text-tertiary font-mono">Natal Lagna: {natalLagnaSign}</span>
-            </div>
+            {(natalMoonSign || natalLagnaSign) && (
+              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                {natalMoonSign && <span className="rounded bg-elevated px-2.5 py-1 text-text-tertiary font-mono">Natal Moon: {natalMoonSign}</span>}
+                {natalLagnaSign && <span className="rounded bg-elevated px-2.5 py-1 text-text-tertiary font-mono">Natal Lagna: {natalLagnaSign}</span>}
+              </div>
+            )}
           </div>
 
           {/* Dasha Card */}
@@ -374,12 +380,22 @@ export default function Dashboard() {
               <Briefcase className="h-4.5 w-4.5 text-brand-maroon" />
               <h3 className="font-display text-h3 text-text-primary">Active Vimshottari Cycle Guidelines</h3>
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              You are currently under the major planetary influence of <strong>{activeMaha} Maha Dasha</strong> and <strong>{activeAntar} Antar Dasha</strong>. 
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-              {dashaText}
-            </p>
+            {activeMaha ? (
+              <>
+                <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+                  You are currently under the major planetary influence of <strong className="capitalize">{activeMaha} Maha Dasha</strong>{activeAntar && <> and <strong className="capitalize">{activeAntar} Antar Dasha</strong></>}.
+                </p>
+                {dashaText && (
+                  <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+                    {dashaText}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+                Dasha periods aren't available for this chart yet. Open it and Recalculate to populate the Vimshottari timeline.
+              </p>
+            )}
             <div className="mt-4 border-t border-hairline-subtle/50 pt-4 flex items-center justify-between text-xs text-text-tertiary">
               <span>Timeline viewable in the full Dasha matrix.</span>
               <Link to={`/app/chart/${activeProfile.id}/dashas`} className="inline-flex items-center gap-1 text-brand-maroon font-semibold hover:underline">

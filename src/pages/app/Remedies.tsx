@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Gem, Sparkles, HandHeart, Flame, Leaf, BookOpen } from 'lucide-react';
+import { ArrowLeft, Gem, Sparkles, HandHeart, Flame, Leaf, BookOpen, Loader2 } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { PLANET_LABELS, type PlanetName, type PlanetPosition } from '@/lib/astro/types';
 
@@ -85,7 +85,13 @@ export default function Remedies() {
   const { id = 'demo' } = useParams();
   const { data } = useKundli(id);
 
-  if (!data) return <div className="p-12 text-center text-text-tertiary">Loading…</div>;
+  if (!data) {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-24 text-center">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-saffron" />
+      </div>
+    );
+  }
 
   const d1 = data.divisionalCharts.find((c) => c.varga === 'D1')!;
   const planets = d1.planets.filter((p) => p.planet !== 'ascendant') as PlanetPosition[];
