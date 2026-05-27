@@ -74,8 +74,9 @@ function sunAltitude(jd: number, lat: number, lon: number): number {
 // ── Sunrise / sunset JD (iterative bisection) ───────────────────────
 
 /**
- * Compute the Julian Day of sunrise (disc center at geometric horizon,
- * Hindu convention: target altitude = 0°, no atmospheric refraction).
+ * Apparent sunrise: sun's upper limb at the horizon.
+ * Target altitude = −0.833° (34' atmospheric refraction + 16' solar semidiameter).
+ * Matches Drik Panchang / Swiss Ephemeris swe.rise_trans convention.
  */
 function computeSunriseJd(jd0: number, lat: number, lon: number): number {
   const lonW = -lon;
@@ -92,22 +93,23 @@ function computeSunriseJd(jd0: number, lat: number, lon: number): number {
   const Jtransit = Jstar + 0.0053 * Math.sin(RAD * M) - 0.0069 * Math.sin(RAD * 2 * lambda);
   const jdRise = Jtransit - H / 360;
 
-  // Bisect to target alt = 0° (Hindu rising)
+  // Bisect to target alt = −0.833° (apparent sunrise: upper limb + refraction)
+  const TARGET_ALT = -0.833;
   let lo = jdRise - 15 / 1440;
   let hi = jdRise + 15 / 1440;
-  let altLo = sunAltitude(lo, lat, lon);
-  let altHi = sunAltitude(hi, lat, lon);
+  let altLo = sunAltitude(lo, lat, lon) - TARGET_ALT;
+  let altHi = sunAltitude(hi, lat, lon) - TARGET_ALT;
 
-  if ((altLo) * (altHi) > 0) {
+  if (altLo * altHi > 0) {
     lo = jdRise - 60 / 1440;
     hi = jdRise + 60 / 1440;
-    altLo = sunAltitude(lo, lat, lon);
-    altHi = sunAltitude(hi, lat, lon);
+    altLo = sunAltitude(lo, lat, lon) - TARGET_ALT;
+    altHi = sunAltitude(hi, lat, lon) - TARGET_ALT;
   }
 
   for (let iter = 0; iter < 50; iter++) {
     const mid = (lo + hi) / 2;
-    const altMid = sunAltitude(mid, lat, lon);
+    const altMid = sunAltitude(mid, lat, lon) - TARGET_ALT;
     if (altMid * altLo > 0) { lo = mid; altLo = altMid; }
     else { hi = mid; altHi = altMid; }
     if (Math.abs(hi - lo) < 0.1 / 86400) break;
@@ -130,22 +132,23 @@ function computeSunsetJd(jd0: number, lat: number, lon: number): number {
   const Jtransit = Jstar + 0.0053 * Math.sin(RAD * M) - 0.0069 * Math.sin(RAD * 2 * lambda);
   const jdSet = Jtransit + H / 360;
 
-  // Bisect to target alt = 0° (Hindu setting)
+  // Bisect to target alt = −0.833° (apparent sunset: upper limb + refraction)
+  const TARGET_ALT = -0.833;
   let lo = jdSet - 15 / 1440;
   let hi = jdSet + 15 / 1440;
-  let altLo = sunAltitude(lo, lat, lon);
-  let altHi = sunAltitude(hi, lat, lon);
+  let altLo = sunAltitude(lo, lat, lon) - TARGET_ALT;
+  let altHi = sunAltitude(hi, lat, lon) - TARGET_ALT;
 
-  if ((altLo) * (altHi) > 0) {
+  if (altLo * altHi > 0) {
     lo = jdSet - 60 / 1440;
     hi = jdSet + 60 / 1440;
-    altLo = sunAltitude(lo, lat, lon);
-    altHi = sunAltitude(hi, lat, lon);
+    altLo = sunAltitude(lo, lat, lon) - TARGET_ALT;
+    altHi = sunAltitude(hi, lat, lon) - TARGET_ALT;
   }
 
   for (let iter = 0; iter < 50; iter++) {
     const mid = (lo + hi) / 2;
-    const altMid = sunAltitude(mid, lat, lon);
+    const altMid = sunAltitude(mid, lat, lon) - TARGET_ALT;
     if (altMid * altLo > 0) { lo = mid; altLo = altMid; }
     else { hi = mid; altHi = altMid; }
     if (Math.abs(hi - lo) < 0.1 / 86400) break;

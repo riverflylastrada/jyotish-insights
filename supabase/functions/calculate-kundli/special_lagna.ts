@@ -97,9 +97,9 @@ function computeSunriseJd(jdBirth: number, lat: number, lon: number): number {
   const Jtransit = Jstar + 0.0053 * Math.sin(RAD * M) - 0.0069 * Math.sin(RAD * 2 * lambda);
   let jdRise = Jtransit - H / 360;
 
-  // Iterative refinement: bisect to find geometric altitude = 0°
-  // (Hindu rising: disc center at true horizon, no atmospheric refraction)
-  const TARGET_ALT = 0.0;
+  // Iterative refinement: bisect to find apparent sunrise altitude = −0.833°
+  // (34' refraction + 16' solar semidiameter — matches Drik Panchang / Swiss Eph)
+  const TARGET_ALT = -0.833;
   let lo = jdRise - 15 / 1440;
   let hi = jdRise + 15 / 1440;
 
