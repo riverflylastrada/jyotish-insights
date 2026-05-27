@@ -225,12 +225,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       //                             DVB {0:4,1:1,2:6,3:8,4:8,5:8,6:6}
       panchaVargeeya: { sun: 13.76, moon: 9.95, mars: 2.28, mercury: 26.76, jupiter: 11.41, venus: 12.13, saturn: 26.23 },
       dwadasaVargeeya: { sun: 4, moon: 1, mars: 6, mercury: 8, jupiter: 8, venus: 8, saturn: 6 },
-      // Kalachakra Dasha (PVR method, PyJHora v4.8.5, corrected Lahiri SIDM_LAHIRI, UT)
-      // Reference: kalachakra._get_dhasa_progression(303.8538, dhasa_method=1)
-      // Engine Moon ~303.856° (Δ≈+0.002°) → balance differs by ~0.07 yr due to Moon propagation.
+      // Kalachakra Dasha (PVR method). Sign sequences match PyJHora v4.8.5 exactly.
+      // Balance (first period) is ENGINE-COMPUTED — PyJHora gives 1.25 yr (Δ≈−0.14 yr)
+      // due to ~0.005° Moon propagation difference from Swiss Ephemeris.
       kalachakraDasha: {
         first9: [
-          { sign: "Vrischika", durationYears: 1.3856 },
+          { sign: "Vrischika", durationYears: 1.3856 },  // engine-computed (PyJHora: 1.25)
           { sign: "Tula",      durationYears: 16 },
           { sign: "Kanya",     durationYears: 9 },
           { sign: "Simha",     durationYears: 5 },
@@ -376,12 +376,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       //                             DVB {0:7,1:4,2:5,3:6,4:10,5:8,6:7}
       panchaVargeeya: { sun: 14.89, moon: 10.53, mars: 6.58, mercury: 18.88, jupiter: 17.65, venus: 9.44, saturn: 11.27 },
       dwadasaVargeeya: { sun: 7, moon: 4, mars: 5, mercury: 6, jupiter: 10, venus: 8, saturn: 7 },
-      // Kalachakra Dasha (PVR method, PyJHora v4.8.5, corrected Lahiri SIDM_LAHIRI, UT)
-      // Reference: kalachakra._get_dhasa_progression(137.6449, dhasa_method=1)
-      // Engine Moon ~137.649° (Δ≈+0.004°) → balance differs by ~0.11 yr due to Moon propagation.
+      // Kalachakra Dasha (PVR method). Sign sequences match PyJHora v4.8.5 exactly.
+      // Balance (first period) is ENGINE-COMPUTED — PyJHora gives 0.54 yr (Δ≈−0.10 yr)
+      // due to ~0.004° Moon propagation difference from Swiss Ephemeris.
       kalachakraDasha: {
         first9: [
-          { sign: "Vrishabha", durationYears: 0.6421 },
+          { sign: "Vrishabha", durationYears: 0.6421 },  // engine-computed (PyJHora: 0.54)
           { sign: "Mesha",     durationYears: 7 },
           { sign: "Dhanu",     durationYears: 10 },
           { sign: "Makara",    durationYears: 4 },
@@ -526,12 +526,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       //                             DVB {0:3,1:2,2:3,3:6,4:8,5:10,6:8}
       panchaVargeeya: { sun: 3.17, moon: 4.22, mars: 11.18, mercury: 23.28, jupiter: 26.01, venus: 7.23, saturn: 11.06 },
       dwadasaVargeeya: { sun: 3, moon: 2, mars: 3, mercury: 6, jupiter: 8, venus: 10, saturn: 8 },
-      // Kalachakra Dasha (PVR method, PyJHora v4.8.5, corrected Lahiri SIDM_LAHIRI, UT)
-      // Reference: kalachakra._get_dhasa_progression(190.9048, dhasa_method=1)
-      // Engine Moon ~190.908° (Δ≈+0.003°) → balance differs by ~0.08 yr due to Moon propagation.
+      // Kalachakra Dasha (PVR method). Sign sequences match PyJHora v4.8.5 exactly.
+      // Balance (first period) is ENGINE-COMPUTED — PyJHora gives 1.86 yr (Δ≈−0.07 yr)
+      // due to ~0.003° Moon propagation difference from Swiss Ephemeris.
       kalachakraDasha: {
         first9: [
-          { sign: "Vrischika", durationYears: 1.9273 },
+          { sign: "Vrischika", durationYears: 1.9273 },  // engine-computed (PyJHora: 1.86)
           { sign: "Tula",      durationYears: 16 },
           { sign: "Kanya",     durationYears: 9 },
           { sign: "Karka",     durationYears: 21 },
