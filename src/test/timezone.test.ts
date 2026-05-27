@@ -55,9 +55,10 @@ describe('computeSunTimes — sunrise/sunset differ by location', () => {
     expect(h).toBe(6);
   });
 
-  it('London sunrise is around 05:0x BST', () => {
-    const [h] = london.sunrise.split(':').map(Number);
-    expect(h).toBe(5);
+  it('London sunrise is around 04:5x BST (apparent, −0.833°)', () => {
+    const [h, m] = london.sunrise.split(':').map(Number);
+    expect(h).toBe(4);
+    expect(m).toBeGreaterThanOrEqual(50);
   });
 
   it('New York sunrise is around 05:3x EDT', () => {
