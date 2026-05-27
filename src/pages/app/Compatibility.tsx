@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Loader2, Users, Heart, Sparkles, HelpCircle, ArrowRight, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { getAstroProvider } from '@/lib/astro/factory';
 
@@ -151,32 +150,12 @@ export default function Compatibility() {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        
-        // Ensure snapshots exist, otherwise filter or fall back to mock
-        const validCharts = (data ?? []).map(c => {
-          if (!c.snapshot) {
-            // Generate simple mock snapshot if empty
-            c.snapshot = {
-              isFallback: true,
-              birthDetails: c.birth_details,
-              divisionalCharts: [
-                {
-                  varga: 'D1',
-                  ascendantSign: 8,
-                  planets: [
-                    { planet: 'moon', signNumber: 4, nakshatra: 'Ashlesha', signDegree: 18.7, houseNumber: 9 }
-                  ]
-                }
-              ]
-            };
-          }
-          return c;
-        });
 
-        setCharts(validCharts);
-        if (validCharts.length >= 2) {
-          setChart1Id(validCharts[0].id);
-          setChart2Id(validCharts[1].id);
+        const loaded = (data ?? []) as SavedChart[];
+        setCharts(loaded);
+        if (loaded.length >= 2) {
+          setChart1Id(loaded[0].id);
+          setChart2Id(loaded[1].id);
         }
       } catch (e: any) {
         toast.error("Failed to load charts: " + e.message);
@@ -205,58 +184,38 @@ export default function Compatibility() {
       return;
     }
 
-    // Check if either is using a fallback mock, and calculate real coordinates on the fly!
-    let updatedCharts = [...(charts || [])];
-    let needsUpdate = false;
-
-    if (groom.snapshot?.isFallback) {
-      try {
-        toast.info(`Computing birth chart details for ${groom.name}...`);
-        const fresh = await getAstroProvider().generateKundli(groom.birth_details);
-        groom.snapshot = fresh;
-        needsUpdate = true;
-        // cache back to Supabase
-        void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', groom.id);
-      } catch (err) {
-        console.error("Failed to dynamically compute groom snapshot:", err);
+    // Resolve each chart's natal Moon, computing the kundli on the fly when the
+    // saved snapshot lacks one. We never fall back to placeholder values — a
+    // fabricated Moon would yield a confident but meaningless match score.
+    const resolveMoon = async (chart: SavedChart) => {
+      const moonOf = (snap: any) =>
+        snap?.divisionalCharts?.find((c: any) => c.varga === 'D1')?.planets?.find((p: any) => p.planet === 'moon');
+      let moon = moonOf(chart.snapshot);
+      if (!moon) {
+        try {
+          toast.info(`Computing birth chart for ${chart.name}…`);
+          const fresh = await getAstroProvider().generateKundli(chart.birth_details);
+          chart.snapshot = fresh;
+          void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', chart.id);
+          moon = moonOf(fresh);
+        } catch (err) {
+          console.error(`Failed to compute snapshot for ${chart.name}:`, err);
+        }
       }
-    }
-
-    if (bride.snapshot?.isFallback) {
-      try {
-        toast.info(`Computing birth chart details for ${bride.name}...`);
-        const fresh = await getAstroProvider().generateKundli(bride.birth_details);
-        bride.snapshot = fresh;
-        needsUpdate = true;
-        // cache back to Supabase
-        void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', bride.id);
-      } catch (err) {
-        console.error("Failed to dynamically compute bride snapshot:", err);
-      }
-    }
-
-    if (needsUpdate) {
-      setCharts(updatedCharts);
-    }
-
-    // Extract D1 Moon details
-    const getMoonPos = (chart: SavedChart) => {
-      const d1 = chart.snapshot?.divisionalCharts?.find((c: any) => c.varga === 'D1');
-      const moon = d1?.planets?.find((p: any) => p.planet === 'moon') || {
-        nakshatra: 'Ashlesha',
-        signNumber: 4,
-        signDegree: 15
-      };
-      return moon;
+      return moon?.nakshatra && moon?.signNumber ? moon : null;
     };
 
-    const gMoon = getMoonPos(groom);
-    const bMoon = getMoonPos(bride);
+    const gMoon = await resolveMoon(groom);
+    const bMoon = await resolveMoon(bride);
+    if (!gMoon || !bMoon) {
+      toast.error('Could not determine the Moon for one of the charts. Open it and Recalculate, then try again.');
+      return;
+    }
 
-    const gNakName = gMoon.nakshatra || 'Ashlesha';
-    const bNakName = bMoon.nakshatra || 'Ashlesha';
-    const gRashiNum = gMoon.signNumber || 4;
-    const bRashiNum = bMoon.signNumber || 4;
+    const gNakName = gMoon.nakshatra;
+    const bNakName = bMoon.nakshatra;
+    const gRashiNum = gMoon.signNumber;
+    const bRashiNum = bMoon.signNumber;
 
     const gNakIdx = getNakshatraIndex(gNakName);
     const bNakIdx = getNakshatraIndex(bNakName);
@@ -539,7 +498,7 @@ export default function Compatibility() {
             {/* Overview */}
             <div className="md:col-span-8 rounded-md border border-hairline-subtle bg-surface p-6 flex flex-col justify-between shadow-sm">
               <div>
-                <h3 className="font-display text-h2 text-text-primary">Compatability Synthesis</h3>
+                <h3 className="font-display text-h2 text-text-primary">Compatibility Synthesis</h3>
                 <p className="mt-3 text-sm leading-relaxed text-text-secondary">
                   Based on ancient Vedic calculations, the matching of <strong>{result.groom.name}</strong> ({result.groom.nakshatra} Nakshatra) and <strong>{result.bride.name}</strong> ({result.bride.nakshatra} Nakshatra) scores <strong>{result.total}</strong> out of 36 points.
                 </p>
