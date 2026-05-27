@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useKundli } from '@/hooks/useKundli';
 import { useChartStore } from '@/stores/useChartStore';
 import { KundliChart, KundliFrame } from '@/components/kundli/KundliChart';
-import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type PlanetPosition } from '@/lib/astro/types';
+import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type Dosha, type PlanetPosition } from '@/lib/astro/types';
 import { Download, Share2, RefreshCcw, Save, MessageSquare, Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import dayjs from 'dayjs';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +35,7 @@ export default function ChartDetail() {
 
   const md = data.dashas[0].currentMahaDasha;
   const ad = md.children?.find(c => new Date(c.startDate).getTime() <= Date.now() && new Date(c.endDate).getTime() > Date.now()) ?? md.children?.[0];
+  const sadeSati = data.doshas.find(dd => dd.name === 'sade_sati');
 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const shareToken = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('share') : null;
@@ -196,7 +197,15 @@ export default function ChartDetail() {
             <div className="mt-3 space-y-3">
               <Stat label="Maha Dasha" value={md.planet} sub={`until ${dayjs(md.endDate).format('MMM YYYY')}`} />
               {ad && <Stat label="Antar Dasha" value={ad.planet} sub={`until ${dayjs(ad.endDate).format('MMM YYYY')}`} />}
-              <Stat label="Sade Sati" value="Tapering" sub="12th from natal Moon" />
+              {sadeSati && (
+                <Stat
+                  label="Sade Sati"
+                  value={sadeSati.isPresent
+                    ? `Active${sadeSati.severity ? ` · ${sadeSati.severity}` : ''}`
+                    : 'Not active'}
+                  sub={sadeSatiPhase(sadeSati)}
+                />
+              )}
             </div>
           </div>
           <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
@@ -288,6 +297,48 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
+const HOUSE_THEMES: Record<number, string> = {
+  1: 'Self, body, vitality', 2: 'Wealth, family, speech', 3: 'Siblings, courage, communication',
+  4: 'Mother, home, comforts', 5: 'Children, intellect, romance', 6: 'Health, debts, enemies',
+  7: 'Spouse, partnerships', 8: 'Longevity, transformation', 9: 'Dharma, fortune, father',
+  10: 'Career, public life', 11: 'Gains, network, fulfilment', 12: 'Loss, liberation, foreign lands',
+};
+const ORDINALS = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th'];
+
+/** Concise, accurate Sade Sati phase label drawn from the engine's computed explanation. */
+function sadeSatiPhase(d: Dosha): string | undefined {
+  if (!d.isPresent) return 'Saturn clear of natal Moon';
+  if (d.explanation.includes('rising')) return 'Rising · 12th from Moon';
+  if (d.explanation.includes('peak')) return 'Peak · over natal Moon';
+  if (d.explanation.includes('setting')) return 'Setting · 2nd from Moon';
+  return undefined;
+}
+
+/**
+ * Factual chart synthesis built from real computed data — the ascendant, the
+ * most-occupied house, and the live yoga/dosha/dasha counts. No fabrication.
+ */
+function buildSynthesis(chart: DivisionalChart, yogasPresent: number, doshaCount: number, md: string): string {
+  const counts = new Map<number, number>();
+  chart.planets.forEach((p) => {
+    if (p.planet === 'ascendant') return;
+    counts.set(p.houseNumber, (counts.get(p.houseNumber) ?? 0) + 1);
+  });
+  let topHouse = 0, topN = 0;
+  counts.forEach((n, h) => { if (n > topN) { topN = n; topHouse = h; } });
+
+  const asc = SIGN_NAMES[chart.ascendantSign - 1];
+  const cluster = topN >= 3
+    ? `A stellium of ${topN} planets gathers in the ${ORDINALS[topHouse]} house (${HOUSE_THEMES[topHouse]}), the chart's centre of gravity. `
+    : topN === 2
+    ? `Its heaviest house is the ${ORDINALS[topHouse]} (${HOUSE_THEMES[topHouse]}), holding two planets. `
+    : `Planets are spread across the houses without a single dominant cluster. `;
+  const lord = md.charAt(0).toUpperCase() + md.slice(1);
+  const flags = `${yogasPresent} yoga${yogasPresent === 1 ? '' : 's'} and ${doshaCount} dosha${doshaCount === 1 ? '' : 's'} ${(yogasPresent + doshaCount) === 1 ? 'is' : 'are'} flagged`;
+
+  return `${asc} rising. ${cluster}${flags}, and the active Vimshottari mahadasha is governed by ${lord}.`;
+}
+
 function OverviewTab({ chart, doshaCount, yogas, md, ad }: { chart: DivisionalChart; doshaCount: number; yogas: any[]; md: string; ad: string }) {
   const present = yogas.filter(y => y.isPresent).slice(0, 3);
   return (
@@ -295,7 +346,7 @@ function OverviewTab({ chart, doshaCount, yogas, md, ad }: { chart: DivisionalCh
       <div>
         <div className="text-eyebrow text-text-tertiary">Synthesis</div>
         <p className="mt-2 text-body text-text-secondary">
-          A {chart.planets[0].signName} ascendant chart with strong concentration in the 9th and 10th houses — a configuration that classical texts associate with public-facing work, recognition through merit, and a steady rise built on intellect and persistence.
+          {buildSynthesis(chart, yogas.filter(y => y.isPresent).length, doshaCount, md)}
         </p>
       </div>
       <div className="gold-rule" />
@@ -329,12 +380,6 @@ function HousesTab({ chart }: { chart: DivisionalChart }) {
     arr.push(p);
     planetsByHouse.set(p.houseNumber, arr);
   });
-  const themes: Record<number, string> = {
-    1: 'Self, body, vitality', 2: 'Wealth, family, speech', 3: 'Siblings, courage, communication',
-    4: 'Mother, home, comforts', 5: 'Children, intellect, romance', 6: 'Health, debts, enemies',
-    7: 'Spouse, partnerships', 8: 'Longevity, transformation', 9: 'Dharma, fortune, father',
-    10: 'Career, public life', 11: 'Gains, network, fulfilment', 12: 'Loss, liberation, foreign lands',
-  };
   return (
     <div className="overflow-hidden rounded-md border border-hairline-subtle bg-surface shadow-sm">
       <table className="w-full text-sm">
@@ -359,7 +404,7 @@ function HousesTab({ chart }: { chart: DivisionalChart }) {
                   {occ.length === 0 ? <span className="text-text-muted">—</span> :
                     occ.map(p => <span key={p.planet} className="mr-2 font-mono text-xs" style={{ color: `hsl(var(--planet-${p.planet}))` }}>{PLANET_LABELS[p.planet].short}</span>)}
                 </td>
-                <td className="px-4 py-3 text-text-tertiary">{themes[h]}</td>
+                <td className="px-4 py-3 text-text-tertiary">{HOUSE_THEMES[h]}</td>
               </tr>
             );
           })}
