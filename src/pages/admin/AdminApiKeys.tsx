@@ -22,7 +22,7 @@ export default function AdminApiKeys() {
 
   useEffect(() => {
     (async () => {
-      const { data, error: err } = await supabase
+      const { data, error: err } = await (supabase as any)
         .from('app_settings')
         .select('*')
         .eq('category', 'api_keys')
@@ -44,7 +44,7 @@ export default function AdminApiKeys() {
 
   async function save(settingKey: string) {
     setSaving(settingKey);
-    const { error: err } = await supabase
+    const { error: err } = await (supabase as any)
       .from('app_settings')
       .upsert({ key: settingKey, value: values[settingKey], category: 'api_keys' }, { onConflict: 'key' });
     if (err) {

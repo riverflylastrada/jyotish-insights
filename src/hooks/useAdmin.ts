@@ -19,7 +19,7 @@ export function useAdmin() {
 
     (async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('profiles')
           .select('role')
           .eq('user_id', user.id)
