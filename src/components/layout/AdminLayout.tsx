@@ -41,7 +41,7 @@ export function AdminLayout() {
       {/* Main content */}
       <div className="flex-1">
         <header className="sticky top-0 z-30 flex h-14 items-center border-b border-hairline-subtle bg-surface/85 px-8 backdrop-blur">
-          <span className="font-display text-h3 text-brand-maroon">Jyotish Sage</span>
+          <span className="font-display text-h3 text-brand-maroon">Acharya Jyotish</span>
           <span className="ml-2 text-xs text-text-muted">Admin Panel</span>
         </header>
         <main className="mx-auto max-w-5xl p-8">

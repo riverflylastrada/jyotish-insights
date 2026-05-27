@@ -61,7 +61,7 @@ const Index = () => {
       {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-hairline-subtle bg-canvas/85 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <Link to="/" className="font-display text-h3 text-brand-maroon">Jyotish Sage</Link>
+          <Link to="/" className="font-display text-h3 text-brand-maroon">Acharya Jyotish</Link>
           <nav className="hidden items-center gap-7 md:flex">
             <a href="#how" className="text-sm text-text-secondary hover:text-text-primary">How it works</a>
             <a href="#gurus" className="text-sm text-text-secondary hover:text-text-primary">Gurus</a>
@@ -87,7 +87,7 @@ const Index = () => {
               <span className="text-brand-maroon">The Truth in Your Stars.</span>
             </h1>
             <p className="mt-6 max-w-xl text-body text-text-secondary">
-              Jyotish Sage runs your birth chart through five classical schools of Vedic astrology — Parashari, Jaimini, Nadi, KP, and Tajik. Then a Master Acharya weighs the evidence and delivers the verdict no single astrologer could give you.
+              Acharya Jyotish runs your birth chart through five classical schools of Vedic astrology — Parashari, Jaimini, Nadi, KP, and Tajik. Then a Master Acharya weighs the evidence and delivers the verdict no single astrologer could give you.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/app/new" className="inline-flex items-center gap-2 rounded-sm bg-brand-saffron px-5 py-3 text-sm font-medium text-accent-foreground shadow-sm transition-colors hover:bg-brand-saffron-hover">

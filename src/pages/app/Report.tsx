@@ -95,7 +95,7 @@ export default function Report() {
       <div className="report mx-auto max-w-[210mm] bg-surface px-12 py-12 text-text-primary shadow-sm">
         {/* Cover */}
         <section className="page">
-          <div className="text-eyebrow text-brand-saffron">Jyotish Sage · Vedic Research Report</div>
+          <div className="text-eyebrow text-brand-saffron">Acharya Jyotish · Vedic Research Report</div>
           <h1 className="mt-2 font-display text-display leading-[1.05]">{data.birthDetails.fullName}</h1>
           <div className="gold-rule mt-6" />
           <dl className="mt-8 grid grid-cols-2 gap-y-4 text-sm">
@@ -264,7 +264,7 @@ export default function Report() {
         </section>
 
         <footer className="mt-20 border-t border-hairline-subtle pt-6 text-xs text-text-muted">
-          Jyotish Sage · This report is generated for reflection and study. Classical Vedic astrology is a contemplative tradition; treat all judgments as guidance, not determinism.
+          Acharya Jyotish · This report is generated for reflection and study. Classical Vedic astrology is a contemplative tradition; treat all judgments as guidance, not determinism.
         </footer>
       </div>
 

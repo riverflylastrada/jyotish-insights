@@ -62,7 +62,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   return (
     <div className="min-h-screen bg-canvas">
       <div className="mx-auto max-w-md px-6 py-20">
-        <Link to="/" className="font-display text-h3 text-brand-maroon">Jyotish Sage</Link>
+        <Link to="/" className="font-display text-h3 text-brand-maroon">Acharya Jyotish</Link>
         <div className="mt-10 rounded-md border border-hairline-subtle bg-surface p-8 shadow-sm">
           <div className="text-eyebrow text-brand-saffron">{mode === 'login' ? 'Sign in' : 'Create an account'}</div>
           <h1 className="mt-2 font-display text-h1 text-text-primary">{mode === 'login' ? 'Welcome back' : 'Begin your reading'}</h1>

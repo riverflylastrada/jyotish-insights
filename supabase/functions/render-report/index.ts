@@ -29,7 +29,7 @@ function buildHtml(chart: any): string {
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
-<title>${escape(bd.fullName ?? "Kundli")} — Jyotish Sage Report</title>
+<title>${escape(bd.fullName ?? "Kundli")} — Acharya Jyotish Report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -62,7 +62,7 @@ function buildHtml(chart: any): string {
 <body>
 
 <section class="page">
-  <div class="eyebrow">Jyotish Sage · Vedic Research Report</div>
+  <div class="eyebrow">Acharya Jyotish · Vedic Research Report</div>
   <h1 style="margin-top:8px;">${escape(bd.fullName ?? "Untitled Chart")}</h1>
   <div class="gold-rule"></div>
   <div class="grid-2" style="margin-top:24px;">
@@ -193,7 +193,7 @@ ${sarva.length ? `
 ` : ""}
 
 <div class="footer">
-  Jyotish Sage · This report is generated for reflection and study. Vedic astrology is a classical Indian contemplative tradition; treat all judgments as guidance, not determinism. Decisions about health, finance, or relationships should not rely solely on astrological readings.
+  Acharya Jyotish · This report is generated for reflection and study. Vedic astrology is a classical Indian contemplative tradition; treat all judgments as guidance, not determinism. Decisions about health, finance, or relationships should not rely solely on astrological readings.
 </div>
 
 </body></html>`;

@@ -41,7 +41,7 @@ export default function AdminDashboard() {
   return (
     <div>
       <h1 className="font-display text-h2 text-text-primary">Dashboard</h1>
-      <p className="mt-1 text-sm text-text-muted">Overview of your Jyotish Sage instance.</p>
+      <p className="mt-1 text-sm text-text-muted">Overview of your Acharya Jyotish instance.</p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">

@@ -28,7 +28,7 @@ export function AppLayout() {
       <header className="sticky top-0 z-30 border-b border-hairline-subtle bg-surface/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6">
           <Link to="/" className="flex min-w-0 items-center gap-2">
-            <span className="truncate font-display text-h3 text-brand-maroon">Jyotish Sage</span>
+            <span className="truncate font-display text-h3 text-brand-maroon">Acharya Jyotish</span>
             <span className="hidden text-xs text-text-muted sm:inline">Vedic Research Terminal</span>
           </Link>
           <nav className="flex shrink-0 items-center gap-1">

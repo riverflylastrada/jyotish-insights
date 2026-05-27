@@ -111,7 +111,7 @@ export default function ChartDetail() {
               <Sparkles className="h-6 w-6" />
             </div>
             <div>
-              <span className="text-eyebrow text-brand-gold">Jyotish Insights Terminal</span>
+              <span className="text-eyebrow text-brand-gold">Acharya Jyotish</span>
               <h3 className="font-display text-h3 text-text-primary mt-1">This Vedic Chart was shared with you</h3>
               <p className="text-xs text-text-secondary mt-1">Unlock live transits, relationship compatibility matching, and personal dasha feeds.</p>
             </div>

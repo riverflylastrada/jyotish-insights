@@ -115,7 +115,7 @@ export default function Dashboard() {
     return (
       <div className="mx-auto max-w-7xl px-6 py-16">
         <div className="text-eyebrow text-brand-saffron">Dashboard</div>
-        <h1 className="mt-2 font-display text-h1 text-text-primary">Welcome to Jyotish Sage</h1>
+        <h1 className="mt-2 font-display text-h1 text-text-primary">Welcome to Acharya Jyotish</h1>
         <p className="mt-2 text-body text-text-secondary max-w-2xl">
           Your premium Vedic Research Terminal is fully configured. Cast your birth chart to unlock your personalized daily transit feeds, vimshottari dasha updates, and compatibility matching engines.
         </p>
