@@ -106,27 +106,74 @@ const DUAL_SIGNS  = new Set([2, 5, 8, 11]);
 const PANCHAMSA_ODD  = [0, 10, 8, 2, 6];
 const PANCHAMSA_EVEN = [1, 5, 11, 9, 7];
 
-// ─── Varga-sign helper for D5, D6, D8, D11 (0-indexed in, 0-indexed out) ──
+// ─── Element/quality helpers ────────────────────────────────────────────────
+
+const FIRE_SIGNS  = new Set([0, 4, 8]);
+const WATER_SIGNS = new Set([3, 7, 11]);
+const AIR_SIGNS   = new Set([2, 6, 10]);
+const EARTH_SIGNS = new Set([1, 5, 9]);
+
+// ─── Varga-sign (0-indexed in/out) — matches PyJHora chart_method=1 ────────
 
 function vargaSign0(dvf: number, sign0: number, degInSign: number): number {
   switch (dvf) {
+    case 1:
+      return sign0;
+    case 2: {
+      // Parivritti even reverse (PyJHora chart_method=1, Uma Shambu).
+      const l = Math.floor(degInSign / 15);
+      return ODD_SIGNS.has(sign0)
+        ? (sign0 * 2 + l) % 12
+        : (sign0 * 2 + (1 - l)) % 12;
+    }
+    case 3: {
+      const l = Math.floor(degInSign / 10);
+      return (sign0 + l * 4) % 12;
+    }
+    case 4: {
+      const l = Math.floor(degInSign / 7.5);
+      return (sign0 + l * 3) % 12;
+    }
     case 5: {
-      const part = Math.floor(degInSign / 6);
-      return ODD_SIGNS.has(sign0) ? PANCHAMSA_ODD[part] : (PANCHAMSA_EVEN[part] % 12);
+      const l = Math.floor(degInSign / 6);
+      return ODD_SIGNS.has(sign0) ? PANCHAMSA_ODD[l] : (PANCHAMSA_EVEN[l] % 12);
     }
     case 6: {
-      const part = Math.floor(degInSign / 5);
-      return EVEN_SIGNS.has(sign0) ? (part + 6) % 12 : part % 12;
+      const l = Math.floor(degInSign / 5);
+      return EVEN_SIGNS.has(sign0) ? (l + 6) % 12 : l % 12;
+    }
+    case 7: {
+      const l = Math.floor(degInSign / (30 / 7));
+      return EVEN_SIGNS.has(sign0)
+        ? (sign0 + l + 6) % 12
+        : (sign0 + l) % 12;
     }
     case 8: {
-      const part = Math.floor(degInSign / 3.75);
-      if (DUAL_SIGNS.has(sign0)) return (part + 4) % 12;
-      if (FIXED_SIGNS.has(sign0)) return (part + 8) % 12;
-      return part % 12; // movable
+      const l = Math.floor(degInSign / 3.75);
+      if (DUAL_SIGNS.has(sign0)) return (l + 4) % 12;
+      if (FIXED_SIGNS.has(sign0)) return (l + 8) % 12;
+      return l % 12; // movable
+    }
+    case 9: {
+      const l = Math.floor(degInSign / (30 / 9));
+      if (FIRE_SIGNS.has(sign0))  return l % 12;
+      if (WATER_SIGNS.has(sign0)) return (3 + l) % 12;
+      if (AIR_SIGNS.has(sign0))   return (6 + l) % 12;
+      return (9 + l) % 12; // earth
+    }
+    case 10: {
+      const l = Math.floor(degInSign / 3);
+      return EVEN_SIGNS.has(sign0)
+        ? (sign0 + l + 8) % 12
+        : (sign0 + l) % 12;
     }
     case 11: {
-      const part = Math.floor(degInSign / (30 / 11));
-      return (12 - sign0 + part) % 12;
+      const l = Math.floor(degInSign / (30 / 11));
+      return (12 - sign0 + l) % 12;
+    }
+    case 12: {
+      const l = Math.floor(degInSign / 2.5);
+      return (sign0 + l) % 12;
     }
     default:
       return sign0;
@@ -136,39 +183,6 @@ function vargaSign0(dvf: number, sign0: number, degInSign: number): number {
 // ─── Map engine's 1-indexed sign to 0-indexed ──────────────────────────────
 
 function to0(sign1: number): number { return sign1 - 1; }
-
-// ─── Get planet sign (0-indexed) in a divisional chart ─────────────────────
-
-function planetSign0InDiv(
-  planet: GrahaKey,
-  dvf: number,
-  d1Planets: PlanetPos[],
-  divCharts: DivChart[],
-): number {
-  if (dvf === 1) {
-    const p = d1Planets.find(pp => pp.planet === planet);
-    return p ? to0(p.signNumber) : 0;
-  }
-
-  // For D5, D6, D8, D11: compute locally
-  if (dvf === 5 || dvf === 6 || dvf === 8 || dvf === 11) {
-    const p = d1Planets.find(pp => pp.planet === planet);
-    if (!p) return 0;
-    return vargaSign0(dvf, to0(p.signNumber), p.signDegree);
-  }
-
-  // For D2, D3, D4, D7, D9, D10, D12: pull from existing divCharts
-  const codeMap: Record<number, string> = {
-    2: "D2", 3: "D3", 4: "D4", 7: "D7",
-    9: "D9", 10: "D10", 12: "D12",
-  };
-  const code = codeMap[dvf];
-  if (!code) return 0;
-  const chart = divCharts.find(c => c.varga === code);
-  if (!chart) return 0;
-  const pp = chart.planets.find(p => p.planet === planet);
-  return pp ? to0(pp.signNumber) : 0;
-}
 
 // ─── Kshetra Bala ──────────────────────────────────────────────────────────
 
@@ -225,7 +239,7 @@ export interface VargeeyaBalaResult {
 
 export function computeVargeeyaBala(
   d1Planets: PlanetPos[],
-  divCharts: DivChart[],
+  _divCharts: DivChart[],
 ): VargeeyaBalaResult {
   const kb = kshetraBala(d1Planets);
   const ub = ucchaBala(d1Planets);
@@ -241,12 +255,16 @@ export function computeVargeeyaBala(
   }
 
   // Dwadasa-vargeeya: count favourable placements (strength ≥ _FRIEND)
-  // across D1–D12
+  // across D1–D12, using PyJHora chart_method=1 varga formulas directly.
   const dwadasaVargeeya: Record<string, number> = {};
   for (let i = 0; i < GRAHA_KEYS.length; i++) {
+    const p = d1Planets.find(pp => pp.planet === GRAHA_KEYS[i]);
+    if (!p) { dwadasaVargeeya[GRAHA_KEYS[i]] = 0; continue; }
+    const s0 = to0(p.signNumber);
+    const deg = p.signDegree;
     let count = 0;
     for (let dvf = 1; dvf <= 12; dvf++) {
-      const sign0 = planetSign0InDiv(GRAHA_KEYS[i], dvf, d1Planets, divCharts);
+      const sign0 = vargaSign0(dvf, s0, deg);
       if (HOUSE_STRENGTHS[i][sign0] >= _FRIEND) count++;
     }
     dwadasaVargeeya[GRAHA_KEYS[i]] = count;

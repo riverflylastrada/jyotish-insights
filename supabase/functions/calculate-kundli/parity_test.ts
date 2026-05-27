@@ -216,11 +216,10 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { house: 12, argala: [[], ["moon"], [], ["mercury"]], virodha: [["saturn"], ["sun","venus"], ["mars"], []] },
       ],
       // Vargeeya Bala (PyJHora algorithm, engine positions)
-      // PyJHora (SwissEph) reference: PVB {0:14.77,1:9.87,2:2.35,3:26.68,4:11.48,5:12.21,6:28.04}
-      //                               DVB {0:5,1:1,2:5,3:8,4:8,5:7,6:5}
-      // Differences from hadda-boundary effects (Sun/Saturn near 6° Hadda edge).
+      // PyJHora (SwissEph, Lahiri): PVB {0:13.76,1:9.95,2:2.28,3:26.76,4:11.41,5:12.13,6:26.23}
+      //                             DVB {0:4,1:1,2:6,3:8,4:8,5:8,6:6}
       panchaVargeeya: { sun: 13.76, moon: 9.95, mars: 2.28, mercury: 26.76, jupiter: 11.41, venus: 12.13, saturn: 26.23 },
-      dwadasaVargeeya: { sun: 4, moon: 2, mars: 5, mercury: 8, jupiter: 8, venus: 7, saturn: 6 },
+      dwadasaVargeeya: { sun: 4, moon: 1, mars: 6, mercury: 8, jupiter: 8, venus: 8, saturn: 6 },
     },
   },
   // ── Chart 2: Rajiv Gandhi ──────────────────────────────────────────────
@@ -351,11 +350,10 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { house: 12, argala: [["sun","moon","mercury","jupiter","venus"], [], [], []], virodha: [["saturn"], [], [], ["mars"]] },
       ],
       // Vargeeya Bala (PyJHora algorithm, engine positions)
-      // PyJHora (SwissEph) reference: PVB {0:14.96,1:10.64,2:6.50,3:18.81,4:17.72,5:9.52,6:11.20}
-      //                               DVB {0:10,1:4,2:5,3:6,4:9,5:8,6:8}
-      // Differences from varga-sign boundary effects (VSOP87 vs SwissEph).
+      // PyJHora (SwissEph, Lahiri): PVB {0:14.88,1:10.53,2:6.58,3:18.88,4:17.65,5:9.44,6:11.27}
+      //                             DVB {0:7,1:4,2:5,3:6,4:10,5:8,6:7}
       panchaVargeeya: { sun: 14.89, moon: 10.53, mars: 6.58, mercury: 18.88, jupiter: 17.65, venus: 9.44, saturn: 11.27 },
-      dwadasaVargeeya: { sun: 7, moon: 5, mars: 4, mercury: 6, jupiter: 10, venus: 7, saturn: 7 },
+      dwadasaVargeeya: { sun: 7, moon: 4, mars: 5, mercury: 6, jupiter: 10, venus: 8, saturn: 7 },
     },
   },
   // ── Chart 3: Amitabh Bachchan ──────────────────────────────────────────
@@ -485,11 +483,10 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         { house: 12, argala: [["ketu"], [], ["saturn"], []], virodha: [[], ["moon"], ["sun","mars","mercury","venus"], []] },
       ],
       // Vargeeya Bala (PyJHora algorithm, engine positions)
-      // PyJHora (SwissEph) reference: PVB {0:3.25,1:4.29,2:11.11,3:23.36,4:18.43,5:7.30,6:10.99}
-      //                               DVB {0:3,1:2,2:5,3:5,4:7,5:8,6:7}
-      // Jupiter near Gemini-Cancer boundary; sign flip causes large PVB/DVB delta.
+      // PyJHora (SwissEph, Lahiri): PVB {0:3.17,1:4.21,2:11.18,3:23.28,4:26.00,5:7.23,6:11.06}
+      //                             DVB {0:3,1:2,2:3,3:6,4:8,5:10,6:8}
       panchaVargeeya: { sun: 3.17, moon: 4.22, mars: 11.18, mercury: 23.28, jupiter: 26.01, venus: 7.23, saturn: 11.06 },
-      dwadasaVargeeya: { sun: 4, moon: 3, mars: 4, mercury: 7, jupiter: 8, venus: 9, saturn: 7 },
+      dwadasaVargeeya: { sun: 3, moon: 2, mars: 3, mercury: 6, jupiter: 8, venus: 10, saturn: 8 },
     },
   },
 ];
