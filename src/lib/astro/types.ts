@@ -156,6 +156,30 @@ export interface BhavaBalaData {
   rank: number[];
 }
 
+export interface SpecialLagnaData {
+  name: string;
+  longitude: number;
+  sign: number;
+  signName: string;
+  degree: number;
+}
+
+export interface ArgalaHouseData {
+  house: number;
+  argala: {
+    from2nd: string[];
+    from4th: string[];
+    from5th: string[];
+    from11th: string[];
+  };
+  virodha: {
+    from12th: string[];
+    from10th: string[];
+    from9th: string[];
+    from3rd: string[];
+  };
+}
+
 export interface JaiminiData {
   charaKarakas: Array<{
     planet: string;
@@ -181,6 +205,8 @@ export interface JaiminiData {
     currentSign?: number;
     currentSignName?: string;
   };
+  specialLagnas?: SpecialLagnaData[];
+  argala?: ArgalaHouseData[];
 }
 
 export interface VarshphalPlanetData {
@@ -246,7 +272,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 11;
+export const CURRENT_SNAPSHOT_VERSION = 12;
 
 export interface KundliData {
   id: string;
