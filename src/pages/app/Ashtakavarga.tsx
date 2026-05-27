@@ -64,8 +64,8 @@ export default function Ashtakavarga() {
           <h2 className="font-display text-h2 text-text-primary">Sarvashtakavarga</h2>
           <div className="text-xs text-text-tertiary">Heat = relative strength across the zodiac</div>
         </div>
-        <div className="overflow-hidden rounded-md border border-hairline-subtle bg-surface shadow-sm">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-md border border-hairline-subtle bg-surface shadow-sm">
+          <table className="w-full min-w-[480px] text-sm">
             <thead className="bg-elevated text-left text-xs uppercase tracking-wide text-text-tertiary">
               <tr>
                 <th className="px-3 py-2">House</th>

@@ -141,8 +141,8 @@ export default function Remedies() {
       </div>
 
       {/* Affliction table */}
-      <div className="mt-8 overflow-hidden rounded-md border border-hairline-subtle bg-surface shadow-sm">
-        <table className="w-full text-sm">
+      <div className="mt-8 overflow-x-auto rounded-md border border-hairline-subtle bg-surface shadow-sm">
+        <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-elevated text-left text-xs uppercase tracking-wide text-text-tertiary">
             <tr>
               <th className="px-4 py-2 font-medium">Planet</th>

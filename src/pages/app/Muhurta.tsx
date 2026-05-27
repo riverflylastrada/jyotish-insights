@@ -244,8 +244,8 @@ export default function Muhurta() {
       <section className="mt-12">
         <h2 className="font-display text-h2 text-text-primary">Planetary horas (Hora chart)</h2>
         <p className="mt-1 text-body text-text-secondary">Each hora carries the quality of its planetary lord. Begin work in a hora friendly to the activity.</p>
-        <div className="mt-4 overflow-hidden rounded-md border border-hairline-subtle bg-surface shadow-sm">
-          <table className="w-full text-sm">
+        <div className="mt-4 overflow-x-auto rounded-md border border-hairline-subtle bg-surface shadow-sm">
+          <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-elevated text-left text-xs uppercase tracking-wide text-text-tertiary">
               <tr>
                 <th className="px-4 py-2 font-medium">#</th>

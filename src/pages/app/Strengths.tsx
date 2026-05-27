@@ -231,19 +231,21 @@ function VargeeyaBalaSection({ data }: { data: NonNullable<ReturnType<typeof use
           const pancha = data.panchaVargeeya[p] ?? 0;
           const dwadasa = data.dwadasaVargeeya[p] ?? 0;
           return (
-            <div key={p} className="grid grid-cols-[80px_1fr_60px_1fr_60px] items-center gap-3">
+            <div key={p} className="grid grid-cols-1 gap-1.5 sm:grid-cols-[110px_1fr] sm:items-center sm:gap-3">
               <div className="inline-flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full" style={{ background: `hsl(var(--planet-${p}))` }} />
                 <span className="font-display text-sm capitalize text-text-primary">{PLANET_LABELS[p].full}</span>
               </div>
-              <div className="relative h-3 overflow-hidden rounded-sm border border-hairline-subtle bg-canvas">
-                <div className="absolute inset-y-0 left-0" style={{ width: `${(pancha / maxPancha) * 100}%`, background: 'hsl(var(--brand-saffron))', opacity: 0.85 }} />
+              <div className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5">
+                <div className="relative h-3 overflow-hidden rounded-sm border border-hairline-subtle bg-canvas">
+                  <div className="absolute inset-y-0 left-0" style={{ width: `${(pancha / maxPancha) * 100}%`, background: 'hsl(var(--brand-saffron))', opacity: 0.85 }} />
+                </div>
+                <div className="w-14 text-right font-mono text-xs text-text-secondary">{pancha.toFixed(2)}</div>
+                <div className="relative h-3 overflow-hidden rounded-sm border border-hairline-subtle bg-canvas">
+                  <div className="absolute inset-y-0 left-0" style={{ width: `${(dwadasa / 12) * 100}%`, background: 'hsl(var(--brand-gold))', opacity: 0.85 }} />
+                </div>
+                <div className="w-14 text-right font-mono text-xs text-text-secondary">{dwadasa}/12</div>
               </div>
-              <div className="text-right font-mono text-xs text-text-secondary">{pancha.toFixed(2)}</div>
-              <div className="relative h-3 overflow-hidden rounded-sm border border-hairline-subtle bg-canvas">
-                <div className="absolute inset-y-0 left-0" style={{ width: `${(dwadasa / 12) * 100}%`, background: 'hsl(var(--brand-gold))', opacity: 0.85 }} />
-              </div>
-              <div className="text-right font-mono text-xs text-text-secondary">{dwadasa}/12</div>
             </div>
           );
         })}
