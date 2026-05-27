@@ -441,7 +441,7 @@ export default function Debate() {
           
           <div className="space-y-6">
             {turns.map((turn, turnIdx) => (
-              <div key={turnIdx} className="rounded-md border border-hairline-subtle bg-canvas/30 p-6 space-y-6">
+              <div key={turnIdx} className="rounded-md border border-hairline-subtle bg-canvas/30 p-6 space-y-5">
                 {/* User's Question */}
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-saffron/10 text-brand-saffron font-display text-xs">
@@ -455,48 +455,56 @@ export default function Debate() {
 
                 <div className="gold-rule opacity-35" />
 
-                {/* Guru Readings Grid */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {turn.readings.map((r, rIdx) => {
-                    const guruInfo = GURUS.find(g => g.name === r.guru);
-                    return (
-                      <div key={rIdx} className="rounded-sm border border-hairline-subtle bg-surface p-4 text-sm flex flex-col justify-between shadow-sm animate-in fade-in duration-300">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div
-                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-display"
-                              style={{
-                                color: guruInfo?.accent || 'var(--text-primary)',
-                                borderColor: guruInfo?.accent || 'var(--border-hairline)'
-                              }}
-                            >
-                              {guruInfo?.signature || 'G'}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="font-display font-semibold text-text-primary text-xs truncate">{r.guru}</div>
-                              {guruInfo && <div className="text-[9px] text-text-tertiary font-mono truncate">{guruInfo.school}</div>}
+                {/* Acharya Verdict — surfaced first */}
+                {turn.verdict && (
+                  <div className="rounded-sm border border-brand-maroon/20 bg-surface p-5 yantra-bg shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Gavel className="h-4 w-4 text-brand-maroon" />
+                      <span className="font-display font-bold text-text-primary text-sm">Acharya's Synthesis Verdict</span>
+                    </div>
+                    <VerdictContent text={turn.verdict} />
+                  </div>
+                )}
+
+                {/* Full tribunal — collapsible detail */}
+                {turn.readings.length > 0 && (
+                  <details className="group rounded-sm border border-hairline-subtle bg-surface/60">
+                    <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-xs font-medium text-text-tertiary hover:text-text-primary [&::-webkit-details-marker]:hidden">
+                      <span className="inline-flex items-center gap-2">
+                        <MessageSquare className="h-3.5 w-3.5" /> Show the full tribunal ({turn.readings.length} {turn.readings.length === 1 ? 'voice' : 'voices'})
+                      </span>
+                      <span className="text-text-muted transition-transform group-open:rotate-90">›</span>
+                    </summary>
+                    <div className="grid gap-4 px-4 pb-4 sm:grid-cols-2">
+                      {turn.readings.map((r, rIdx) => {
+                        const guruInfo = GURUS.find(g => g.name === r.guru);
+                        return (
+                          <div key={rIdx} className="rounded-sm border border-hairline-subtle bg-surface p-4 text-sm flex flex-col justify-between shadow-sm animate-in fade-in duration-300">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <div
+                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-display"
+                                  style={{
+                                    color: guruInfo?.accent || 'var(--text-primary)',
+                                    borderColor: guruInfo?.accent || 'var(--border-hairline)'
+                                  }}
+                                >
+                                  {guruInfo?.signature || 'G'}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-display font-semibold text-text-primary text-xs truncate">{r.guru}</div>
+                                  {guruInfo && <div className="text-[9px] text-text-tertiary font-mono truncate">{guruInfo.school}</div>}
+                                </div>
+                              </div>
+                              <p className="whitespace-pre-line text-xs text-text-secondary leading-relaxed font-body">
+                                {r.text}
+                              </p>
                             </div>
                           </div>
-                          <p className="whitespace-pre-line text-xs text-text-secondary leading-relaxed font-body">
-                            {r.text}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Acharya Verdict */}
-                {turn.verdict && (
-                  <div className="rounded-sm border border-brand-maroon/20 bg-surface p-5 yantra-bg text-sm shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Gavel className="h-4 w-4 text-brand-maroon" />
-                      <span className="font-display font-bold text-text-primary text-xs">Acharya's Synthesis Verdict</span>
+                        );
+                      })}
                     </div>
-                    <p className="whitespace-pre-line text-xs text-text-secondary leading-relaxed font-body">
-                      {turn.verdict}
-                    </p>
-                  </div>
+                  </details>
                 )}
               </div>
             ))}
@@ -589,10 +597,9 @@ export default function Debate() {
                   The Acharya was unable to deliver a verdict. {verdict.error}
                 </div>
               ) : (
-                <p className="mt-4 whitespace-pre-line text-body text-text-secondary">
-                  {verdict.text}
-                  {verdict.status === 'streaming' && <span className="ml-0.5 inline-block h-4 w-1 animate-pulse bg-text-primary align-middle" />}
-                </p>
+                <div className="mt-4">
+                  <VerdictContent text={verdict.text} streaming={verdict.status === 'streaming'} />
+                </div>
               )}
             </motion.div>
           )}
@@ -621,6 +628,40 @@ export default function Debate() {
             </button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Split the Acharya's verdict into the leading "BOTTOM LINE" TL;DR and the full synthesis body. */
+function splitVerdict(text: string): { bottomLine: string | null; body: string } {
+  const t = text.replace(/^\s+/, '');
+  const m = /^BOTTOM LINE:\s*/i.exec(t);
+  if (!m) return { bottomLine: null, body: text };
+  const after = t.slice(m[0].length);
+  const idx = after.indexOf('\n\n');
+  if (idx === -1) return { bottomLine: after.trim(), body: '' };
+  return { bottomLine: after.slice(0, idx).trim(), body: after.slice(idx + 2).trim() };
+}
+
+function VerdictContent({ text, streaming }: { text: string; streaming?: boolean }) {
+  const { bottomLine, body } = splitVerdict(text);
+  const bodyText = body || (bottomLine ? '' : text);
+  const cursor = <span className="ml-0.5 inline-block h-4 w-1 animate-pulse bg-text-primary align-middle" />;
+  return (
+    <div className="space-y-3">
+      {bottomLine && (
+        <div className="rounded-sm border border-brand-maroon/25 bg-brand-maroon/[0.04] px-4 py-3">
+          <div className="text-eyebrow text-brand-maroon mb-1">Bottom line</div>
+          <p className="whitespace-pre-line text-body font-medium leading-relaxed text-text-primary">
+            {bottomLine}{streaming && !bodyText && cursor}
+          </p>
+        </div>
+      )}
+      {bodyText && (
+        <p className="whitespace-pre-line text-body leading-relaxed text-text-secondary">
+          {bodyText}{streaming && cursor}
+        </p>
       )}
     </div>
   );
