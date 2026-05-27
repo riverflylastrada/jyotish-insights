@@ -55,13 +55,35 @@ const MONTH_NAMES = [
 
 // ─── Section builders ───────────────────────────────────────────────────────
 
-function sectionDate(now: Date): string {
-  const yyyy = now.getUTCFullYear();
-  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(now.getUTCDate()).padStart(2, "0");
-  const dayName = WEEKDAY_NAMES[now.getUTCDay()];
-  const monthName = MONTH_NAMES[now.getUTCMonth()];
-  return `═══ TODAY'S DATE ═══\nDate: ${yyyy}-${mm}-${dd} (${dayName}, ${now.getUTCDate()} ${monthName} ${yyyy})`;
+/**
+ * Today's CIVIL date in the viewer's timezone. `tzName` (IANA, e.g.
+ * "America/New_York") is preferred and DST-aware; `offsetHours` is a fixed-offset
+ * fallback; otherwise UTC. The astronomical instant elsewhere stays UTC — only the
+ * displayed calendar date/weekday is localized.
+ */
+function localDateParts(now: Date, tzName?: string, offsetHours?: number): { iso: string; readable: string } {
+  if (tzName) {
+    try {
+      const iso = new Intl.DateTimeFormat("en-CA", { timeZone: tzName, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+      const readable = new Intl.DateTimeFormat("en-GB", { timeZone: tzName, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now);
+      return { iso, readable };
+    } catch { /* invalid tz name → fall through */ }
+  }
+  const d = (offsetHours !== undefined && !Number.isNaN(offsetHours))
+    ? new Date(now.getTime() + offsetHours * 3_600_000)
+    : now;
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return {
+    iso: `${yyyy}-${mm}-${dd}`,
+    readable: `${WEEKDAY_NAMES[d.getUTCDay()]}, ${d.getUTCDate()} ${MONTH_NAMES[d.getUTCMonth()]} ${yyyy}`,
+  };
+}
+
+function sectionDate(now: Date, tzName?: string, offsetHours?: number): string {
+  const { iso, readable } = localDateParts(now, tzName, offsetHours);
+  return `═══ TODAY'S DATE ═══\nDate: ${iso} (${readable})\nViewer timezone: ${tzName ?? (offsetHours !== undefined ? `UTC${offsetHours >= 0 ? "+" : ""}${offsetHours}` : "UTC")}`;
 }
 
 function sectionBirthDetails(chart: any): string {
@@ -135,13 +157,12 @@ function sectionCurrentTransits(
   natalAscSign: number,
   natalMoonSign: number,
   now: Date,
+  tzName?: string,
+  offsetHours?: number,
 ): string {
   if (!transits || transits.length === 0) return "";
 
-  const yyyy = now.getUTCFullYear();
-  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(now.getUTCDate()).padStart(2, "0");
-  const dateStr = `${yyyy}-${mm}-${dd}`;
+  const { iso: dateStr } = localDateParts(now, tzName, offsetHours);
 
   const header = `${pad("Planet", 10)}| ${pad("Sign", 13)}| ${pad("Degree", 8)}| ${pad("Nakshatra", 20)}| R | ${pad("House(Lagna)", 13)}| House(Moon)`;
   const lines = [`═══ CURRENT TRANSITS (Gochara) — as of ${dateStr} ═══`, header];
@@ -848,19 +869,28 @@ function sectionUnavailableSystems(): string {
 
 // ─── Main builder ───────────────────────────────────────────────────────────
 
-export function buildChartDossier(chart: any, transits: any[], now: Date): string {
+export function buildChartDossier(chart: any, transits: any[], now: Date, clientTimeZone?: string): string {
   const ascSign = chart?.ascendant?.signNumber ?? 0;
   const d1 = chart?.divisionalCharts?.find((c: any) => c.varga === "D1");
   const moonPlanet = d1?.planets?.find((p: any) => p.planet === "moon");
   const natalMoonSign = moonPlanet?.signNumber ?? 0;
 
+  // Viewer timezone for civil "today": prefer the client's IANA zone (DST-aware),
+  // else the chart's birth zone if it looks like an IANA name, else its numeric
+  // offset, else UTC. Astronomy (JD/positions) stays UTC regardless.
+  const birthTz = chart?.birthDetails?.placeOfBirth?.timezone;
+  const tzName = clientTimeZone ?? (typeof birthTz === "string" && birthTz.includes("/") ? birthTz : undefined);
+  const tzOffset = typeof chart?.birthDetails?.placeOfBirth?.timezoneOffset === "number"
+    ? chart.birthDetails.placeOfBirth.timezoneOffset
+    : undefined;
+
   return [
-    sectionDate(now),
+    sectionDate(now, tzName, tzOffset),
     sectionBirthDetails(chart),
     sectionAscendant(chart),
     sectionHouseLordships(ascSign),
     sectionNatalPlanets(chart),
-    sectionCurrentTransits(transits, ascSign, natalMoonSign, now),
+    sectionCurrentTransits(transits, ascSign, natalMoonSign, now, tzName, tzOffset),
     sectionSadeSatiStatus(transits, natalMoonSign, chart?.birthDetails?.ayanamsa ?? "lahiri", now),
     sectionDoubleTransit(transits, ascSign, natalMoonSign),
     sectionDashas(chart),

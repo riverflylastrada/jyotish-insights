@@ -700,3 +700,17 @@ Deno.test("dossier contains Kalachakra Dasha section", () => {
   assertStringIncludes(d, "KALACHAKRA DASHA");
   assertStringIncludes(d, "Tula");
 });
+
+Deno.test("dossier localizes today's date to the viewer timezone (DST-aware)", () => {
+  // 23:30 UTC on 27 May → still 27 May in New York (19:30 EDT), already 28 May in
+  // Kolkata (05:00 IST). Same instant, different civil date — proves localization.
+  const lateUtc = new Date("2026-05-27T23:30:00Z");
+  const kolkata = buildChartDossier(sampleChart, sampleTransits, lateUtc, "Asia/Kolkata");
+  assertStringIncludes(kolkata, "2026-05-28");
+  assertStringIncludes(kolkata, "Asia/Kolkata");
+  const newYork = buildChartDossier(sampleChart, sampleTransits, lateUtc, "America/New_York");
+  assertStringIncludes(newYork, "2026-05-27");
+  // No client tz → falls back to the chart's birth timezone (Asia/Kolkata) → 28 May.
+  const fallback = buildChartDossier(sampleChart, sampleTransits, lateUtc);
+  assertStringIncludes(fallback, "2026-05-28");
+});

@@ -53,7 +53,9 @@ async function streamFromEdge(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify(payload),
+    // Send the viewer's IANA timezone so the dossier's "today" is their local
+    // civil date (DST-aware); all astronomy stays UTC server-side.
+    body: JSON.stringify({ clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, ...payload }),
   });
 
   if (!resp.ok || !resp.body) {

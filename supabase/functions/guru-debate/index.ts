@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     if ((!transits || transits.length === 0) && body.transits) {
       transits = body.transits;
     }
-    const dossier = buildChartDossier(chart, transits, now);
+    const dossier = buildChartDossier(chart, transits, now, body.clientTimeZone);
 
     const dbConfig = await getLlmConfig();
     const apiKey = dbConfig?.apiKey || Deno.env.get("GOOGLE_AI_KEY");
