@@ -714,3 +714,21 @@ Deno.test("dossier localizes today's date to the viewer timezone (DST-aware)", (
   const fallback = buildChartDossier(sampleChart, sampleTransits, lateUtc);
   assertStringIncludes(fallback, "2026-05-28");
 });
+
+Deno.test("dossier date: LA at 23:00 UTC still sees same day, London sees next", () => {
+  // 2026-05-27 23:00 UTC → 16:00 PDT (May 27) in LA, 00:00 BST (May 28) in London
+  const instant = new Date("2026-05-27T23:00:00Z");
+  const la = buildChartDossier(sampleChart, sampleTransits, instant, "America/Los_Angeles");
+  assertStringIncludes(la, "2026-05-27");
+  const london = buildChartDossier(sampleChart, sampleTransits, instant, "Europe/London");
+  assertStringIncludes(london, "2026-05-28");
+});
+
+Deno.test("dossier date: 00:25 UTC — LA still previous day, Kolkata already next day", () => {
+  // 2026-05-28 00:25 UTC → 17:25 PDT May 27 in LA, 05:55 IST May 28 in Kolkata
+  const instant = new Date("2026-05-28T00:25:00Z");
+  const la = buildChartDossier(sampleChart, sampleTransits, instant, "America/Los_Angeles");
+  assertStringIncludes(la, "2026-05-27");
+  const kolkata = buildChartDossier(sampleChart, sampleTransits, instant, "Asia/Kolkata");
+  assertStringIncludes(kolkata, "2026-05-28");
+});
