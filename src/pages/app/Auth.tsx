@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable';
 import { toast } from '@/components/ui/sonner';
 import { useSession } from '@/hooks/useSession';
 
@@ -46,12 +45,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const onGoogle = async () => {
     setBusy(true);
     try {
-      const result = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: `${window.location.origin}/app`,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/app` },
       });
-      if (result.error) throw result.error;
-      if (result.redirected) return;
-      nav('/app');
+      if (error) throw error;
+      // On success Supabase redirects the browser to Google; this page unloads.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Google sign-in failed');
     } finally {
