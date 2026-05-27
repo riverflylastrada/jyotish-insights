@@ -218,24 +218,41 @@ export default function ChartDetail() {
       </div>
 
       {/* Sub-nav links */}
-      <div className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-9">
-        {[
+      {([
+        { heading: 'Core', items: [
           ['charts', 'Divisional'],
           ['dashas', 'Dashas'],
           ['doshas', 'Doshas'],
           ['yogas', 'Yogas'],
           ['ashtakavarga', 'Ashtakavarga'],
           ['transits', 'Transits'],
+        ] },
+        { heading: 'Strength & Bala', items: [
+          ['strengths', 'Strengths'],
+        ] },
+        { heading: 'Advanced systems', items: [
+          ['kp', 'KP System'],
+          ['jaimini', 'Jaimini'],
+          ['varshphal', 'Varshphal'],
+        ] },
+        { heading: 'Output', items: [
           ['remedies', 'Remedies'],
           ['muhurta', 'Muhurta'],
           ['report', 'Report'],
-        ].map(([slug, label]) => (
-          <Link key={slug} to={`/app/chart/${id}/${slug}`}
-            className="rounded-md border border-hairline-subtle bg-surface px-4 py-3 text-center text-sm text-text-secondary hover:border-brand-maroon hover:text-text-primary">
-            {label}
-          </Link>
-        ))}
-      </div>
+        ] },
+      ] as const).map((group) => (
+        <div key={group.heading} className="mt-8">
+          <div className="mb-2 text-eyebrow text-text-tertiary">{group.heading}</div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            {group.items.map(([slug, label]) => (
+              <Link key={slug} to={`/app/chart/${id}/${slug}`}
+                className="rounded-md border border-hairline-subtle bg-surface px-4 py-3 text-center text-sm text-text-secondary hover:border-brand-maroon hover:text-text-primary">
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
