@@ -164,6 +164,11 @@ export interface SpecialLagnaData {
   degree: number;
 }
 
+export interface VargeeyaBalaData {
+  panchaVargeeya: Record<string, number>;
+  dwadasaVargeeya: Record<string, number>;
+}
+
 export interface ArgalaHouseData {
   house: number;
   argala: {
@@ -272,7 +277,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 12;
+export const CURRENT_SNAPSHOT_VERSION = 13;
 
 export interface KundliData {
   id: string;
@@ -300,6 +305,7 @@ export interface KundliData {
   kp?: KpData;
   jaimini?: JaiminiData;
   varshphal?: VarshphalData;
+  vargeeyaBala?: VargeeyaBalaData;
   raw: unknown;
 }
 

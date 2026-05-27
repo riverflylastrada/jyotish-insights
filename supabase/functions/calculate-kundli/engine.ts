@@ -30,6 +30,7 @@ import { computeShadbala } from "./shadbala.ts";
 import { computeBhavaBala } from "./bhavabala.ts";
 import { computeVarshphal } from "./varshphal.ts";
 import { detectTajikYogas } from "./tajik_yogas.ts";
+import { computeVargeeyaBala } from "./vargeeya_bala.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -217,12 +218,15 @@ export function calculateKundli(details: BirthDetails) {
     varshphal.tajikYogas = detectTajikYogas(varshphal.planets, varshphal.annualAscSign);
   }
 
+  // Vargeeya Bala (divisional-chart strength)
+  const vargeeyaBala = computeVargeeyaBala(d1Planets, divCharts);
+
   return {
     id: crypto.randomUUID(),
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 12,
+    snapshotVersion: 13,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -260,6 +264,7 @@ export function calculateKundli(details: BirthDetails) {
       argala,
     },
     varshphal,
+    vargeeyaBala,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
   };
 }

@@ -472,6 +472,27 @@ function sectionBhavaBala(chart: any): string {
   return lines.join("\n");
 }
 
+function sectionVargeeyaBala(chart: any): string {
+  const vb = chart?.vargeeyaBala;
+  if (!vb) return "";
+
+  const lines = [`═══ VARGEEYA BALA (Divisional Strength) ═══`];
+
+  const planets = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"];
+  const header = `${pad("Planet", 10)}| ${pad("PanchaVB", 10)}| DwadasaVB`;
+  lines.push(header);
+
+  for (const p of planets) {
+    const pvb = vb.panchaVargeeya?.[p];
+    const dvb = vb.dwadasaVargeeya?.[p];
+    lines.push(
+      `${pad(capitalize(p), 10)}| ${pad(pvb != null ? pvb.toFixed(2) : "—", 10)}| ${dvb ?? "—"}`,
+    );
+  }
+
+  return lines.join("\n");
+}
+
 function sectionPanchang(chart: any): string {
   const p = chart?.panchang;
   if (!p) return "";
@@ -748,6 +769,7 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionAshtakavarga(chart),
     sectionShadbala(chart),
     sectionBhavaBala(chart),
+    sectionVargeeyaBala(chart),
     sectionPanchang(chart),
     sectionDivisionalSummary(chart),
     sectionKP(chart),
