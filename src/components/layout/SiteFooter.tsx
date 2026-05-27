@@ -6,7 +6,7 @@ export function SiteFooter() {
           <div className="md:col-span-2">
             <div className="font-display text-h3 text-brand-maroon">Acharya Jyotish</div>
             <p className="mt-3 max-w-md text-sm text-text-tertiary">
-              A professional Vedic astrology platform that runs your Kundli through five classical schools and synthesizes the verdict.
+              A professional Vedic astrology platform that runs your Kundli through eight classical schools and synthesizes the verdict.
             </p>
           </div>
           <div>

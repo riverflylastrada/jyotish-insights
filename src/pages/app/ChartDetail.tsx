@@ -221,7 +221,7 @@ export default function ChartDetail() {
           <Link to={`/app/chart/${id}/debate`} className="block rounded-md border border-brand-maroon/30 bg-surface p-5 text-left shadow-sm hover:bg-elevated">
             <div className="text-eyebrow text-brand-saffron">Tribunal</div>
             <div className="mt-2 font-display text-h3 text-text-primary">Ask the Gurus</div>
-            <p className="mt-1 text-sm text-text-tertiary">Run a five-Guru debate on a specific question about this chart.</p>
+            <p className="mt-1 text-sm text-text-tertiary">Run a eight-Guru debate on a specific question about this chart.</p>
           </Link>
         </aside>
       </div>

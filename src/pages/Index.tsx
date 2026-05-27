@@ -41,18 +41,21 @@ const HeroKundli = () => (
 );
 
 const gurus = [
-  { name: 'Parashara Guru', school: 'Classical Parashari (BPHS)', focus: 'Houses, planetary lordships, classical yogas', tone: 'Authoritative, scriptural — quotes BPHS slokas' },
-  { name: 'Jaimini Guru', school: 'Jaimini', focus: 'Chara karakas, Arudha padas, Atmakaraka', tone: 'Concise, mathematical' },
-  { name: 'Nadi Guru', school: 'Bhrigu / Deva Keralam', focus: 'Planetary combinations as life events', tone: 'Narrative, story-driven' },
-  { name: 'KP Guru', school: 'Krishnamurti Paddhati', focus: 'Sub-lord theory, ruling planets, cuspal analysis', tone: 'Modern, precise, time-focused' },
-  { name: 'Tajik Guru', school: 'Tajik / Varshphal', focus: 'Annual chart, current year focus', tone: 'Practical, near-term' },
+  { name: 'Maharishi Parashara', school: 'Brihat Parashara Hora Sastra', focus: 'Houses, planetary lordships, classical yogas', tone: 'Authoritative, scriptural — reasons from Lagna and bhava strength' },
+  { name: 'Varahamihira', school: 'Brihat Jataka', focus: 'Planetary vs house strength, dignities, aspects', tone: 'Mathematical — weighs the evidence precisely' },
+  { name: 'Dr. B. V. Raman', school: 'Modern Hindu Astrology', focus: 'Dasamsa & career, transits, practical synthesis', tone: 'Modern, classically grounded' },
+  { name: 'K. N. Rao', school: 'Dasha-led judgment', focus: 'Vimshottari Maha/Antar/Pratyantar, double-transit', tone: 'Direct, decisive — judges by dasha first' },
+  { name: 'K. S. Krishnamurti', school: 'Krishnamurti Paddhati (KP)', focus: 'Sub-lords, ruling planets, cuspal significators', tone: 'Engineering-precise, time-focused' },
+  { name: 'Maharishi Jaimini', school: 'Jaimini Sutras', focus: 'Chara karakas, Karakamsa, Arudha, Chara Dasha', tone: 'Sutra-like, logical rigor' },
+  { name: 'Mantreshwara', school: 'Phaladeepika', focus: 'Yogas, planetary avasthas, definitive results', tone: 'Practical, judgment-focused' },
+  { name: 'Kalyanavarman', school: 'Saravali', focus: 'Yogas and richly descriptive planetary portraits', tone: 'Poetic, descriptive' },
 ];
 
 const reportPanels = [
   { icon: GitBranch, title: 'Sixteen Vargas', body: 'D1 through D60 divisional charts with classical interpretation per varga.' },
   { icon: Calendar, title: 'Vimshottari Timeline', body: '120-year dasha timeline drilled to five sub-period levels.' },
   { icon: Scale, title: 'Yogas & Doshas', body: 'Strength-rated detection with cancellations and contextual remedies.' },
-  { icon: ScrollText, title: 'Multi-Guru Verdict', body: 'Five specialist reports synthesized by a Master Acharya.' },
+  { icon: ScrollText, title: 'Multi-Guru Verdict', body: 'Eight specialist reports synthesized by a Master Acharya.' },
 ];
 
 const Index = () => {
@@ -83,11 +86,11 @@ const Index = () => {
           <motion.div {...fadeUp} className="lg:col-span-7">
             <Eyebrow>Professional Vedic Astrology</Eyebrow>
             <h1 className="mt-4 font-display text-display text-text-primary">
-              Five Gurus.<br />One Chart.<br />
+              Eight Gurus.<br />One Chart.<br />
               <span className="text-brand-maroon">The Truth in Your Stars.</span>
             </h1>
             <p className="mt-6 max-w-xl text-body text-text-secondary">
-              Acharya Jyotish runs your birth chart through five classical schools of Vedic astrology — Parashari, Jaimini, Nadi, KP, and Tajik. Then a Master Acharya weighs the evidence and delivers the verdict no single astrologer could give you.
+              Acharya Jyotish runs your birth chart through eight classical schools of Vedic astrology — from Parashara and Varahamihira to Jaimini, KP, Phaladeepika and Saravali. Then a Master Acharya weighs the evidence and delivers the verdict no single astrologer could give you.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/app/new" className="inline-flex items-center gap-2 rounded-sm bg-brand-saffron px-5 py-3 text-sm font-medium text-accent-foreground shadow-sm transition-colors hover:bg-brand-saffron-hover">
@@ -117,7 +120,7 @@ const Index = () => {
           <div className="mt-14 grid gap-px overflow-hidden rounded-md border border-hairline-subtle bg-hairline-subtle md:grid-cols-4">
             {[
               { n: '०१', t: 'Compute', d: 'High-precision planetary positions across 16 divisional charts and dasha systems.' },
-              { n: '०२', t: 'Interpret', d: 'Five Gurus read the chart from their own classical lineage, in parallel.' },
+              { n: '०२', t: 'Interpret', d: 'Eight Gurus read the chart from their own classical lineage, in parallel.' },
               { n: '०३', t: 'Debate', d: 'Verdicts are compared. Agreements and disagreements are surfaced explicitly.' },
               { n: '०४', t: 'Synthesize', d: 'A Master Acharya weighs evidence and issues the consensus reading.' },
             ].map((step) => (
@@ -134,9 +137,9 @@ const Index = () => {
       {/* GURUS */}
       <section id="gurus" className="bg-elevated py-24">
         <div className="mx-auto max-w-7xl px-6">
-          <SectionTitle kicker="The panel" title="Meet the five Gurus"
+          <SectionTitle kicker="The panel" title="Meet the eight Gurus"
             lead="Each Guru represents an established lineage of Jyotish. They reason from different premises and agree to disagree." />
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {gurus.map((g, i) => (
               <motion.div key={g.name} {...fadeUp} transition={{ duration: 0.4, delay: i * 0.05 }}
                 className="rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
@@ -155,7 +158,7 @@ const Index = () => {
             <Eyebrow>The Acharya</Eyebrow>
             <div className="mt-2 font-display text-h2 text-brand-maroon">Main Guru — the Synthesis</div>
             <p className="mt-3 text-sm text-text-secondary">
-              Reads all five reports, weighs the evidence, and issues the final verdict with a confidence score and dissenting opinions noted.
+              Reads all eight reports, weighs the evidence, and issues the final verdict with a confidence score and dissenting opinions noted.
             </p>
           </div>
         </div>
