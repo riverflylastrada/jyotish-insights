@@ -29,9 +29,9 @@ export default function AdminUsers() {
   const [toggling, setToggling] = useState<string | null>(null);
 
   async function loadUsers() {
-    const { data, error: err } = await (supabase as any).rpc('admin_get_users');
+    const { data, error: err } = await supabase.rpc('admin_get_users');
     if (err) { setError(err.message); setLoading(false); return; }
-    setUsers((data ?? []) as unknown as AdminUser[]);
+    setUsers((data ?? []) as AdminUser[]);
     setLoading(false);
   }
 
@@ -40,7 +40,7 @@ export default function AdminUsers() {
   async function toggleRole(userId: string, currentRole: string) {
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     setToggling(userId);
-    const { error: err } = await (supabase as any)
+    const { error: err } = await supabase
       .from('profiles')
       .update({ role: newRole })
       .eq('user_id', userId);
