@@ -18,7 +18,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     (async () => {
-      const { data, error: err } = await supabase.rpc('admin_get_stats');
+      const { data, error: err } = await (supabase as any).rpc('admin_get_stats');
       if (err) { setError(err.message); setLoading(false); return; }
       setStats(data as unknown as Stats);
       setLoading(false);

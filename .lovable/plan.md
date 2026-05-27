@@ -1,115 +1,75 @@
-# Plan — Jyotish Sage Ship-Ready Polish
+# Implement UI_UX_PLAN.md — surface engine outputs in the app
 
-Backend (AstroWorld / FastAPI) deferred. Mock provider stays. Goal: take the app from "feature-complete with rough edges" to "ship-ready" everywhere except the real calculation engine.
+Frontend-only work in `src/`. Reads from `useKundli(id)` → `KundliData`. All new fields treated as optional with graceful empty states. Reuses existing tokens, fonts, shadcn/ui, `KundliChart`, `PLANET_LABELS`, `SIGN_NAMES`.
 
-## Phase 1 — Debate Engine: streaming verified end-to-end
+## Scope
 
-**Why:** edge function exists; UI may drop chunks mid-stream. This is the signature feature — must be flawless.
+### 1. New page: Strengths — `/app/chart/:id/strengths`
+`src/pages/app/Strengths.tsx` with three tabbed sections:
+- **Shadbala** — table of 7 planets × 6 balas (in Rupas) + Total Rupas / Required / Ratio; small stacked bar per planet for the six components; highlight strongest/weakest from `rank`; flag `ratio < 1`.
+- **Bhava Bala** — 12-house bar chart of `totalRupas`; label strongest/weakest from `rank`.
+- **Vargeeya Bala** — per planet, two small bars: Pancha value and Dwadasa count (/12).
 
-- Curl `guru-debate` edge function in both `guru` and `verdict` modes; capture raw SSE format.
-- Audit `Debate.tsx` SSE parser: fix partial-JSON buffer reset, ensure each Guru's verdict streams in as it completes (not all at once at the end).
-- Per-Guru status states: `pending → thinking → streaming → done`, with animated copy ("Parashara Guru is reviewing the chart…", etc.) per spec.
-- Main Guru synthesis panel renders only after all 5 finish; show its own streaming state.
-- "Ask a follow-up" input re-runs debate with custom question; question persists in `useDebateStore`.
-- Animated playback ("Watch the debate") — sequential chat-bubble reveal via Framer Motion.
-- Error handling: if one Guru fails, mark that card as errored, continue with others, Main Guru notes the missing voice.
+### 2. New page: KP — `/app/chart/:id/kp`
+`src/pages/app/Kp.tsx`:
+- Planet Sub-Lords table (planet, signLord, starLord, subLord).
+- Cuspal Sub-Lords table (12 cusps) — optional.
+- Ruling Planets compact card — optional.
+- House Significators — per-house A/B/C/D chips + `nodesActingFor` — optional.
 
-## Phase 2 — Server-generated PDF export
+### 3. New page: Jaimini — `/app/chart/:id/jaimini`
+`src/pages/app/Jaimini.tsx`:
+- Chara Karakas table (AK highlighted) + Karakamsa card.
+- Arudha Padas table.
+- Chara Dasha timeline (Gantt-style mirroring Vimshottari treatment), current sign marked, expandable antardasha rows when present.
+- Special Lagnas table.
+- Argala per-house view (argala vs virodha planets).
 
-**Why:** browser print is fragile (page breaks, fonts, headers). Need true server PDF.
+### 4. New page: Varshphal — `/app/chart/:id/varshphal`
+`src/pages/app/Varshphal.tsx`:
+- Header: "Year N" + Varsha Pravesh date (derived from JD).
+- Annual chart wheel via reused `KundliChart` (synthesize a minimal KundliData-shaped object from `varshphal.planets` + `annualAscSign/Deg`).
+- Muntha (sign + house) and Year Lord cards.
+- Tajik yogas: active ithasala/eesarpha/nakta/yamaya pairs with planet labels and `ithasalaType` chip; ishkavala/induvara badges.
 
-- New edge function `render-report`:
-  - Accepts `chartId` (auth-protected).
-  - Loads chart snapshot from DB.
-  - Renders HTML matching `Report.tsx` structure (cover, exec summary, panchang, D1, all 16 vargas, Vimshottari table, yogas top 25, doshas, ashtakavarga, 5 Guru reports, remedies, glossary).
-  - Calls **PDFShift API** (HTML → PDF, free tier sufficient). Requires `PDFSHIFT_API_KEY` secret.
-  - Returns PDF as base64 or signed URL.
-- Replace "Print" button on `Report.tsx` with "Download PDF" → calls edge function → triggers download.
-- Loading state: "Generating your 60-page report…" with progress.
-- Fallback: if PDFShift fails, gracefully fall back to browser print with toast.
+### 5. Enhance Dashas — `/app/chart/:id/dashas`
+Refactor `src/pages/app/Dashas.tsx` to a Tabs UI keyed off `chart.dashas` array (`system` discriminator). Tabs: Vimshottari (existing treatment), Yogini, Ashtottari — only render tabs for systems present in the array. Reuse the existing timeline component for each system since all share the `DashaPeriod` shape with `children`.
 
-## Phase 3 — Empty / error / loading states (every page)
+### 6. Navigation integration
+- `src/App.tsx` — register 4 new routes under `/app/chart/:id`: `strengths`, `kp`, `jaimini`, `varshphal`.
+- `src/pages/app/ChartDetail.tsx` (~line 233) — add matching entries to the module grid with lucide-react icons, grouped sensibly (e.g. a "Strength & Bala" group around Strengths/Shadbala and an "Advanced systems" group for KP / Jaimini / Varshphal).
 
-**Empty states** — illustration + headline + CTA on:
-- `Library.tsx` — "No charts yet. Cast your first." → `/app/new`
-- `Dashboard.tsx` — first-time user welcome
-- Search/filter no-results across Library, Yogas, Transits.
+## Technical notes
 
-**Error states**:
-- Replace any raw error text with friendly card: "Our calculation engine is briefly unavailable. Your chart is saved." + Retry button.
-- Network errors never expose stack traces.
-- 404 page polished with brand styling.
+- Each page guards on `isLoading` and on each optional field — when missing, render a tasteful empty state ("Recalculate this chart to generate …"), never throw.
+- Convert virupas → rupas by `/60` for display; show 2 decimals; use `font-mono` for all numeric cells.
+- Highlights use semantic tokens (`semantic-positive` / `semantic-negative`, `brand-saffron` / `brand-gold`); no raw colors. Display headings use `font-display` (Fraunces); Devanagari uses `font-deva` (Tiro) via `SIGN_NAMES_DEVA` / `PLANET_LABELS[x].deva` where appropriate.
+- Bars are simple Tailwind divs with width % — no new chart lib.
+- Varshphal wheel: build a small adapter that maps `VarshphalPlanetData[]` + ascendant into the shape `KundliChart` expects (ascendant `PlanetPosition` + `planets` array); house numbers come straight from `houseNumber`.
+- Chara Dasha timeline reuses the same row component used by Vimshottari (extract from `Dashas.tsx` into `src/components/dashas/DashaTimeline.tsx` during the Dashas refactor so Jaimini's page can import it).
+- All pages responsive (stack on mobile, multi-column on desktop), match existing research-terminal aesthetic.
 
-**Loading states** — shape-matching skeletons (no spinners) on:
-- Chart Detail (left chart panel, center tabs, right snapshot).
-- Library table rows.
-- Divisional charts grid.
-- Dasha timeline.
-- Debate cards (5 skeleton Guru cards).
+## Files touched
 
-**New Chart submission flow** — full-page progress per spec:
-"Computing planetary positions… → Drawing 16 divisional charts… → Running Vimshottari Dasha… → Detecting Yogas & Doshas… → Consulting the Gurus…"
+New:
+- `src/pages/app/Strengths.tsx`
+- `src/pages/app/Kp.tsx`
+- `src/pages/app/Jaimini.tsx`
+- `src/pages/app/Varshphal.tsx`
+- `src/components/dashas/DashaTimeline.tsx` (extracted)
+- Small per-page section components as needed (kept colocated)
 
-## Phase 4 — Mobile responsiveness pass
+Modified:
+- `src/App.tsx` (4 routes)
+- `src/pages/app/ChartDetail.tsx` (module grid entries)
+- `src/pages/app/Dashas.tsx` (tabs for the 3 systems)
 
-- Chart Detail: 12-col grid collapses to single column; left chart panel becomes top sticky.
-- Debate: 5-column grid → vertical stack on mobile.
-- Dasha timeline: horizontal scroll with pinch zoom hint.
-- Library table → card list on mobile.
-- Sidebar nav → bottom-sheet drawer on mobile.
-- Test at 375px, 414px, 768px breakpoints.
+Untouched: `supabase/**`, `.github/**`, migrations, snapshot-version logic, `src/integrations/supabase/{client,types}.ts`.
 
-## Phase 5 — Accessibility (WCAG AA)
+## Acceptance
 
-- Audit color contrast on `--text-tertiary`, `--text-muted` against `--bg-canvas` (likely needs darkening).
-- ARIA labels on all Kundli SVG charts (describe planets in houses).
-- Keyboard nav: tab order across Chart Detail tabs, debate cards, dasha timeline.
-- Focus rings visible (currently using `--ring`).
-- `prefers-reduced-motion` respected on all Framer Motion animations.
-- Form labels properly associated on Auth, NewChart, Settings.
-
-## Phase 6 — Polish details
-
-- **Privacy notice** on `NewChart.tsx`: "Your birth data is encrypted at rest…" (DPDP Act).
-- **Footer micro-copy** on landing + report: "These analyses are for self-reflection…"
-- **Settings page**: add Language (English active, Hindi/Gujarati "Coming Soon"), Display theme toggle (Light only for v1, Dark "Coming Soon"), transit notification placeholder.
-- **Share link page**: ensure read-only mode hides Save/Recalculate/Delete actions, shows "Viewing shared chart" banner.
-- **Toast consistency**: all success/error use Sonner with consistent copy patterns.
-- **Loading copy**: replace generic "Loading…" everywhere with contextual phrases.
-- **Sample chart** on landing "See Sample Report" → opens demo chart (15 Aug 1980, 14:30, Ahmedabad) without auth.
-
-## Technical Details
-
-**Edge function `render-report`:**
-- File: `supabase/functions/render-report/index.ts`
-- Auth: validate JWT, verify user owns `chartId` (or share token).
-- Render: build HTML string with inline CSS matching Fraunces/Inter Tight (Google Fonts CDN OK in PDFShift).
-- POST to `https://api.pdfshift.io/v3/convert/pdf` with `{ source: html, sandbox: false }`, Bearer auth.
-- Return `{ pdfBase64 }` or stream binary.
-- CORS headers from `@supabase/supabase-js/cors`.
-
-**SSE parser fix in `Debate.tsx`:**
-- Maintain a rolling `buffer` string; split on `\n\n`; only consume complete `data: …` events; keep incomplete tail in buffer.
-- Per-Guru reducer: `{ guruId: { status, text, citations } }`.
-
-**Skeletons:** create `src/components/ui/skeletons/` with one component per page shape (avoids ad-hoc divs).
-
-**Empty state component:** `src/components/ui/empty-state.tsx` — accepts `icon`, `title`, `description`, `action`; reused everywhere.
-
-## Out of scope (explicitly deferred)
-
-- AstroWorld / FastAPI backend deployment + provider wiring (revisit when ready to deploy).
-- Real geocoding for `NewChart` place autocomplete (keeping current city list).
-- Birth Time Rectification flow.
-- Dark mode.
-- Hindi / Gujarati i18n.
-- Payments / pricing tiers.
-- Analytics (PostHog/Plausible) — placeholders only.
-
-## Build order
-
-1 → 2 → 3 → 4 → 5 → 6. Pause after Phase 2 for testing the new PDF flow (needs PDFShift key).
-
-## Required from you
-
-- **PDFShift API key** (free tier: https://pdfshift.io — 50 credits/mo free). I'll request it via the secrets tool when Phase 2 starts.
+- `npm run build` and `npx tsc --noEmit -p tsconfig.app.json` clean.
+- Each new page reads real fields from a recalculated `KundliData` (no mocks).
+- Missing optional fields render empty states, never crash.
+- Visual parity with existing pages (tokens, fonts, shadcn/ui); mobile → desktop responsive.
+- No changes outside `src/`.

@@ -23,6 +23,10 @@ import Muhurta from "./pages/app/Muhurta";
 import Library from "./pages/app/Library";
 import Compatibility from "./pages/app/Compatibility";
 import Settings from "./pages/app/Settings";
+import Strengths from "./pages/app/Strengths";
+import Kp from "./pages/app/Kp";
+import Jaimini from "./pages/app/Jaimini";
+import Varshphal from "./pages/app/Varshphal";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { RequireAdmin } from "./components/auth/RequireAdmin";
 import { AdminLayout } from "./components/layout/AdminLayout";
@@ -64,6 +68,10 @@ const App = () => (
             <Route path="chart/:id/report" element={<Report />} />
             <Route path="chart/:id/remedies" element={<Remedies />} />
             <Route path="chart/:id/muhurta" element={<Muhurta />} />
+            <Route path="chart/:id/strengths" element={<Strengths />} />
+            <Route path="chart/:id/kp" element={<Kp />} />
+            <Route path="chart/:id/jaimini" element={<Jaimini />} />
+            <Route path="chart/:id/varshphal" element={<Varshphal />} />
           </Route>
 
           <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>

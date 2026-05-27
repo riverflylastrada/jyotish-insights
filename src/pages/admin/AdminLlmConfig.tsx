@@ -61,15 +61,16 @@ export default function AdminLlmConfig() {
 
   useEffect(() => {
     (async () => {
+      const sb = supabase as any;
       const [configRes, keysRes] = await Promise.all([
-        supabase.from('app_settings').select('key, value').eq('category', 'llm_config'),
-        supabase.from('app_settings').select('key').eq('category', 'api_keys'),
+        sb.from('app_settings').select('key, value').eq('category', 'llm_config'),
+        sb.from('app_settings').select('key').eq('category', 'api_keys'),
       ]);
 
       if (configRes.error) { setError(configRes.error.message); setLoading(false); return; }
 
       const configMap: Record<string, string> = {};
-      for (const row of configRes.data ?? []) {
+      for (const row of (configRes.data ?? []) as Array<{ key: string; value: string }>) {
         if (row.key && row.value) configMap[row.key] = row.value;
       }
 
@@ -80,7 +81,7 @@ export default function AdminLlmConfig() {
         llm_api_key_setting: configMap['llm_api_key_setting'] ?? 'GOOGLE_AI_KEY',
       });
 
-      setApiKeyOptions((keysRes.data ?? []).map(r => r.key));
+      setApiKeyOptions(((keysRes.data ?? []) as Array<{ key: string }>).map(r => r.key));
       setLoading(false);
     })();
   }, []);
@@ -105,7 +106,7 @@ export default function AdminLlmConfig() {
     ];
 
     for (const entry of entries) {
-      const { error: err } = await supabase
+      const { error: err } = await (supabase as any)
         .from('app_settings')
         .upsert({ key: entry.key, value: entry.value, category: 'llm_config' }, { onConflict: 'key' });
       if (err) {
