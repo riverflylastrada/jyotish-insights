@@ -22,9 +22,9 @@ calculation is JHora-validated by a **parity harness** + **CI** on each PR.
 
 **Engine vs. UI:** all of the above is computed and fed to the Guru Debate
 dossier, but many of the newer outputs have **no dedicated front-end view yet**
-— that's the upcoming **UI/UX phase** (see below). Remaining engine gaps are
-small: Jaimini extras (Special Lagnas, Argala), Vimsopaka/vargeeya bala, and a
-few more dasha systems. Product gaps: Muhurta, transit alerts, monetization.
+— that's the upcoming **UI/UX phase** (see below). The **core engine is now
+feature-complete**; only optional items remain (Kalachakra dasha, Muhurta,
+expanded yoga catalog). Product gaps: transit alerts, monetization.
 
 ---
 
@@ -78,21 +78,27 @@ few more dasha systems. Product gaps: Muhurta, transit alerts, monetization.
   KN Rao sub-periods on the existing Maha-level dasha. Along the way the Maha
   rule was corrected to match JHora (Savya/Apasavya direction + stronger-co-lord
   durations for dual-lord signs); GJC & Rajiv now match PyJHora exactly.
+- ✅ **Jaimini extras** ([special_lagna.ts](supabase/functions/calculate-kundli/special_lagna.ts)) —
+  Special Lagnas (Bhava/Hora/Ghati/Vighati/Pranapada/Sree, all ≤0.06°) and
+  Argala / Virodha Argala. **Completes the Jaimini system.**
+- ✅ **Vargeeya Bala** ([vargeeya_bala.ts](supabase/functions/calculate-kundli/vargeeya_bala.ts)) —
+  Pancha-vargeeya (±0.1) and Dwadasa-vargeeya (exact) divisional strength.
+  **Completes the strength suite.**
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced in the Guru Debate dossier — but **not yet in dedicated UI** (see the
-> UI/UX phase).
+> UI/UX phase). With this, the **core engine is feature-complete**; only
+> optional items remain (below), and the next major focus is the UI/UX phase.
 
 ---
 
 ## Near-term
 
-### Remaining engine additions (small, additive)
-- 🟡 **Jaimini extras** — Special Lagnas (Bhava/Hora/Ghati/Vighati/Pranapada/Sree)
-  and Argala / Virodha Argala. *(In progress.)*
-- ⬜ **Vimsopaka / vargeeya bala** — Pancha-vargeeya + Dwadasa-vargeeya divisional
-  strength (PyJHora has both). Completes the strength suite.
-- ⬜ **More dasha systems** — Kalachakra (and the other nakshatra dashas) as desired.
+### Optional engine additions (the core engine is otherwise complete)
+- ⬜ **More dasha systems** — Kalachakra (and other nakshatra dashas) as desired.
+- ⬜ **Muhurta** (electional) and an **expanded yoga catalog** — see Mid-term.
+- ⬜ **House systems** (Placidus/Sripati/Equal as selectable) — parked for the
+  UI/UX phase (it's a user setting).
 
 ### Engine accuracy polish
 - ⬜ **Exact Lahiri ayanamsa.** A ~0.007° systematic delta vs Swiss Ephemeris's

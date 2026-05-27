@@ -55,6 +55,8 @@ API is required.
   rank, **validated against Jagannatha Hora to within ±0.03 Rupa**.
 - **Bhava Bala** — strength of each of the 12 houses (Bhavadhipathi + Dig +
   Drishti bala) in Rupas, JHora-validated.
+- **Vargeeya Bala** — divisional strength: Pancha-vargeeya (5-varga) and
+  Dwadasa-vargeeya (favorable placements across D1–D12), JHora-validated.
 - **Varshphal (Tajik annual chart)** — the solar-return chart, Muntha, Year
   Lord (Varshesh via full Panchavargeeya-Bala tie-break), and **Tajik yogas**
   (Ithasala, Eesarpha, Ishkavala, Induvara, Nakta, Yamaya) — JHora-validated.
@@ -62,8 +64,9 @@ API is required.
   planet, **Placidus cuspal sub-lords**, KP Ruling Planets, and the **4-fold
   house significators** (with Rahu/Ketu node agency).
 - **Jaimini** — 8 Chara Karakas (Atmakaraka → Darakaraka, with Rahu reversed),
-  Karakamsa, Arudha Padas (Arudha Lagna, Upapada), and **Chara Dasha** (KN Rao
-  method, Maha + **antardasha**, JHora-validated).
+  Karakamsa, Arudha Padas (Arudha Lagna, Upapada), **Chara Dasha** (KN Rao, Maha
+  + antardasha), **Special Lagnas** (Bhava/Hora/Ghati/Vighati/Pranapada/Sree),
+  and **Argala** / Virodha Argala — all JHora-validated.
 - Selectable **Ayanamsa** (Lahiri, Raman, Krishnamurti, Yukteshwar) and chart
   style (North / South Indian).
 - **Self-updating snapshots** — saved charts carry an engine version and
@@ -173,8 +176,10 @@ in TypeScript:
 | [panchang.ts](supabase/functions/calculate-kundli/panchang.ts) | Tithi, Vara, Nakshatra, Yoga, Karana |
 | [kp.ts](supabase/functions/calculate-kundli/kp.ts) | KP sub-lords, Placidus cuspal sub-lords, Ruling Planets, 4-fold house significators |
 | [jaimini.ts](supabase/functions/calculate-kundli/jaimini.ts) | Chara Karakas, Karakamsa, Arudha Padas, Chara Dasha (KN Rao, Maha + Antar) |
+| [special_lagna.ts](supabase/functions/calculate-kundli/special_lagna.ts) | Special Lagnas (Bhava/Hora/Ghati/Vighati/Pranapada/Sree) + Argala |
 | [shadbala.ts](supabase/functions/calculate-kundli/shadbala.ts) | Six-source Shadbala in Rupas (JHora-validated) |
 | [bhavabala.ts](supabase/functions/calculate-kundli/bhavabala.ts) | Bhava Bala (house strength) in Rupas (JHora-validated) |
+| [vargeeya_bala.ts](supabase/functions/calculate-kundli/vargeeya_bala.ts) | Pancha- & Dwadasa-vargeeya divisional strength (JHora-validated) |
 | [varshphal.ts](supabase/functions/calculate-kundli/varshphal.ts) | Varshphal: annual chart, Muntha, Year Lord (JHora-validated) |
 | [tajik_yogas.ts](supabase/functions/calculate-kundli/tajik_yogas.ts) | Tajik yogas on the annual chart (Ithasala, Eesarpha, …) |
 | [engine.ts](supabase/functions/calculate-kundli/engine.ts) | Orchestrator → assembles the full `KundliData` (version-stamped) |
