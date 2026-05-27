@@ -1,5 +1,10 @@
 name: jyotish-insights
 region: blr
+domains:
+  - domain: acharyajyotish.com
+    type: PRIMARY
+  - domain: www.acharyajyotish.com
+    type: ALIAS
 static_sites:
   - name: jyotish-insights-frontend
     github:
