@@ -33,6 +33,8 @@ export interface PlanetShadbala {
   totalRupas: number;   // = totalVirupas / 60
   required: number;     // minimum Rupas (standard BPHS set)
   ratio: number;        // totalRupas / required
+  ishtaPhala: number;   // virupas — sqrt(uchchaBala × cheshtaBala)
+  kashtaPhala: number;  // virupas — sqrt((60-uchcha) × (60-cheshta))
 }
 
 export interface ShadbalaResult {
@@ -815,6 +817,7 @@ export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
     const pp = d1Planets.find(p => p.planet === planet);
     if (!pp) continue;
 
+    const ub = uchchaBala(planet, pp.longitude);
     const sthanaBala = computeSthanaBala(planet, pp.longitude, d1Planets, divCharts, ascSign);
     const digBala = computeDigBala(planet, pp.longitude, siderealCusps);
     const kalaBala = kalaBalaAll[planet];
@@ -827,6 +830,10 @@ export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
     const required = REQUIRED_RUPAS[planet];
     const ratio = totalRupas / required;
 
+    // BPHS Ishta/Kashta Phala (Ch 27): derived from Uchcha Bala + Cheshta Bala.
+    const ishtaPhala = Math.sqrt(Math.max(0, ub * cheshtaBala));
+    const kashtaPhala = Math.sqrt(Math.max(0, (60 - ub) * (60 - cheshtaBala)));
+
     result[planet] = {
       sthanaBala: Math.round(sthanaBala * 100) / 100,
       digBala: Math.round(digBala * 100) / 100,
@@ -838,6 +845,8 @@ export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
       totalRupas: Math.round(totalRupas * 100) / 100,
       required,
       ratio: Math.round(ratio * 100) / 100,
+      ishtaPhala: Math.round(ishtaPhala * 100) / 100,
+      kashtaPhala: Math.round(kashtaPhala * 100) / 100,
     };
   }
 

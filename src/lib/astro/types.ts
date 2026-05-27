@@ -135,6 +135,18 @@ export interface PlanetShadbalaData {
   totalRupas: number;
   required: number;
   ratio: number;
+  ishtaPhala: number;
+  kashtaPhala: number;
+}
+
+export interface PlanetVimsopakaData {
+  score: number;
+  count: number;
+  charts: string;
+}
+
+export interface VimsopakaData {
+  planets: Record<string, PlanetVimsopakaData>;
 }
 
 export interface ShadbalaData {
@@ -277,7 +289,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 13;
+export const CURRENT_SNAPSHOT_VERSION = 14;
 
 export interface KundliData {
   id: string;
@@ -301,6 +313,7 @@ export interface KundliData {
   yogas: Yoga[];
   ashtakavarga: AshtakavargaData;
   shadbala?: ShadbalaData;
+  vimsopakaBala?: VimsopakaData;
   bhavaBala?: BhavaBalaData;
   kp?: KpData;
   jaimini?: JaiminiData;

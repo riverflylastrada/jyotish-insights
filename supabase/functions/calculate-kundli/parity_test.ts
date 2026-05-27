@@ -87,6 +87,12 @@ interface ReferenceChart {
       first9: Array<{ sign: string; durationYears: number }>;
       currentMahaSign: string;
     };
+    /** Ishta Phala (BPHS Ch 27) per planet — PyJHora-derived Uchcha×Cheshta (virupas) */
+    ishtaPhala?: Record<string, number>;
+    /** Kashta Phala (BPHS Ch 27) per planet — PyJHora-derived (virupas) */
+    kashtaPhala?: Record<string, number>;
+    /** Vimsopaka Bala (Shodhasavarga, 16 vargas) per planet — PyJHora v4.8.5 */
+    vimsopakaBala?: Record<string, { score: number; count: number }>;
   };
 }
 
@@ -242,6 +248,22 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         ],
         currentMahaSign: "Karka",
       },
+      // Ishta/Kashta Phala (BPHS Ch 27: sqrt(Uchcha×Cheshta) / sqrt((60-U)×(60-C)))
+      // PyJHora-derived from strength._uchcha_bala + strength._cheshta_bala_new
+      // Sun/Moon: Cheshta=0 → Ishta=0 (no substitute for luminaries per JHora)
+      ishtaPhala:  { sun: 0.00, moon: 0.00, mars: 8.14, mercury: 49.15, jupiter: 25.00, venus: 31.05, saturn: 32.63 },
+      kashtaPhala: { sun: 48.19, moon: 42.22, mars: 50.82, mercury: 8.20, jupiter: 33.25, venus: 0.00, saturn: 13.65 },
+      // Vimsopaka Shodhasavarga (PyJHora v4.8.5, Lahiri, LOCAL→JD harness)
+      // Moon=303.858°, Δ<0.005° vs SwissEph
+      vimsopakaBala: {
+        sun:     { score: 15.4250, count: 5 },
+        moon:    { score: 10.0750, count: 0 },
+        mars:    { score: 14.3500, count: 2 },
+        mercury: { score: 16.7250, count: 6 },
+        jupiter: { score: 14.0250, count: 3 },
+        venus:   { score: 14.4000, count: 5 },
+        saturn:  { score: 14.6000, count: 7 },
+      },
     },
   },
   // ── Chart 2: Rajiv Gandhi ──────────────────────────────────────────────
@@ -393,6 +415,20 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         ],
         currentMahaSign: "Vrishabha",
       },
+      // Ishta/Kashta Phala (BPHS Ch 27, PyJHora-derived Uchcha×Cheshta)
+      ishtaPhala:  { sun: 0.00, moon: 0.00, mars: 11.62, mercury: 51.90, jupiter: 10.23, venus: 11.36, saturn: 18.12 },
+      kashtaPhala: { sun: 47.72, moon: 45.75, mars: 48.37, mercury: 7.61, jupiter: 26.78, venus: 48.54, saturn: 41.88 },
+      // Vimsopaka Shodhasavarga (PyJHora v4.8.5, Lahiri, LOCAL→JD harness)
+      // Moon=137.649°, Δ<0.005° vs SwissEph
+      vimsopakaBala: {
+        sun:     { score: 11.6000, count: 5 },
+        moon:    { score: 11.9000, count: 3 },
+        mars:    { score: 15.5000, count: 4 },
+        mercury: { score: 10.0500, count: 2 },
+        jupiter: { score: 12.0750, count: 6 },
+        venus:   { score: 10.7250, count: 3 },
+        saturn:  { score: 16.5500, count: 6 },
+      },
     },
   },
   // ── Chart 3: Amitabh Bachchan ──────────────────────────────────────────
@@ -542,6 +578,20 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
           { sign: "Meena",     durationYears: 10 },
         ],
         currentMahaSign: "Mesha",
+      },
+      // Ishta/Kashta Phala (BPHS Ch 27, PyJHora-derived Uchcha×Cheshta)
+      ishtaPhala:  { sun: 0.00, moon: 0.00, mars: 3.44, mercury: 52.96, jupiter: 42.70, venus: 4.55, saturn: 20.50 },
+      kashtaPhala: { sun: 57.35, moon: 56.20, mars: 49.80, mercury: 5.59, jupiter: 6.56, venus: 55.40, saturn: 29.12 },
+      // Vimsopaka Shodhasavarga (PyJHora v4.8.5, Lahiri, LOCAL→JD harness)
+      // Moon=190.907°, Δ<0.003° vs SwissEph
+      vimsopakaBala: {
+        sun:     { score: 9.6750,  count: 3 },
+        moon:    { score: 14.1750, count: 2 },
+        mars:    { score: 10.5250, count: 4 },
+        mercury: { score: 12.6250, count: 3 },
+        jupiter: { score: 17.3000, count: 7 },
+        venus:   { score: 13.2750, count: 7 },
+        saturn:  { score: 9.6250,  count: 1 },
       },
     },
   },
@@ -774,6 +824,67 @@ for (const ref of REFERENCE_CHARTS) {
           jhoraRupas,
           SHADBALA_TOLERANCE_RUPAS,
           `${planet}: engine ${sb.planets[planet].totalRupas.toFixed(2)}R vs JHora ${jhoraRupas}R`,
+        );
+      }
+    });
+  }
+
+  // ── Ishta/Kashta Phala parity (BPHS Ch 27, ±1.0 virupa tolerance) ──
+  if (ref.expected.ishtaPhala && ref.expected.kashtaPhala) {
+    const IK_TOLERANCE = 1.0;
+    Deno.test(`[${ref.label}] Ishta Phala within ±${IK_TOLERANCE} virupa of PyJHora`, () => {
+      const sb = chart.shadbala as { planets: Record<string, { ishtaPhala: number }> };
+      for (const [planet, expected] of Object.entries(ref.expected.ishtaPhala!)) {
+        assertAlmostEquals(
+          sb.planets[planet].ishtaPhala,
+          expected,
+          IK_TOLERANCE,
+          `${planet} Ishta: engine ${sb.planets[planet].ishtaPhala.toFixed(2)} vs PyJHora ${expected}`,
+        );
+      }
+    });
+    Deno.test(`[${ref.label}] Kashta Phala within ±${IK_TOLERANCE} virupa of PyJHora`, () => {
+      const sb = chart.shadbala as { planets: Record<string, { kashtaPhala: number }> };
+      for (const [planet, expected] of Object.entries(ref.expected.kashtaPhala!)) {
+        assertAlmostEquals(
+          sb.planets[planet].kashtaPhala,
+          expected,
+          IK_TOLERANCE,
+          `${planet} Kashta: engine ${sb.planets[planet].kashtaPhala.toFixed(2)} vs PyJHora ${expected}`,
+        );
+      }
+    });
+  }
+
+  // ── Vimsopaka Bala parity (Shodhasavarga, ±2.0 score tolerance) ──────
+  // Tolerance set at 2.0 (10% of 0–20 scale) to account for a known
+  // methodology difference: the engine uses fixed sign lords (Mars for
+  // Scorpio, Saturn for Aquarius) while PyJHora uses dynamic co-ruler
+  // selection (Mars/Ketu for Scorpio, Saturn/Rahu for Aquarius) based
+  // on planetary strength in each varga chart.
+  if (ref.expected.vimsopakaBala) {
+    const VIMSOPAKA_TOLERANCE = 2.0;
+    Deno.test(`[${ref.label}] Vimsopaka score within ±${VIMSOPAKA_TOLERANCE} of PyJHora`, () => {
+      const vb = chart.vimsopakaBala as { planets: Record<string, { score: number; count: number }> };
+      assertEquals(typeof vb, "object", "vimsopakaBala should be an object");
+      for (const [planet, expected] of Object.entries(ref.expected.vimsopakaBala!)) {
+        const got = vb.planets[planet];
+        assertAlmostEquals(
+          got.score,
+          expected.score,
+          VIMSOPAKA_TOLERANCE,
+          `${planet} Vimsopaka score: engine ${got.score.toFixed(4)} vs PyJHora ${expected.score}`,
+        );
+      }
+    });
+    Deno.test(`[${ref.label}] Vimsopaka count matches PyJHora`, () => {
+      const vb = chart.vimsopakaBala as { planets: Record<string, { score: number; count: number }> };
+      for (const [planet, expected] of Object.entries(ref.expected.vimsopakaBala!)) {
+        const got = vb.planets[planet];
+        assertEquals(
+          got.count,
+          expected.count,
+          `${planet} Vimsopaka count: engine ${got.count} vs PyJHora ${expected.count}`,
         );
       }
     });
