@@ -360,6 +360,10 @@ const sampleChart = {
     ],
     rank: [8, 4, 2, 5, 11, 9, 7, 1, 3, 12, 10, 6],
   },
+  vargeeyaBala: {
+    panchaVargeeya: { sun: 13.76, moon: 9.95, mars: 2.28, mercury: 26.76, jupiter: 11.41, venus: 12.13, saturn: 26.23 },
+    dwadasaVargeeya: { sun: 4, moon: 2, mars: 5, mercury: 8, jupiter: 8, venus: 7, saturn: 6 },
+  },
 };
 
 const sampleTransits = [
@@ -473,6 +477,13 @@ Deno.test("dossier contains Bhava Bala data", () => {
   assertStringIncludes(d, "Strongest");
   assertStringIncludes(d, "Weakest");
   assertStringIncludes(d, "House strength rank");
+});
+
+Deno.test("dossier contains Vargeeya Bala section", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "VARGEEYA BALA");
+  assertStringIncludes(d, "PanchaVB");
+  assertStringIncludes(d, "DwadasaVB");
 });
 
 Deno.test("dossier contains Panchang data", () => {
