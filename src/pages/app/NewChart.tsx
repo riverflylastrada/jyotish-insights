@@ -163,7 +163,7 @@ export default function NewChart() {
   if (submitting) {
     return (
       <div className="mx-auto max-w-xl px-6 py-24 text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-saffron" />
+        <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-saffron" />
         <div className="mt-6 text-eyebrow text-brand-saffron">Casting your chart</div>
         <div className="mt-2 font-display text-h2 text-text-primary">{stages[stageIdx]}</div>
         <div className="mx-auto mt-6 h-1 w-64 overflow-hidden rounded-full bg-elevated">

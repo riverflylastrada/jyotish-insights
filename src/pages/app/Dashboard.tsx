@@ -104,7 +104,7 @@ export default function Dashboard() {
   if (profiles === null || loadingTransits) {
     return (
       <div className="mx-auto max-w-7xl px-6 py-24 text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-saffron" />
+        <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-saffron" />
         <p className="mt-4 text-text-secondary font-display">Assembling your personalized research feed...</p>
       </div>
     );
