@@ -14,7 +14,8 @@
  * - Compatibility/synastry data (for relationship questions)
  */
 
-import { signName, wholeSignHouse, getSignLord } from "../calculate-kundli/vedic.ts";
+import { signName, wholeSignHouse, getSignLord, type AyanamsaKey } from "../calculate-kundli/vedic.ts";
+import { planetSignExitDate } from "../calculate-kundli/engine.ts";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,13 @@ function fmtDeg(deg: number): string {
   const d = Math.floor(deg);
   const m = Math.round((deg - d) * 60);
   return `${String(d).padStart(2, "0")}°${String(m).padStart(2, "0")}'`;
+}
+
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Format a Date as "Mon YYYY" (UTC), or null if no date. */
+function fmtMonthYear(d: Date | null): string | null {
+  return d ? `${MONTH_ABBR[d.getUTCMonth()]} ${d.getUTCFullYear()}` : null;
 }
 
 function houseFrom(targetSign: number, refSign: number): number {
@@ -153,12 +161,13 @@ function sectionCurrentTransits(
   return lines.join("\n");
 }
 
-function sectionSadeSatiStatus(transits: any[], natalMoonSign: number): string {
+function sectionSadeSatiStatus(transits: any[], natalMoonSign: number, ayanamsaKey: AyanamsaKey, now: Date): string {
   if (!transits || transits.length === 0 || !natalMoonSign) return "";
   const saturn = transits.find((t: any) => t.planet === "saturn");
   if (!saturn) return "";
 
   const diff = ((saturn.signNumber - natalMoonSign + 12) % 12);
+  const inSadeSati = diff === 11 || diff === 0 || diff === 1;
   const lines = [`═══ SADE SATI / SATURN TRANSIT STATUS (AUTHORITATIVE — state this exact phase) ═══`];
 
   if (diff === 11) {
@@ -183,7 +192,22 @@ function sectionSadeSatiStatus(transits: any[], natalMoonSign: number): string {
 
   lines.push(`Transit Saturn: ${saturn.signName} ${fmtDeg(saturn.signDegree)}${saturn.isRetrograde ? " ℞" : ""}`);
   lines.push(`Natal Moon: ${signName(natalMoonSign)}`);
-  lines.push(`DIRECTIVE: State the SADE SATI phase and trend EXACTLY as given above. Do NOT recompute, renumber, or relabel the phase, and do NOT contradict the stated trend (intensifying vs. waning).`);
+
+  // Ephemeris-computed end dates so gurus answer "when does it resolve?" without
+  // inventing a date. Phase 3's current sign IS the final Sade Sati sign.
+  if (inSadeSati) {
+    const phaseEnd = fmtMonthYear(planetSignExitDate("saturn", saturn.signNumber, now, ayanamsaKey, { horizonDays: 1200 }));
+    if (diff === 1) {
+      if (phaseEnd) lines.push(`SADE SATI ENDS: approximately ${phaseEnd}, when transit Saturn leaves ${saturn.signName} (ephemeris-computed).`);
+    } else {
+      const finalSign = (natalMoonSign % 12) + 1; // 2nd from Moon — the last Sade Sati sign
+      const fullEnd = fmtMonthYear(planetSignExitDate("saturn", finalSign, now, ayanamsaKey));
+      if (phaseEnd) lines.push(`Current phase ends: approximately ${phaseEnd}, when Saturn leaves ${saturn.signName} (ephemeris-computed).`);
+      if (fullEnd) lines.push(`SADE SATI fully ends: approximately ${fullEnd}, when Saturn leaves ${signName(finalSign)} (2nd from the natal Moon, ephemeris-computed).`);
+    }
+  }
+
+  lines.push(`DIRECTIVE: State the SADE SATI phase and trend EXACTLY as given above. Do NOT recompute, renumber, or relabel the phase, and do NOT contradict the stated trend (intensifying vs. waning). If an end date is given above, cite THAT date for timing; do NOT invent, estimate, or substitute any other transit or sign-change date.`);
   return lines.join("\n");
 }
 
@@ -759,7 +783,7 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionHouseLordships(ascSign),
     sectionNatalPlanets(chart),
     sectionCurrentTransits(transits, ascSign, natalMoonSign, now),
-    sectionSadeSatiStatus(transits, natalMoonSign),
+    sectionSadeSatiStatus(transits, natalMoonSign, chart?.birthDetails?.ayanamsa ?? "lahiri", now),
     sectionDoubleTransit(transits, ascSign, natalMoonSign),
     sectionDashas(chart),
     sectionYoginiDasha(chart),

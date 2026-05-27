@@ -306,3 +306,38 @@ export function calculateTransits(details: BirthDetails) {
     };
   });
 }
+
+/**
+ * Approximate UTC date at which `planetKey` permanently leaves sidereal sign
+ * `targetSign` (1–12), scanning forward from `fromDate`. Retrograde re-entries are
+ * handled by returning shortly after the LAST time the planet is seen in the sign
+ * within the horizon, so the result is the final egress — not a mid-retrograde dip.
+ * Returns null if the planet is not in `targetSign` anywhere in the horizon (it has
+ * already left, or won't reach it in time). Used for Sade Sati / Saturn-transit
+ * end-date reporting. Planet longitude is geocentric, so observer lat/lon are
+ * irrelevant and passed as 0.
+ */
+export function planetSignExitDate(
+  planetKey: string,
+  targetSign: number,
+  fromDate: Date,
+  ayanamsaKey: AyanamsaKey,
+  opts: { horizonDays?: number; stepDays?: number } = {},
+): Date | null {
+  const horizonDays = opts.horizonDays ?? 3000; // ~8.2 yr — covers a full Sade Sati from its first phase
+  const stepDays = opts.stepDays ?? 4;
+  const startJd = fromDate.getTime() / 86_400_000 + 2_440_587.5;
+
+  let lastInSignJd: number | null = null;
+  for (let d = 0; d <= horizonDays; d += stepDays) {
+    const jd = startJd + d;
+    const lon = (tropicalPositions(jd, 0, 0, 'true') as unknown as Record<string, number>)[planetKey];
+    if (lon === undefined) return null;
+    const sid = toSidereal(lon, ayanamsa(ayanamsaKey, jd));
+    if (signNumber(sid) === targetSign) lastInSignJd = jd;
+  }
+  if (lastInSignJd === null) return null;
+  // True egress lies between the last in-sign sample and the next (out-of-sign) sample.
+  const egressJd = lastInSignJd + stepDays / 2;
+  return new Date((egressJd - 2_440_587.5) * 86_400_000);
+}
