@@ -88,6 +88,10 @@ export type Database = {
           ayanamsa: string
           chart_style: string
           created_at: string
+          current_lat: number | null
+          current_lon: number | null
+          current_place_name: string | null
+          current_timezone: string | null
           display_name: string | null
           house_system: string
           id: string
@@ -99,6 +103,10 @@ export type Database = {
           ayanamsa?: string
           chart_style?: string
           created_at?: string
+          current_lat?: number | null
+          current_lon?: number | null
+          current_place_name?: string | null
+          current_timezone?: string | null
           display_name?: string | null
           house_system?: string
           id?: string
@@ -110,6 +118,10 @@ export type Database = {
           ayanamsa?: string
           chart_style?: string
           created_at?: string
+          current_lat?: number | null
+          current_lon?: number | null
+          current_place_name?: string | null
+          current_timezone?: string | null
           display_name?: string | null
           house_system?: string
           id?: string
