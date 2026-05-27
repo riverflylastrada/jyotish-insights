@@ -14,42 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      app_settings: {
-        Row: {
-          id: string
-          key: string
-          value: string | null
-          category: string
-          label: string | null
-          description: string | null
-          is_secret: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          key: string
-          value?: string | null
-          category?: string
-          label?: string | null
-          description?: string | null
-          is_secret?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          key?: string
-          value?: string | null
-          category?: string
-          label?: string | null
-          description?: string | null
-          is_secret?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       charts: {
         Row: {
           birth_details: Json
@@ -91,7 +55,6 @@ export type Database = {
           display_name: string | null
           house_system: string
           id: string
-          role: string
           updated_at: string
           user_id: string
         }
@@ -102,7 +65,6 @@ export type Database = {
           display_name?: string | null
           house_system?: string
           id?: string
-          role?: string
           updated_at?: string
           user_id: string
         }
@@ -113,7 +75,6 @@ export type Database = {
           display_name?: string | null
           house_system?: string
           id?: string
-          role?: string
           updated_at?: string
           user_id?: string
         }
@@ -124,25 +85,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_get_stats: {
-        Args: Record<string, never>
-        Returns: Json
-      }
-      admin_get_users: {
-        Args: Record<string, never>
-        Returns: {
-          user_id: string
-          email: string
-          display_name: string | null
-          role: string
-          ayanamsa: string
-          chart_style: string
-          house_system: string
-          charts_count: number
-          created_at: string
-          last_sign_in_at: string | null
-        }[]
-      }
       get_chart_by_share_token: {
         Args: { _token: string }
         Returns: {
