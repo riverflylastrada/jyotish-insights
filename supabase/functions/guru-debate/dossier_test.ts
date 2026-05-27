@@ -226,6 +226,41 @@ const sampleChart = {
       },
       timeline: [],
     },
+    {
+      system: "kalachakra",
+      currentMahaDasha: {
+        level: "maha",
+        planet: "Tula",
+        startDate: "2020-01-01T00:00:00.000Z",
+        endDate: "2036-01-01T00:00:00.000Z",
+        durationYears: 16,
+        children: [
+          {
+            level: "antar",
+            planet: "Tula",
+            startDate: "2024-01-01T00:00:00.000Z",
+            endDate: "2027-09-01T00:00:00.000Z",
+            durationYears: 3.56,
+          },
+        ],
+      },
+      timeline: [
+        {
+          level: "maha",
+          planet: "Tula",
+          startDate: "2020-01-01T00:00:00.000Z",
+          endDate: "2036-01-01T00:00:00.000Z",
+          durationYears: 16,
+        },
+        {
+          level: "maha",
+          planet: "Kanya",
+          startDate: "2036-01-01T00:00:00.000Z",
+          endDate: "2045-01-01T00:00:00.000Z",
+          durationYears: 9,
+        },
+      ],
+    },
   ],
   yogas: [
     {
@@ -637,4 +672,10 @@ Deno.test("dossier unavailable systems no longer lists Varshphal", () => {
   const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
   // Varshphal is now computed, so it should not appear in "not yet computed" list
   assertEquals(d.includes("Varshphal (annual/solar return chart)"), false);
+});
+
+Deno.test("dossier contains Kalachakra Dasha section", () => {
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "KALACHAKRA DASHA");
+  assertStringIncludes(d, "Tula");
 });
