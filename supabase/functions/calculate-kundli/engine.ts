@@ -32,6 +32,7 @@ import { computeVarshphal } from "./varshphal.ts";
 import { detectTajikYogas } from "./tajik_yogas.ts";
 import { computeVargeeyaBala } from "./vargeeya_bala.ts";
 import { buildKalachakraDasha } from "./kalachakra.ts";
+import { computeVimsopakaBala } from "./vimsopaka.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -223,12 +224,15 @@ export function calculateKundli(details: BirthDetails) {
   // Vargeeya Bala (divisional-chart strength)
   const vargeeyaBala = computeVargeeyaBala(d1Planets, divCharts);
 
+  // Vimsopaka Bala (Shodhasavarga — 16-varga dignity score out of 20)
+  const vimsopakaBala = computeVimsopakaBala(d1Planets, divCharts);
+
   return {
     id: crypto.randomUUID(),
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 13,
+    snapshotVersion: 14,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -239,6 +243,7 @@ export function calculateKundli(details: BirthDetails) {
     yogas,
     ashtakavarga,
     shadbala,
+    vimsopakaBala,
     bhavaBala,
     kp: { planetSubLords: kpPlanetSubLords, cuspalSubLords, rulingPlanets, houseSignificators },
     jaimini: {

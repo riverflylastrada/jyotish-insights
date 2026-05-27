@@ -26,7 +26,7 @@ function EmptyState({ label }: { label: string }) {
 export default function Strengths() {
   const { id = 'demo' } = useParams();
   const { data, isLoading } = useKundli(id);
-  const [tab, setTab] = useState<'shadbala' | 'bhava' | 'vargeeya'>('shadbala');
+  const [tab, setTab] = useState<'shadbala' | 'bhava' | 'vargeeya' | 'vimsopaka'>('shadbala');
 
   if (isLoading || !data) {
     return (
@@ -52,6 +52,7 @@ export default function Strengths() {
           ['shadbala', 'Shadbala'],
           ['bhava', 'Bhava Bala'],
           ['vargeeya', 'Vargeeya Bala'],
+          ['vimsopaka', 'Vimsopaka Bala'],
         ] as const).map(([key, label]) => {
           const isActive = tab === key;
           return (
@@ -68,6 +69,7 @@ export default function Strengths() {
         {tab === 'shadbala' && (data.shadbala ? <ShadbalaSection data={data.shadbala} /> : <EmptyState label="Shadbala" />)}
         {tab === 'bhava' && (data.bhavaBala ? <BhavaBalaSection data={data.bhavaBala} /> : <EmptyState label="Bhava Bala" />)}
         {tab === 'vargeeya' && (data.vargeeyaBala ? <VargeeyaBalaSection data={data.vargeeyaBala} /> : <EmptyState label="Vargeeya Bala" />)}
+        {tab === 'vimsopaka' && (data.vimsopakaBala ? <VimsopakaSection data={data.vimsopakaBala} /> : <EmptyState label="Vimsopaka Bala" />)}
       </div>
     </div>
   );
@@ -103,6 +105,8 @@ function ShadbalaSection({ data }: { data: NonNullable<ReturnType<typeof useKund
               <th className="px-4 py-2 font-medium">Planet</th>
               {BALA_KEYS.map((k) => <th key={k} className="px-3 py-2 text-right font-medium">{BALA_LABELS[k]}</th>)}
               <th className="px-4 py-2 text-right font-medium">Total (Rupas)</th>
+              <th className="px-3 py-2 text-right font-medium">Ishta</th>
+              <th className="px-3 py-2 text-right font-medium">Kashta</th>
               <th className="px-3 py-2 text-right font-medium">Required</th>
               <th className="px-3 py-2 text-right font-medium">Ratio</th>
               <th className="px-3 py-2 font-medium">Composition</th>
@@ -129,6 +133,8 @@ function ShadbalaSection({ data }: { data: NonNullable<ReturnType<typeof useKund
                     <td key={k} className="px-3 py-3 text-right font-mono text-xs text-text-secondary">{toRupas(row[k])}</td>
                   ))}
                   <td className="px-4 py-3 text-right font-mono text-text-primary">{toRupas(row.totalVirupas)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-xs text-text-secondary">{(row.ishtaPhala ?? 0).toFixed(2)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-xs text-text-secondary">{(row.kashtaPhala ?? 0).toFixed(2)}</td>
                   <td className="px-3 py-3 text-right font-mono text-xs text-text-tertiary">{(row.required / 60).toFixed(2)}</td>
                   <td className={`px-3 py-3 text-right font-mono text-xs ${below ? 'text-semantic-negative' : 'text-semantic-positive'}`}>
                     {row.ratio.toFixed(2)}
@@ -253,6 +259,52 @@ function VargeeyaBalaSection({ data }: { data: NonNullable<ReturnType<typeof use
       <div className="mt-5 flex gap-4 text-xs text-text-tertiary">
         <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-brand-saffron" /> Pancha-vargeeya</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-brand-gold" /> Dwadasa-vargeeya (out of 12)</span>
+      </div>
+    </div>
+  );
+}
+
+function VimsopakaSection({ data }: { data: NonNullable<ReturnType<typeof useKundli>['data']>['vimsopakaBala'] & {} }) {
+  const planets = PLANET_KEYS.filter((p) => data.planets[p]);
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
+        <div className="text-eyebrow text-text-tertiary">Shodhasavarga Vimsopaka (16 vargas, out of 20)</div>
+        <p className="mt-1 text-xs text-text-tertiary">
+          Weighted dignity score across 16 divisional charts (D1–D60). A score near 20 means the planet is
+          dignified across most vargas; near 10 means neutral or mixed placements.
+        </p>
+        <div className="mt-5 space-y-3">
+          {planets.map((p) => {
+            const entry = data.planets[p];
+            if (!entry) return null;
+            const pct = (entry.score / 20) * 100;
+            const color = entry.score >= 15 ? 'hsl(var(--semantic-positive))' : entry.score < 10 ? 'hsl(var(--semantic-negative))' : 'hsl(var(--brand-saffron))';
+            return (
+              <div key={p} className="grid grid-cols-1 gap-1 sm:grid-cols-[110px_1fr] sm:items-center sm:gap-3">
+                <div className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ background: `hsl(var(--planet-${p}))` }} />
+                  <span className="font-display text-sm capitalize text-text-primary">{PLANET_LABELS[p].full}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative h-4 flex-1 overflow-hidden rounded-sm border border-hairline-subtle bg-canvas">
+                    <div className="absolute inset-y-0 left-0 transition-all" style={{ width: `${pct}%`, background: color, opacity: 0.85 }} />
+                  </div>
+                  <div className="w-14 text-right font-mono text-xs text-text-secondary">{entry.score.toFixed(2)}</div>
+                  <div className="w-8 text-right font-mono text-xs text-text-tertiary">{entry.count}</div>
+                  {entry.charts && (
+                    <div className="hidden text-xs text-text-tertiary sm:block">{entry.charts}</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-5 flex gap-4 text-xs text-text-tertiary">
+          <span>Score = weighted dignity (0–20)</span>
+          <span>Count = # of vargas where planet is in own/exalted/mooltrikona</span>
+        </div>
       </div>
     </div>
   );

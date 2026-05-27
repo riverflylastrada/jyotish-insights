@@ -497,6 +497,52 @@ function sectionShadbala(chart: any): string {
   return lines.join("\n");
 }
 
+function sectionShadbalaExtras(chart: any): string {
+  const sb = chart?.shadbala;
+  const vb = chart?.vimsopakaBala;
+  if ((!sb || !sb.planets) && (!vb || !vb.planets)) return "";
+
+  const lines: string[] = [];
+
+  // Ishta/Kashta Phala (from Shadbala planets)
+  if (sb?.planets) {
+    const planets = sb.planets as Record<string, any>;
+    const hasIshta = Object.values(planets).some((d: any) => d.ishtaPhala !== undefined);
+    if (hasIshta) {
+      lines.push(`═══ ISHTA/KASHTA PHALA (Auspicious/Inauspicious Fruit — Virupas) ═══`);
+      lines.push(`BPHS Ch 27: Ishta = √(Uchcha×Cheshta), Kashta = √((60−Uchcha)×(60−Cheshta))`);
+      const hdr = `${pad("Planet", 10)}| ${pad("Ishta", 8)}| ${pad("Kashta", 8)}| Balance`;
+      lines.push(hdr);
+      for (const [planet, data] of Object.entries(planets) as Array<[string, any]>) {
+        const ishta = data.ishtaPhala ?? 0;
+        const kashta = data.kashtaPhala ?? 0;
+        const balance = ishta > kashta ? "benefic" : ishta < kashta ? "malefic" : "neutral";
+        lines.push(`${pad(planet, 10)}| ${pad(String(ishta), 8)}| ${pad(String(kashta), 8)}| ${balance}`);
+      }
+    }
+  }
+
+  // Vimsopaka Bala (Shodhasavarga)
+  if (vb?.planets) {
+    if (lines.length > 0) lines.push("");
+    lines.push(`═══ VIMSOPAKA BALA (Shodhasavarga — 16-Varga Dignity Score, 0–20) ═══`);
+    const hdr = `${pad("Planet", 10)}| ${pad("Score", 8)}| ${pad("Count", 6)}| Dignified in`;
+    lines.push(hdr);
+    for (const [planet, data] of Object.entries(vb.planets) as Array<[string, any]>) {
+      lines.push(`${pad(planet, 10)}| ${pad(String(data.score), 8)}| ${pad(String(data.count), 6)}| ${data.charts || "—"}`);
+    }
+    const scores = Object.values(vb.planets) as any[];
+    if (scores.length > 0) {
+      const best = Object.entries(vb.planets).reduce((a, b) => (b[1] as any).score > (a[1] as any).score ? b : a);
+      const worst = Object.entries(vb.planets).reduce((a, b) => (b[1] as any).score < (a[1] as any).score ? b : a);
+      lines.push(`Best dignified: ${best[0]} (${(best[1] as any).score}/20)`);
+      lines.push(`Weakest dignity: ${worst[0]} (${(worst[1] as any).score}/20)`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 function sectionBhavaBala(chart: any): string {
   const bb = chart?.bhavaBala;
   if (!bb || !bb.houses || !Array.isArray(bb.houses) || bb.houses.length === 0) return "";
@@ -825,6 +871,7 @@ export function buildChartDossier(chart: any, transits: any[], now: Date): strin
     sectionDoshas(chart),
     sectionAshtakavarga(chart),
     sectionShadbala(chart),
+    sectionShadbalaExtras(chart),
     sectionBhavaBala(chart),
     sectionVargeeyaBala(chart),
     sectionPanchang(chart),
