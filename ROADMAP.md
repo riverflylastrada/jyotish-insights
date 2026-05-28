@@ -9,22 +9,45 @@ grouped by horizon and theme.
 
 ---
 
+## Vision
+
+**Jyotish Sage is an Interactive Astrology Research Lab** — not a prediction
+engine. Every chart teaches itself. Every claim shows its math. Every rule cites
+its classical source. The user doesn't consume predictions; they verify
+mathematical proofs and arrive at understanding themselves.
+
+> ज्योतिष एक गणित है — अंधविश्वास नहीं।
+> "Astrology is mathematics — not superstition."
+
+Two modes serve two needs:
+- **Research Lab** (default) — interactive, self-directed exploration with
+  arrows, color-coded connections, and three depth layers (Visual → Explain →
+  Math Proof). No AI needed; all deterministic rules + classical citations.
+- **Guru Consultation** — the existing 5-Guru debate engine for synthesized
+  guidance and wisdom.
+
+---
+
 ## Where we are today
 
 The platform delivers a **Swiss-Ephemeris-grade** engine: 16 divisional charts,
-Vimshottari + Yogini + Ashtottari + Jaimini Chara dashas, yogas, doshas,
-Ashtakavarga, Panchang, **six-source Shadbala**, **Bhava Bala**, **KP (with
-Placidus cuspal sub-lords)**, full **Jaimini** (Chara Karakas, Karakamsa, Arudha,
-Chara Dasha), **Varshphal** (annual chart, Muntha, Year Lord, Tajik yogas),
-transits, 36-point compatibility, the multi-Guru debate engine, auth, a chart
-library with public sharing, an admin panel, and PDF report export. Every
-calculation is JHora-validated by a **parity harness** + **CI** on each PR.
+Vimshottari + Yogini + Ashtottari + Kalachakra + Jaimini Chara dashas, a
+**44-yoga catalog** (with cancellation rules), doshas, Ashtakavarga, Panchang,
+**six-source Shadbala** (+ Ishta/Kashta phala, Vimsopaka & Vargeeya bala),
+**Bhava Bala**, **KP (with Placidus cuspal sub-lords)**, full **Jaimini** (Chara
+Karakas, Karakamsa, Arudha, Special Lagnas, Chara Dasha), **Varshphal** (annual
+chart, Muntha, Year Lord, Tajik yogas), **Muhurta** (Choghadiya/Hora/Rahu Kaal),
+**selectable house systems** (Placidus/Koch/Sripati/Equal), **exact Lahiri
+ayanamsa**, transits, 36-point compatibility, the multi-Guru debate engine,
+auth, a chart library with public sharing, an admin panel, and PDF report
+export. Every calculation is JHora-validated by a **parity harness** + **CI** on
+each PR.
 
-**Engine vs. UI:** all of the above is computed and fed to the Guru Debate
-dossier, but many of the newer outputs have **no dedicated front-end view yet**
-— that's the upcoming **UI/UX phase** (see below). The **core engine is now
-feature-complete**; only optional items remain (Kalachakra dasha, Muhurta,
-expanded yoga catalog). Product gaps: transit alerts, monetization.
+**Engine vs. UI:** the **core engine is feature-complete**, and the **initial UI
+surfacing phase has shipped** — Strengths, KP, Jaimini, and Varshphal pages, plus
+a multi-system Dashas page (Vimshottari / Yogini / Ashtottari / Chara /
+Kalachakra). The next major phase is the **Interactive Research Lab** (below).
+Product gaps: transit alerts, monetization.
 
 ---
 
@@ -57,7 +80,7 @@ expanded yoga catalog). Product gaps: transit alerts, monetization.
   Jagannatha Hora to ±0.03 Rupa** across 3 reference charts.
 - ✅ **Parity harness + CI** — [parity_test.ts](supabase/functions/calculate-kundli/parity_test.ts)
   diffs positions vs Swiss Ephemeris and Shadbala vs JHora;
-  [CI](.github/workflows/ci.yml) runs all suites (141 Deno + 10 Vitest) per PR.
+  [CI](.github/workflows/ci.yml) runs all suites per PR.
 - ✅ **CONTRIBUTING.md + repo auto-mirror** — codified conventions
   (parity-over-plausibility, version bumps) and a workflow that mirrors `main`
   to the fork.
@@ -83,29 +106,42 @@ expanded yoga catalog). Product gaps: transit alerts, monetization.
   Argala / Virodha Argala. **Completes the Jaimini system.**
 - ✅ **Vargeeya Bala** ([vargeeya_bala.ts](supabase/functions/calculate-kundli/vargeeya_bala.ts)) —
   Pancha-vargeeya (±0.1) and Dwadasa-vargeeya (exact) divisional strength.
-  **Completes the strength suite.**
+- ✅ **Kalachakra dasha** ([kalachakra.ts](supabase/functions/calculate-kundli/kalachakra.ts)) —
+  nakshatra-pada Savya/Apasavya sequence, PyJHora-validated.
+- ✅ **Full Shadbala extras** — Ishta/Kashta phala + Vimsopaka bala
+  ([vimsopaka.ts](supabase/functions/calculate-kundli/vimsopaka.ts)), completing
+  the strength suite.
+- ✅ **Exact Lahiri ayanamsa** — calibrated to Swiss Ephemeris (closes the prior
+  ~0.007° systematic delta).
+- ✅ **Selectable house systems** — Placidus / Koch / Sripati / Equal alongside
+  the Whole Sign default (`profiles.house_system`, exposed in Settings).
+- ✅ **Expanded yoga catalog → 44 yogas** ([yogas.ts](supabase/functions/calculate-kundli/yogas.ts)) —
+  with cancellation / negation rules.
+- ✅ **Muhurta (electional)** ([Muhurta.tsx](src/pages/app/Muhurta.tsx)) —
+  Choghadiya, Hora, Rahu Kaal, Gulika Kaal, and related timing windows.
+- ✅ **Initial UI surfacing phase** — dedicated **Strengths** (Shadbala + Bhava
+  Bala + Vargeeya Bala), **KP**, **Jaimini**, and **Varshphal** pages, plus a
+  multi-system **Dashas** page (Vimshottari / Yogini / Ashtottari / Chara /
+  Kalachakra). All wired into the ChartDetail module grid. (See UI/UX phase.)
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
-> surfaced in the Guru Debate dossier — but **not yet in dedicated UI** (see the
-> UI/UX phase). With this, the **core engine is feature-complete**; only
-> optional items remain (below), and the next major focus is the UI/UX phase.
+> surfaced both in the Guru Debate dossier and in dedicated UI. The **core
+> engine is feature-complete** and the **initial UI surfacing phase has
+> shipped**; the next major focus is the **Interactive Research Lab** (below).
 
 ---
 
 ## Near-term
 
 ### Optional engine additions (the core engine is otherwise complete)
-- ⬜ **More dasha systems** — Kalachakra (and other nakshatra dashas) as desired.
-- ⬜ **Muhurta** (electional) and an **expanded yoga catalog** — see Mid-term.
-- ⬜ **House systems** (Placidus/Sripati/Equal as selectable) — parked for the
-  UI/UX phase (it's a user setting).
+- ⬜ **More dasha systems** — Narayana, Lagna Kendradi, Sudasa and other rasi
+  dashas (Vimshottari, Yogini, Ashtottari, Kalachakra, and Jaimini Chara already
+  ship); see Mid-term for the full target list.
+- ⬜ **KP horary chart support** — 1–249 number → zodiacal position mapping for
+  Prashna and Unknown Birth Time features.
 
 ### Engine accuracy polish
-- ⬜ **Exact Lahiri ayanamsa.** A ~0.007° systematic delta vs Swiss Ephemeris's
-  Lahiri remains (our linear-precession formula). Match SwissEph's Lahiri model
-  to close it. (Well below arc-minute; cosmetic.)
-- ⬜ **Full Shadbala extras** — Ishta/Kashta phala and Vimsopaka bala, building
-  on the shipped six-source Shadbala.
+- ⬜ **Avasthas** — Baladi, Jagradadi, Deeptadi planetary states (BPHS Ch.45).
 
 ### Quality & testing
 - 🟡 **Engine unit coverage.** KP, Jaimini, Shadbala, the dossier, and a
@@ -119,74 +155,220 @@ expanded yoga catalog). Product gaps: transit alerts, monetization.
 
 ---
 
-## UI/UX phase — surface the engine in the app
+## Immediate — Interactive Research Lab
 
-**The plan: finish the engine features, then build the UI for them.** Every
-calculation below is computed and used by the Guru Debate gurus, but has **no
-dedicated front-end view** yet. This is the next major phase after the engine
-finishers.
+> **Principle:** Build the interactive system first. Every feature added
+> afterward is born interactive from day one. The Research Lab is the product
+> identity — not a feature.
+
+### Design principles
+1. **Show the Rule, Not Just the Result** — every statement traces to a
+   classical rule, tappable to reveal it.
+2. **Show the Math, Not Just the Label** — Shadbala doesn't just say "Strong";
+   it shows each sub-component formula and computation.
+3. **Show the Source, Not Just the Claim** — every interpretation cites BPHS
+   chapter/shloka or equivalent classical reference.
+4. **Arrows Show Cause → Effect** — lordship (gold solid), aspects (blue
+   dashed), conjunction (purple glow), exchange (bidirectional gold).
+5. **Every Element Is a Door** — nothing on screen is static; every planet,
+   house, yoga name, dasha period, number is tappable into deeper layers.
+
+### Three depth layers (user-controlled)
+- **👁️ Visual** — arrows, color-coded houses, dignity glows. No tap needed.
+- **👆 Explain** — plain-language explanation panel with bilingual terms.
+- **🔬 Math Proof** — step-by-step formula, classical citation, verifiable
+  computation.
+
+### Phase 1: Core interaction system
+- ⬜ **Interactive D1 chart** — tappable planets with animated arrows:
+  gold solid → lordship, blue dashed → aspects, purple glow → conjunctions.
+  Color-coded house highlights (placed / owned / aspected). Labels appear on
+  each house ("📍 HERE", "👑 OWNS", "🏹 ASPECTS"). Three depth layers
+  togglable. Lordship proof shows formula:
+  `House = ((SignNumber - AscSign + 12) mod 12) + 1`. "🔮 Ask 5 Gurus" bridge
+  button to Guru Debate with pre-filled context.
+- ⬜ **Unknown Birth Time option** on New Chart form — Solar Chart (Sun as
+  Lagna), Moon Chart (Moon as Lagna), KP Horary Number (1–249). Stops losing
+  ~30–40% of users who don't know their birth time.
+
+### Phase 2: Yogas & Doshas as interactive condition checklists
+- ⬜ **Interactive Yogas** — each yoga presented as a step-by-step condition
+  checklist (✓/✗ per step). User walks through and proves/disproves each yoga
+  themselves. Cancellation rules equally prominent. Classical source cited per
+  yoga (BPHS chapter, Phaladeepika shloka, etc.).
+- ⬜ **Interactive Doshas** — same condition-check approach. Anti-fear banner:
+  "Doshas are NOT curses — they are mathematical conditions." Each cancellation
+  rule checked visually with arrows showing the cancelling planet/aspect.
+
+### Phase 3: Dasha & Divisional chart interaction
+- ⬜ **Interactive Dasha timeline** — tap any period → D1 chart highlights that
+  planet's lordship/aspects. Color-coded periods by functional benefic/malefic.
+  Math box showing Vimshottari balance calculation from Moon's nakshatra.
+  Cross-reference: "During Sun Mahadasha, House 9 themes activate because..."
+- ⬜ **Interactive Divisional Charts** — same tap-to-explore across all vargas.
+  Cross-chart navigation: "See this planet in D9 →", "See in D10 →". Each
+  varga opens with one-line purpose. Division formula shown on Math Proof layer.
+
+### Phase 4: Advanced research tools
+- ⬜ **Interactive Ashtakavarga** — tap house → 7-planet contribution matrix
+  (✓/✗ per planet). Each row tappable to see the bindu contribution rule.
+- ⬜ **Interactive Shadbala** — 6-component stacked bar per planet. Tap any
+  segment → see exact sub-component formula and computation. Validated figure
+  shown alongside JHora reference.
+- ⬜ **Interactive KP** — sub-lord chain diagram (sign-lord → star-lord →
+  sub-lord) with tappable nodes. 4-fold significator table with derivation.
+- ⬜ **Interactive Transits** — tap transit planet on bi-wheel → natal house
+  transited + Ashtakavarga bindu count for that house + aspect arrows to natal
+  planets.
+
+### Phase 5: Template insight database
+- ⬜ **108 planet-in-house interpretations** for D1 (9 planets × 12 houses)
+  derived from BPHS Ch.24 and Saravali Ch.15–38. Deterministic, no AI needed.
+- ⬜ **Pre-computed Guru snapshots** — `auto-insights` mode in guru-debate edge
+  function: one LLM call at chart creation generates ~92 mini-readings (per
+  planet, per dasha, per yoga/dosha). Cached in snapshot for instant display on
+  tap. Cost: one additional LLM call per chart, cached forever.
+
+---
+
+## Near-term — Specialized Kundli types
+
+> Each type reuses the existing engine with different input forms and
+> interpretation contexts. All launch as interactive Research Lab experiences.
+
+- ⬜ **Prashna Kundli (प्रश्न कुंडली)** — chart cast for the exact moment a
+  question is asked. GPS-based timestamp capture. Guru Debate runs in "Prashna
+  mode" with horary interpretation rules. Route: `/app/prashna`. No birth data
+  needed = zero barrier to entry, drives daily engagement.
+- ⬜ **Twins Kundli (जुड़वा कुंडली)** — side-by-side comparison of charts with
+  30s–2min birth time difference. Key differentiators: **D-60 (Shastiamsha)
+  comparison** (changes in <2 min of Lagna movement), **KP cuspal sub-lord
+  delta table**, **parallel dasha timeline** showing period divergence,
+  **Pranapada Lagna comparison**. Route: `/app/twins/new`.
+- ⬜ **Business Kundli (व्यापार कुंडली)** — chart for incorporation/founding
+  datetime. Houses reinterpreted: 1st=entity, 2nd=revenue/cashflow,
+  7th=clients/partnerships, 10th=reputation/market position, 11th=profits.
+  Connects to Muhurta for launch timing. Acharya tier. Route: `/app/business/new`.
+- ⬜ **Mundane Kundli (मुण्डेन कुंडली)** — Solar Ingress (Mesha Sankranti)
+  charts, Eclipse charts, National charts (India 15-Aug-1947), Event charts.
+  Houses = national sectors (1st=nation, 2nd=economy, 6th=military, 7th=foreign
+  relations, 10th=government). Free public page for SEO + thought leadership.
+  Route: `/app/mundane`.
+
+---
+
+## UI/UX phase — surface the engine in the app ✅
+
+**Shipped.** Every engine output below now has a dedicated front-end view (it was
+previously computed and used only by the Guru Debate). The next UI focus is the
+**Interactive Research Lab** above, which makes these views explorable rather
+than read-only.
 
 | Engine feature | Front-end work |
 |----------------|----------------|
-| Shadbala | ⬜ Planet-strength view (six balas + total Rupas + rank) — new section in ChartDetail or a "Strengths" page |
-| Bhava Bala | ⬜ House-strength view (bar chart / heatmap), alongside Shadbala |
-| Yogini + Ashtottari dashas | ⬜ Add as selectable systems on the **Dashas** page (currently Vimshottari only) |
-| Varshphal (annual chart) | ⬜ New **Varshphal** page: annual chart wheel, Muntha, Year Lord, year selector |
-| Tajik yogas | ⬜ Show active Tajik yogas within the Varshphal view |
-| KP (sub-lords, cuspal sub-lords, Ruling Planets, significators) | ⬜ New **KP** page: planet/cusp sub-lord tables + 4-fold significators |
-| Jaimini (Chara Karakas, Karakamsa, Arudha, Chara Dasha) | ⬜ New **Jaimini** page or section |
-| Navigation / IA | ⬜ Surface the new pages in the app nav; tie into the per-feature routes that already exist as placeholders |
+| Shadbala | ✅ Strengths page — six balas + total Rupas + rank |
+| Bhava Bala | ✅ Strengths page — house-strength view alongside Shadbala |
+| Vargeeya Bala | ✅ Strengths page — Pancha/Dwadasa divisional strength |
+| Yogini + Ashtottari dashas | ✅ Multi-system **Dashas** page (system tabs) |
+| Varshphal (annual chart) | ✅ **Varshphal** page — annual wheel, Muntha, Year Lord |
+| Tajik yogas | ✅ Shown within the Varshphal view |
+| KP (sub-lords, cuspal sub-lords, Ruling Planets, significators) | ✅ **KP** page |
+| Jaimini (Chara Karakas, Karakamsa, Arudha, Chara Dasha, Special Lagnas) | ✅ **Jaimini** page |
+| Navigation / IA | ✅ New pages surfaced in the ChartDetail module grid |
 
-Cross-cutting UI/UX (also in this phase): responsive/mobile polish,
-accessibility pass, loading/empty/error states, and visual consistency across
-the new views.
+Cross-cutting UI/UX (ongoing, folds into the Research Lab): responsive/mobile
+polish, accessibility pass, loading/empty/error states, and visual consistency.
 
 ---
 
 ## Mid-term
 
 ### Additional classical systems
-- ⬜ **More dasha systems** — Kalachakra (Vimshottari, Yogini, Ashtottari, and
-  Jaimini Chara dasha already ship).
-- ⬜ **Multiple house systems in the chart.** Whole Sign is the default and
-  **Placidus cusps already exist** (computed for KP). Expose Placidus as a
-  selectable house system and add Sripati/Equal (`profiles.house_system` already
-  stores the preference). *(Best paired with the UI/UX phase — it's a
-  user-selectable setting, and changing the default house assignment is risky.)*
-- ⬜ **Expanded yoga catalog** — grow well beyond the current 15+, organized by
-  category with cancellation rules.
+- ⬜ **More dasha systems** (target: 12+) — beyond shipped Vimshottari, Jaimini
+  Chara, Yogini, Ashtottari, and Kalachakra:
+  - Narayana / Padakrama (rasi dasha, Sanjay Rath method)
+  - Lagna Kendradi (strength-ordered rasi dasha)
+  - Sudasa (wealth-focused from D2)
+  - Drigdasa (aspect-based ordering)
+  - Shoola (death/health rasi dasha)
+  - 💡 Conditional dashas (Dwisaptati-sama, Shat-trimsa-sama — apply only when
+    specific birth conditions are met)
+- ⬜ **Expanded yoga catalog** (target: 150+) — 44 yogas with cancellation rules
+  already ship; grow toward:
+  - 32 Nabhasa yogas (Ashraya, Dala, Akriti, Sankhya groups)
+  - Raja yoga catalog with Rajabhanga cancellation rules
+  - Dhana yogas (wealth) with gradations
+  - Aristha yogas (health) with longevity implications
+  - Daridra, Sanyasa, Kemadruma yogas + cancellation rules
+  - Each yoga presented as interactive condition checklist (Research Lab style)
+- ⬜ **Divisional chart expansion** (target: 23+ vargas) — add D-81
+  (Nava-Navamsa), D-108 (Ashtottaramsa), D-144 (Dwadas-Dwadasamsa), and
+  D-2/D-3/D-4/D-8 variations (Parashari, Kashinatha, Parivrittitraya,
+  Somanatha, Krishnamurthy schemes).
 
 ### Features
-- 🟡 **Muhurta (electional astrology).** A route exists; build out
-  auspicious-timing selection (Panchang-driven, with Choghadiya/Hora).
+- ⬜ **Muhurta extensions** — core Muhurta (Choghadiya/Hora/Rahu Kaal/Gulika)
+  already ships; add Abhijit Muhurta, an activity-specific auspicious date finder
+  (Tithi+Nakshatra+Vara combos), and Vivah Muhurta (marriage rules). Connects to
+  Business Kundli for launch timing.
 - ⬜ **Transit alerts & notifications.** Promised by the "Acharya" pricing tier;
   detect significant gochara/Sade Sati events and notify users.
-- ⬜ **Annual chart (Varshphal / Tajik).** Solar-return chart and year analysis.
 - 💡 **RAG-backed citations** for the Guru debate — ground readings in the
   actual source texts (BPHS, Saravali, Phaladeepika) for verifiable quotes.
+- 💡 **Birth Time Rectification** — user provides 3–5 major life events;
+  engine tests multiple Lagna positions and finds the one where dasha periods
+  align with actual events.
 
 ### Monetization & accounts
-- ⬜ **Billing integration.** Pricing tiers (Free / Pro / Acharya) are shown on
-  the landing page but not enforced. Integrate a payment provider
-  (Razorpay/Stripe) and a `subscriptions` table.
-- ⬜ **Plan gating** — enforce limits (saved charts, vargas, debate access,
-  exports) per tier.
-- ⬜ **Usage metering** for LLM debate calls, surfaced in the admin dashboard.
+- ⬜ **Billing integration** — Razorpay (India market) + webhook handler +
+  `subscriptions` table. Pricing: Free ₹0 / Pro ₹499 / Acharya ₹1,999/month.
+- ⬜ **Plan gating** with `usePlanGate(feature)` hook:
+  | Gate              | Free          | Pro        | Acharya       |
+  |-------------------|---------------|------------|---------------|
+  | Saved charts      | 1             | Unlimited  | Unlimited     |
+  | Vargas visible    | D1 + D9       | All        | All           |
+  | Guru Debate       | Locked        | Full       | Full + custom |
+  | PDF export        | Locked        | Full       | Full          |
+  | Business Kundli   | —             | —          | Full          |
+  | Transit alerts    | —             | —          | Full          |
+- ⬜ **Usage metering** for LLM debate calls per user, surfaced in admin
+  dashboard.
 
 ---
 
 ## Long-term
 
-- ⬜ **Internationalization** — full Hindi UI and Devanagari rendering
-  throughout (fonts are already loaded).
+- ⬜ **Pan-India language launch** (14 languages, 97% population coverage):
+  - **Phase 1:** Hindi, Marathi (Devanagari — font loaded), Tamil, Telugu,
+    Bengali — 75% of India.
+  - **Phase 2:** Gujarati, Kannada, Malayalam, Odia, Punjabi — 88%.
+  - **Phase 3:** Assamese, Urdu (requires RTL support) — 95%.
+  - **Phase 4:** Nepali, Konkani (Devanagari) — 97%.
+  - Architecture: `react-i18next` + namespace-separated locale files
+    (`common.json`, `astro.json`, `readings.json`, `landing.json`).
+    Language-prefixed URLs (`/hi/app/chart/123`). Dynamic font loading per
+    script (Noto Sans family via Google Fonts).
+  - Astrology term translations MUST be reviewed by a Jyotish domain expert
+    per language (not generic AI translation). Budget: ₹5K–15K per language.
+  - Guru Debate: add `"Respond in ${userLanguage}"` to guru system prompts.
+  - Community correction loop: "Suggest better translation" button.
+- ⬜ **Daily Panchang page** (`/panchang`) — free, no auth, language-aware.
+  Today's Tithi, Vara, Nakshatra, Yoga, Karana, Choghadiya, Rahu Kaal. "Share
+  on WhatsApp" button. `panchang.ts` already computes all data. "आज का पंचांग"
+  = millions of monthly searches — top-of-funnel growth engine.
 - ⬜ **Mobile / PWA** — installable, offline-capable chart viewing.
-- ⬜ **Prashna (horary) astrology** — charts cast for the moment of a question.
 - ⬜ **Collaboration / consultations** — let a professional astrologer annotate
   and share reports with clients.
 - 💡 **Public API** — expose the calculation engine as a documented API for
   third-party developers.
 - 💡 **Chart comparison & synastry** beyond Ashta Koota — composite charts and
   full relationship transits.
+- 💡 **Diaspora targeting** — once Tamil, Telugu, Gujarati, Punjabi ship, serve
+  Indian communities in US, UK, Canada, UAE, Singapore, Australia (willing to
+  pay in USD/GBP).
+- 💡 **Alibaba Cloud AI Catalyst Program** — apply under SocialCoffee Digitech
+  for up to $120K cloud credits + 2B Model Studio tokens for GPU inference, RAG
+  pipeline, vector search infrastructure.
 
 ---
 
@@ -200,6 +382,32 @@ the new views.
   functions.
 - 🟡 **Documentation** — CONTRIBUTING.md ships; still want engine math notes and
   an ADR log.
+
+---
+
+## Recommended build order
+
+| #  | Item                                     | Effort   | Unlocks                           |
+|----|------------------------------------------|----------|-----------------------------------|
+| 1  | Unknown Birth Time (form option)         | 2–3 days | Stops losing 30–40% of users      |
+| 2  | Interactive D1 Chart (arrows + 3 depths) | 5–6 days | Research Lab identity              |
+| 3  | Interactive Yogas (condition checklists)  | 3–4 days | Most shareable feature             |
+| 4  | Interactive Doshas (condition + cancel)   | 3–4 days | Destroys fear-based astrology      |
+| 5  | Interactive Dasha (tap → chart highlight) | 3–4 days | Core Research Lab complete         |
+| 6  | Interactive Divisionals (cross-chart nav) | 4–5 days | 16 vargas become explorable        |
+| 7  | Interactive Ashtakavarga/Shadbala/KP      | 5–6 days | Advanced research tools complete   |
+| 8  | Razorpay billing + plan gating           | 2–3 wks  | Revenue starts                     |
+| 9  | Hindi + Marathi + Tamil + Telugu + Bengali| 3–4 wks  | 75% of India covered               |
+| 10 | Daily Panchang page + WhatsApp share     | 3–4 days | Top-of-funnel growth engine        |
+| 11 | Narayana + Lagna Kendradi + Sudasa Dasha | 1–2 wks  | 8+ dasha systems, pro credibility  |
+| 12 | Prashna Kundli (born interactive)        | 4–5 days | Daily engagement, zero barrier     |
+| 13 | Twins Kundli (D-60 comparison)           | 5–6 days | Press-worthy, unique in market     |
+| 14 | 5 more languages (Phase 2)               | 2–3 wks  | 88% of India covered               |
+| 15 | Business Kundli                          | 4–5 days | Acharya tier monetization          |
+| 16 | Mundane Kundli (public page)             | 5–6 days | SEO + thought leadership           |
+| 17 | PWA + mobile pass                        | 2–3 wks  | Mobile-first India market          |
+| 18 | RAG pipeline + classical text corpus     | 3–4 wks  | Verifiable shloka citations        |
+| 19 | Remaining languages (Phase 3–4)          | 2–3 wks  | 97% of India covered               |
 
 ---
 

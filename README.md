@@ -13,6 +13,11 @@ Ashtakavarga, Panchang, compatibility — is calculated in-house by a TypeScript
 astronomy engine running on Supabase Edge Functions. No third-party astrology
 API is required.
 
+> **Vision:** Jyotish Sage is an **Interactive Astrology Research Lab**, not a
+> prediction engine — every claim shows its math and cites its classical source.
+> Two modes: a deterministic **Research Lab** (explore the chart yourself) and
+> the **Guru Consultation** debate engine. See [ROADMAP.md](ROADMAP.md#vision).
+
 ---
 
 ## Table of contents
@@ -42,17 +47,22 @@ API is required.
   per-varga significance and interpretation.
 - **Dasha systems** — **Vimshottari** (120-yr, five sub-period levels Maha →
   Antar → Pratyantar → Sookshma → Prana, live "now" marker), plus **Yogini**
-  (36-yr) and **Ashtottari** (108-yr) with Maha + Antar — all JHora-validated.
-- **Yogas** — 15+ classical yogas (Raja, Dhana, Pancha Mahapurusha, etc.) with
-  strength rating and the planetary combinations that form them.
+  (36-yr), **Ashtottari** (108-yr), **Kalachakra**, and **Jaimini Chara**
+  (Maha + Antar) — all JHora-validated.
+- **Yogas** — 44 classical yogas (Raja, Dhana, Pancha Mahapurusha, etc.) with
+  cancellation/negation rules, strength rating, and the planetary combinations
+  that form them.
 - **Doshas** — Mangal, Kaal Sarp, Sade Sati, Pitra, Guru Chandal, and Shakat
   detection with severity, affected life areas, and cancellations.
 - **Ashtakavarga** — full Bhinnashtakavarga (per-planet) and Sarvashtakavarga
   (aggregate) bindu tables, rendered as a house-strength heatmap.
 - **Panchang** — Tithi, Vara, Nakshatra, Yoga, and Karana, plus sunrise/sunset.
+- **Muhurta (electional)** — Choghadiya, Hora, Rahu Kaal, Gulika Kaal and other
+  auspicious/inauspicious timing windows for a chosen day and place.
 - **Shadbala** — the full classical six-source strength (Sthana, Dig, Kala,
   Cheshta, Naisargika, Drik bala) in Rupas/Virupas with required minimums and
-  rank, **validated against Jagannatha Hora to within ±0.03 Rupa**.
+  rank, plus **Ishta/Kashta phala** and **Vimsopaka bala**, **validated against
+  Jagannatha Hora to within ±0.03 Rupa**.
 - **Bhava Bala** — strength of each of the 12 houses (Bhavadhipathi + Dig +
   Drishti bala) in Rupas, JHora-validated.
 - **Vargeeya Bala** — divisional strength: Pancha-vargeeya (5-varga) and
@@ -67,17 +77,19 @@ API is required.
   Karakamsa, Arudha Padas (Arudha Lagna, Upapada), **Chara Dasha** (KN Rao, Maha
   + antardasha), **Special Lagnas** (Bhava/Hora/Ghati/Vighati/Pranapada/Sree),
   and **Argala** / Virodha Argala — all JHora-validated.
-- Selectable **Ayanamsa** (Lahiri, Raman, Krishnamurti, Yukteshwar) and chart
-  style (North / South Indian).
+- Selectable **Ayanamsa** (Lahiri — calibrated to Swiss Ephemeris — Raman,
+  Krishnamurti, Yukteshwar), **house system** (Whole Sign, Placidus, Koch,
+  Sripati, Equal), and chart style (North / South Indian).
 - **Self-updating snapshots** — saved charts carry an engine version and
   auto-recalculate when the engine gains new data, so old charts gain new
   features (e.g. KP/Jaimini) without a manual recalculation.
 
-> **Engine vs. UI:** every calculation above is computed by the engine and fed
-> into the Guru Debate dossier, so the gurus reason from all of it. Dedicated
-> front-end views for the newer outputs (Shadbala, Bhava Bala, Yogini/Ashtottari
-> dashas, Varshphal, Tajik yogas, KP significators, Jaimini) are part of the
-> upcoming UI/UX phase — see [ROADMAP.md](ROADMAP.md).
+> **Engine vs. UI:** every calculation above is computed by the engine, fed into
+> the Guru Debate dossier, and surfaced in dedicated front-end views — the
+> **Strengths** (Shadbala / Bhava Bala / Vargeeya Bala), **KP**, **Jaimini**,
+> **Varshphal**, and multi-system **Dashas** pages all ship. The next UI phase
+> turns these read-only views into an **Interactive Research Lab** — see
+> [ROADMAP.md](ROADMAP.md#immediate--interactive-research-lab).
 
 ### Interpretation & analysis
 - **Multi-Guru Debate** — pose a question and stream parallel readings from up
@@ -170,6 +182,7 @@ in TypeScript:
 | [dashas.ts](supabase/functions/calculate-kundli/dashas.ts) | Vimshottari Dasha to five levels |
 | [yogini.ts](supabase/functions/calculate-kundli/yogini.ts) | Yogini Dasha (36-yr), Maha + Antar |
 | [ashtottari.ts](supabase/functions/calculate-kundli/ashtottari.ts) | Ashtottari Dasha (108-yr), Maha + Antar |
+| [kalachakra.ts](supabase/functions/calculate-kundli/kalachakra.ts) | Kalachakra Dasha (nakshatra-pada Savya/Apasavya) |
 | [yogas.ts](supabase/functions/calculate-kundli/yogas.ts) | Classical yoga detection |
 | [doshas.ts](supabase/functions/calculate-kundli/doshas.ts) | Dosha detection + remedies |
 | [ashtakavarga.ts](supabase/functions/calculate-kundli/ashtakavarga.ts) | Bhinna- and Sarva-ashtakavarga |
@@ -177,7 +190,8 @@ in TypeScript:
 | [kp.ts](supabase/functions/calculate-kundli/kp.ts) | KP sub-lords, Placidus cuspal sub-lords, Ruling Planets, 4-fold house significators |
 | [jaimini.ts](supabase/functions/calculate-kundli/jaimini.ts) | Chara Karakas, Karakamsa, Arudha Padas, Chara Dasha (KN Rao, Maha + Antar) |
 | [special_lagna.ts](supabase/functions/calculate-kundli/special_lagna.ts) | Special Lagnas (Bhava/Hora/Ghati/Vighati/Pranapada/Sree) + Argala |
-| [shadbala.ts](supabase/functions/calculate-kundli/shadbala.ts) | Six-source Shadbala in Rupas (JHora-validated) |
+| [shadbala.ts](supabase/functions/calculate-kundli/shadbala.ts) | Six-source Shadbala + Ishta/Kashta phala in Rupas (JHora-validated) |
+| [vimsopaka.ts](supabase/functions/calculate-kundli/vimsopaka.ts) | Vimsopaka bala (Shodasavarga dignity score) |
 | [bhavabala.ts](supabase/functions/calculate-kundli/bhavabala.ts) | Bhava Bala (house strength) in Rupas (JHora-validated) |
 | [vargeeya_bala.ts](supabase/functions/calculate-kundli/vargeeya_bala.ts) | Pancha- & Dwadasa-vargeeya divisional strength (JHora-validated) |
 | [varshphal.ts](supabase/functions/calculate-kundli/varshphal.ts) | Varshphal: annual chart, Muntha, Year Lord (JHora-validated) |
@@ -230,8 +244,9 @@ twice. The LLM endpoint, model, and API key are read from `app_settings`
 src/
   pages/
     app/           # Authenticated app: Dashboard, NewChart, ChartDetail,
-                   #   Dashas, Doshas, Yogas, Ashtakavarga, Transits,
-                   #   Compatibility, Debate, Remedies, Report, Library, Settings
+                   #   Dashas, Doshas, Yogas, Ashtakavarga, Transits, Strengths,
+                   #   KP, Jaimini, Varshphal, Muhurta, Compatibility, Debate,
+                   #   Remedies, Report, Library, Settings
     admin/         # AdminDashboard, AdminUsers, AdminApiKeys, AdminLlmConfig
     Index.tsx      # Marketing landing page
   components/
@@ -400,9 +415,10 @@ automated — follow.
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned work, including astronomical-accuracy
-upgrades (Swiss Ephemeris), additional dasha systems, billing/subscriptions, and
-test coverage for the calculation engine.
+See [ROADMAP.md](ROADMAP.md) for planned work, including the **Interactive
+Research Lab**, specialized kundli types (Prashna, Twins, Business, Mundane), a
+**pan-India multi-language launch**, billing/subscriptions, and additional dasha
+systems.
 
 ---
 
