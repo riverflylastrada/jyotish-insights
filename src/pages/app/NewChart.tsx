@@ -15,7 +15,7 @@ const schema = z.object({
   gender: z.enum(['male', 'female', 'other']).optional(),
   city: z.string().min(1, 'Pick a city or enter coordinates'),
   ayanamsa: z.enum(['lahiri', 'raman', 'krishnamurti', 'yukteshwar']),
-  houseSystem: z.enum(['whole_sign', 'placidus', 'koch', 'equal']),
+  houseSystem: z.enum(['whole_sign', 'placidus', 'koch', 'sripati', 'equal']),
   chartStyle: z.enum(['north', 'south']),
 });
 type Form = z.infer<typeof schema>;
@@ -294,6 +294,7 @@ export default function NewChart() {
                       <option value="whole_sign">Whole Sign (default)</option>
                       <option value="placidus">Placidus</option>
                       <option value="koch">Koch</option>
+                      <option value="sripati">Sripati</option>
                       <option value="equal">Equal</option>
                     </select>
                   </Field>

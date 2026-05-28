@@ -4,7 +4,7 @@ interface UserState {
   preferences: {
     ayanamsa: 'lahiri' | 'raman' | 'krishnamurti' | 'yukteshwar';
     chartStyle: 'north' | 'south';
-    houseSystem: 'whole_sign' | 'placidus' | 'koch' | 'equal';
+    houseSystem: 'whole_sign' | 'placidus' | 'koch' | 'sripati' | 'equal';
   };
 }
 

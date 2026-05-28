@@ -8,7 +8,7 @@ type Prefs = {
   display_name: string;
   ayanamsa: 'lahiri' | 'raman' | 'krishnamurti' | 'yukteshwar';
   chart_style: 'north' | 'south';
-  house_system: 'whole_sign' | 'placidus' | 'koch' | 'equal';
+  house_system: 'whole_sign' | 'placidus' | 'koch' | 'sripati' | 'equal';
   current_place_name: string | null;
   current_lat: number | null;
   current_lon: number | null;
@@ -228,6 +228,7 @@ export default function Settings() {
             <option value="whole_sign">Whole Sign (default)</option>
             <option value="placidus">Placidus</option>
             <option value="koch">Koch</option>
+            <option value="sripati">Sripati</option>
             <option value="equal">Equal</option>
           </select>
         </Field>

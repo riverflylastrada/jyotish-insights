@@ -14,7 +14,7 @@ export interface BirthDetails {
   };
   gender?: 'male' | 'female' | 'other';
   ayanamsa: 'lahiri' | 'raman' | 'krishnamurti' | 'yukteshwar';
-  houseSystem: 'whole_sign' | 'placidus' | 'koch' | 'equal';
+  houseSystem: 'whole_sign' | 'placidus' | 'koch' | 'sripati' | 'equal';
 }
 
 export interface PlanetPosition {

@@ -22,7 +22,7 @@ import { detectYogas } from "./yogas.ts";
 import { detectDoshas } from "./doshas.ts";
 import { computeAshtakavarga } from "./ashtakavarga.ts";
 import { computePanchang } from "./panchang.ts";
-import { computeKpPlanetSubLords, computePlacidusCusps, computeCuspalSubLords, computeRulingPlanets, computeHouseSignificators } from "./kp.ts";
+import { computeKpPlanetSubLords, computePlacidusCusps, computeKochCusps, computeEqualCusps, computeSripatiCusps, computeCuspalSubLords, computeRulingPlanets, computeHouseSignificators } from "./kp.ts";
 import { computeCharaKarakas, karakamsa, computeArudhaPadas, computeCharaDasha } from "./jaimini.ts";
 import { computeSpecialLagnas } from "./special_lagna.ts";
 import { computeArgala } from "./argala.ts";
@@ -151,11 +151,33 @@ export function calculateKundli(details: BirthDetails) {
   const { sunrise, sunset } = sunriseSunset(jd, lat, lon);
   const panchang = computePanchang(trop.sun, trop.moon, moonSid, jd, sunrise, sunset);
 
-  // Placidus cusps (needed by both Shadbala and KP)
+  // Placidus cusps (needed by Shadbala, KP, and as base for Sripati)
   const eps = obliquity(T);
   const ramcDeg = lst(jd, lon);
   const tropCusps = computePlacidusCusps(jd, lat, eps, ramcDeg);
   const siderealCusps = tropCusps.map((c: number) => norm360(c - aya));
+
+  // House system cusps — compute for the selected system
+  const hs = details.houseSystem ?? 'whole_sign';
+  let selectedTropCusps: number[];
+  switch (hs) {
+    case 'placidus':
+      selectedTropCusps = tropCusps;
+      break;
+    case 'koch':
+      selectedTropCusps = computeKochCusps(jd, lat, eps, ramcDeg);
+      break;
+    case 'equal':
+      selectedTropCusps = computeEqualCusps(trop.ascendant);
+      break;
+    case 'sripati':
+      selectedTropCusps = computeSripatiCusps(tropCusps);
+      break;
+    default: // 'whole_sign' or any unrecognized value
+      selectedTropCusps = [];
+      break;
+  }
+  const selectedSidCusps = selectedTropCusps.map((c: number) => norm360(c - aya));
 
   // Full six-source Shadbala (Parashari/BPHS)
   const shadbala = computeShadbala({
@@ -272,6 +294,14 @@ export function calculateKundli(details: BirthDetails) {
     },
     varshphal,
     vargeeyaBala,
+    houseCusps: selectedSidCusps.length > 0
+      ? selectedSidCusps.map((lon, i) => ({
+          cusp: i + 1,
+          longitude: lon,
+          sign: Math.floor(lon / 30) + 1,
+          degree: lon % 30,
+        }))
+      : undefined,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
   };
 }
