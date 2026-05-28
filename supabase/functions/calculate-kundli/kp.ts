@@ -253,6 +253,144 @@ export function computePlacidusCusps(
   return cusps;
 }
 
+// ─── Koch Cusps ─────────────────────────────────────────────────────────────
+
+/**
+ * Compute Koch house cusps (tropical longitudes).
+ *
+ * Koch uses the birthplace latitude to compute cusps based on the
+ * time it takes for the MC degree to rise/set at that latitude (the "birth
+ * place" system). Intermediate cusps are found by trisecting the
+ * MC-to-ASC oblique ascension arc and converting back to ecliptic longitude.
+ *
+ * Returns 12 tropical longitudes [cusp1..cusp12].
+ */
+export function computeKochCusps(
+  _jd: number,
+  latDeg: number,
+  obliquityDeg: number,
+  ramcDeg: number,
+): number[] {
+  const eps = rad(obliquityDeg);
+  const phi = rad(latDeg);
+  const RAMC = ramcDeg;
+
+  // MC (cusp 10)
+  const mcRad = Math.atan2(Math.sin(rad(RAMC)), Math.cos(rad(RAMC)) * Math.cos(eps));
+  let mc = norm360(deg(mcRad));
+  if (RAMC > 90 && RAMC <= 270) {
+    if (mc < 90 || mc > 270) mc = norm360(mc + 180);
+  } else {
+    if (mc >= 90 && mc <= 270) mc = norm360(mc + 180);
+  }
+
+  // ASC (cusp 1)
+  const ascRad = Math.atan2(
+    Math.cos(rad(RAMC)),
+    -(Math.sin(eps) * Math.tan(phi) + Math.cos(eps) * Math.sin(rad(RAMC))),
+  );
+  const asc = norm360(deg(ascRad));
+
+  // Declination of MC
+  const decMC = Math.asin(Math.sin(eps) * Math.sin(rad(mc)));
+
+  // Koch intermediate cusps use oblique ascension
+  // OA_MC = RAMC − asin(tan(dec_MC) × tan(φ))
+  const tanProd = Math.tan(decMC) * Math.tan(phi);
+  const clampedTP = Math.max(-1, Math.min(1, tanProd));
+  const oaMC = RAMC - deg(Math.asin(clampedTP));
+
+  // Oblique ascension of ASC
+  const oaASC = oaMC + 90; // simplified Koch: OA_ASC = OA_MC + 90°
+
+  // Semi-arc above horizon for Koch
+  const kochSA = norm360(oaASC - oaMC);
+
+  // Koch intermediate cusps by trisecting the oblique ascension arc
+  function kochCusp(fraction: number): number {
+    const oa = norm360(oaMC + fraction * kochSA);
+    // Convert OA back to ecliptic longitude:
+    // λ = atan2(sin(OA + AD), cos(OA + AD) × cos(ε))
+    // where AD = ascensional difference = asin(tan(dec) × tan(φ))
+    // For Koch, we use a simplified approach: iterate to find the ecliptic longitude
+    // whose oblique ascension equals the target OA
+    let lon = oa; // initial guess
+    for (let iter = 0; iter < 50; iter++) {
+      const decl = Math.asin(Math.sin(eps) * Math.sin(rad(lon)));
+      const tp = Math.tan(decl) * Math.tan(phi);
+      const clampTP = Math.max(-1, Math.min(1, tp));
+      const ad = deg(Math.asin(clampTP));
+      // RA of this ecliptic point
+      const raRad = Math.atan2(Math.sin(rad(lon)) * Math.cos(eps), Math.cos(rad(lon)));
+      const ra = norm360(deg(raRad));
+      const computedOA = ra - ad;
+      const diff = norm360(oa) - norm360(computedOA);
+      const adjust = ((diff + 180) % 360) - 180; // signed difference
+      if (Math.abs(adjust) < 0.0001) break;
+      lon = norm360(lon + adjust);
+    }
+    return lon;
+  }
+
+  const cusp11 = kochCusp(1 / 3);
+  const cusp12 = kochCusp(2 / 3);
+  const cusp2 = kochCusp(4 / 3);
+  const cusp3 = kochCusp(5 / 3);
+
+  const cusps = new Array<number>(12);
+  cusps[0] = asc;
+  cusps[1] = cusp2;
+  cusps[2] = cusp3;
+  cusps[3] = norm360(mc + 180);
+  cusps[4] = norm360(cusp11 + 180);
+  cusps[5] = norm360(cusp12 + 180);
+  cusps[6] = norm360(asc + 180);
+  cusps[7] = norm360(cusp2 + 180);
+  cusps[8] = norm360(cusp3 + 180);
+  cusps[9] = mc;
+  cusps[10] = cusp11;
+  cusps[11] = cusp12;
+
+  return cusps;
+}
+
+// ─── Equal Cusps ────────────────────────────────────────────────────────────
+
+/**
+ * Equal house system: each cusp is exactly 30° from the ascendant.
+ * Cusp 1 = ASC, Cusp 2 = ASC + 30°, etc. MC floats.
+ * Returns 12 tropical longitudes [cusp1..cusp12].
+ */
+export function computeEqualCusps(ascTropical: number): number[] {
+  const cusps = new Array<number>(12);
+  for (let i = 0; i < 12; i++) {
+    cusps[i] = norm360(ascTropical + i * 30);
+  }
+  return cusps;
+}
+
+// ─── Sripati Cusps ──────────────────────────────────────────────────────────
+
+/**
+ * Sripati (Shripati) house system: midpoints of Placidus cusps.
+ *
+ * Sripati cusp N = midpoint(Placidus cusp N, Placidus cusp N+1).
+ * The house boundary starts at the midpoint between successive Placidus cusps.
+ * Returns 12 tropical longitudes [cusp1..cusp12].
+ */
+export function computeSripatiCusps(placidusCusps: number[]): number[] {
+  const cusps = new Array<number>(12);
+  for (let i = 0; i < 12; i++) {
+    const a = placidusCusps[i];
+    const b = placidusCusps[(i + 1) % 12];
+    // Midpoint on the ecliptic circle
+    let diff = b - a;
+    if (diff < 0) diff += 360;
+    cusps[i] = norm360(a + diff / 2);
+  }
+  return cusps;
+}
+
 /**
  * Compute cuspal sub-lords: for each Placidus cusp, compute the KP
  * sign-lord, star-lord, and sub-lord of the sidereal cusp longitude.

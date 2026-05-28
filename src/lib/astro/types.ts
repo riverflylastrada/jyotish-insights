@@ -14,7 +14,7 @@ export interface BirthDetails {
   };
   gender?: 'male' | 'female' | 'other';
   ayanamsa: 'lahiri' | 'raman' | 'krishnamurti' | 'yukteshwar';
-  houseSystem: 'whole_sign' | 'placidus' | 'koch' | 'equal';
+  houseSystem: 'whole_sign' | 'placidus' | 'koch' | 'sripati' | 'equal';
 }
 
 export interface PlanetPosition {
@@ -289,7 +289,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 14;
+export const CURRENT_SNAPSHOT_VERSION = 15;
 
 export interface KundliData {
   id: string;
