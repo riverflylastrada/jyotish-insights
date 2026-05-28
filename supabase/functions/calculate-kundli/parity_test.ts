@@ -204,12 +204,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       },
       // PyJHora v4.8.5 (Lahiri) — Special Lagnas
       specialLagnas: [
-        { name: "Bhava Lagna",     sign: 9,  deg: 23.8646 },
-        { name: "Hora Lagna",      sign: 2,  deg: 11.7788 },
-        { name: "Ghati Lagna",     sign: 4,  deg: 5.5213 },
-        { name: "Vighati Lagna",   sign: 5,  deg: 0.7996 },
-        { name: "Pranapada Lagna", sign: 9,  deg: 2.3988 },
-        { name: "Sree Lagna",      sign: 6,  deg: 23.7395 },
+        { name: "Bhava Lagna",     sign: 9,  deg: 23.8582 },
+        { name: "Hora Lagna",      sign: 2,  deg: 11.7721 },
+        { name: "Ghati Lagna",     sign: 4,  deg: 5.5141 },
+        { name: "Vighati Lagna",   sign: 5,  deg: 0.7830 },
+        { name: "Pranapada Lagna", sign: 9,  deg: 2.3924 },
+        { name: "Sree Lagna",      sign: 6,  deg: 23.5680 },
       ],
       // PyJHora v4.8.5 (Lahiri) — Argala per house
       argala: [
@@ -372,12 +372,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         antarDurationYears: 12 / 12,  // 1.0
       },
       specialLagnas: [
-        { name: "Bhava Lagna",     sign: 6,  deg: 0.7143 },
-        { name: "Hora Lagna",      sign: 6,  deg: 27.4089 },
-        { name: "Ghati Lagna",     sign: 9,  deg: 17.4930 },
-        { name: "Vighati Lagna",   sign: 10, deg: 15.7003 },
-        { name: "Pranapada Lagna", sign: 6,  deg: 25.4369 },
-        { name: "Sree Lagna",      sign: 9,  deg: 25.3387 },
+        { name: "Bhava Lagna",     sign: 6,  deg: 0.7081 },
+        { name: "Hora Lagna",      sign: 6,  deg: 27.4026 },
+        { name: "Ghati Lagna",     sign: 9,  deg: 17.4861 },
+        { name: "Vighati Lagna",   sign: 10, deg: 15.6835 },
+        { name: "Pranapada Lagna", sign: 6,  deg: 25.3976 },
+        { name: "Sree Lagna",      sign: 9,  deg: 25.2236 },
       ],
       argala: [
         { house: 1,  argala: [["mars"], [], [], ["saturn"]], virodha: [["rahu"], [], [], []] },
@@ -536,12 +536,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         antarDurationYears: 9 / 12,  // 0.75
       },
       specialLagnas: [
-        { name: "Bhava Lagna",     sign: 11, deg: 23.6265 },
-        { name: "Hora Lagna",      sign: 4,  deg: 23.0086 },
-        { name: "Ghati Lagna",     sign: 7,  deg: 21.1550 },
-        { name: "Vighati Lagna",   sign: 5,  deg: 17.1719 },
-        { name: "Pranapada Lagna", sign: 2,  deg: 10.4949 },
-        { name: "Sree Lagna",      sign: 3,  deg: 16.0685 },
+        { name: "Bhava Lagna",     sign: 11, deg: 23.6204 },
+        { name: "Hora Lagna",      sign: 4,  deg: 23.0025 },
+        { name: "Ghati Lagna",     sign: 7,  deg: 21.1488 },
+        { name: "Vighati Lagna",   sign: 5,  deg: 17.1639 },
+        { name: "Pranapada Lagna", sign: 2,  deg: 10.4555 },
+        { name: "Sree Lagna",      sign: 3,  deg: 15.9658 },
       ],
       argala: [
         { house: 1,  argala: [[], ["saturn"], [], []], virodha: [[], [], ["moon"], []] },
@@ -560,7 +560,7 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
       // Vargeeya Bala (PyJHora algorithm, engine positions)
       // PyJHora (SwissEph, Lahiri): PVB {0:3.17,1:4.21,2:11.18,3:23.28,4:26.00,5:7.23,6:11.06}
       //                             DVB {0:3,1:2,2:3,3:6,4:8,5:10,6:8}
-      panchaVargeeya: { sun: 3.17, moon: 4.22, mars: 11.18, mercury: 23.28, jupiter: 26.01, venus: 7.23, saturn: 11.06 },
+      panchaVargeeya: { sun: 3.17, moon: 4.22, mars: 11.18, mercury: 23.28, jupiter: 26.00, venus: 7.23, saturn: 11.06 },
       dwadasaVargeeya: { sun: 3, moon: 2, mars: 3, mercury: 6, jupiter: 8, venus: 10, saturn: 8 },
       // Kalachakra Dasha (PVR method). Sign sequences match PyJHora v4.8.5 exactly.
       // Balance (first period) is ENGINE-COMPUTED — PyJHora gives 1.86 yr (Δ≈−0.07 yr)

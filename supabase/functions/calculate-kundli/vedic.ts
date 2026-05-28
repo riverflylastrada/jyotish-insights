@@ -14,9 +14,20 @@ import { norm360, julianCenturies } from "./astronomy.ts";
 
 export type AyanamsaKey = 'lahiri' | 'raman' | 'krishnamurti' | 'yukteshwar';
 
-/** Lahiri ayanamsa: 23°51'11" at J2000.0 with precession ~50.29"/yr. */
+/**
+ * Lahiri (Chitrapaksha) ayanamsa — calibrated to Swiss Ephemeris SE_SIDM_LAHIRI.
+ *
+ * Epoch value at J2000.0: 23.857092° (23°51'25.5"), matching SwissEph
+ * get_ayanamsa_ut(2451545.0) = 23.857092°. This supersedes the earlier
+ * IAE-approximate 23.85306° (23°51'11") that produced a systematic +0.004°
+ * offset in all sidereal positions.
+ *
+ * Precession uses the IAU 2006 general precession in longitude:
+ *   p_A(T) = 5028.796195″T + 1.1054348″T² (arcseconds, T in Julian centuries)
+ * converted to degrees: 1.396888°T + 0.000307°T².
+ */
 function lahiri(T: number): number {
-  return 23.85306 + T * (50.29 / 3600) * 100;
+  return 23.857092 + 1.396888 * T + 0.000307 * T * T;
 }
 
 /** Raman ayanamsa: ~22°27' at J2000.0. */
