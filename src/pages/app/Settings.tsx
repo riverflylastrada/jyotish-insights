@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Loader2, Save, MapPin, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { useSession } from '@/hooks/useSession';
@@ -9,27 +9,176 @@ type Prefs = {
   ayanamsa: 'lahiri' | 'raman' | 'krishnamurti' | 'yukteshwar';
   chart_style: 'north' | 'south';
   house_system: 'whole_sign' | 'placidus' | 'koch' | 'equal';
+  current_place_name: string | null;
+  current_lat: number | null;
+  current_lon: number | null;
+  current_timezone: string | null;
 };
 
-const DEFAULTS: Prefs = { display_name: '', ayanamsa: 'lahiri', chart_style: 'north', house_system: 'whole_sign' };
+const DEFAULTS: Prefs = {
+  display_name: '',
+  ayanamsa: 'lahiri',
+  chart_style: 'north',
+  house_system: 'whole_sign',
+  current_place_name: null,
+  current_lat: null,
+  current_lon: null,
+  current_timezone: null,
+};
 
 export default function Settings() {
   const { user } = useSession();
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Place picker state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geoDetecting, setGeoDetecting] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name,ayanamsa,chart_style,house_system')
+        .select('display_name,ayanamsa,chart_style,house_system,current_place_name,current_lat,current_lon,current_timezone')
         .eq('user_id', user.id)
         .maybeSingle();
       if (error) { toast.error(error.message); setPrefs(DEFAULTS); return; }
-      setPrefs({ ...DEFAULTS, ...(data ?? {}) } as Prefs);
+      const merged = { ...DEFAULTS, ...(data ?? {}) } as Prefs;
+      setPrefs(merged);
+      if (merged.current_place_name) {
+        setSearchQuery(merged.current_place_name);
+      }
     })();
   }, [user]);
+
+  // Debounced geocoding (same Open-Meteo API as New Chart wizard)
+  useEffect(() => {
+    if (prefs?.current_place_name && searchQuery === prefs.current_place_name) {
+      setSuggestions([]);
+      return;
+    }
+    if (!searchQuery || searchQuery.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=5&language=en&format=json`
+        );
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        setSuggestions(data.results || []);
+      } catch {
+        // silently ignore — user will just see no results
+      } finally {
+        setIsSearching(false);
+      }
+    }, 450);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [searchQuery, prefs?.current_place_name]);
+
+  const selectPlace = (s: any) => {
+    const name = [s.name, s.admin1, s.country].filter(Boolean).join(', ');
+    const tz = s.timezone || 'UTC';
+    setSearchQuery(name);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setPrefs((p) => p ? { ...p, current_place_name: name, current_lat: s.latitude, current_lon: s.longitude, current_timezone: tz } : p);
+  };
+
+  const clearPlace = () => {
+    setSearchQuery('');
+    setSuggestions([]);
+    setPrefs((p) => p ? { ...p, current_place_name: null, current_lat: null, current_lon: null, current_timezone: null } : p);
+  };
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+    setGeoDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          // Reverse-geocode via Open-Meteo to get a place name + timezone
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const res = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/search?name=${lat.toFixed(2)},${lon.toFixed(2)}&count=1&language=en&format=json`
+          );
+          let name = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+          let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+          // Try reverse geocoding via Open-Meteo's reverse endpoint
+          try {
+            const revRes = await fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=auto&forecast_days=1`
+            );
+            if (revRes.ok) {
+              const revData = await revRes.json();
+              if (revData.timezone) tz = revData.timezone;
+            }
+          } catch {
+            // fallback to Intl timezone
+          }
+
+          // Try forward geocoding nearby to get a readable name
+          try {
+            const fwdRes = await fetch(
+              `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`
+            );
+            if (fwdRes.ok) {
+              const fwdData = await fwdRes.json();
+              if (fwdData.results?.length) {
+                const s = fwdData.results[0];
+                name = [s.name, s.admin1, s.country].filter(Boolean).join(', ');
+                if (s.timezone) tz = s.timezone;
+              }
+            }
+          } catch {
+            // keep coordinate name
+          }
+
+          setSearchQuery(name);
+          setPrefs((p) => p ? { ...p, current_place_name: name, current_lat: lat, current_lon: lon, current_timezone: tz } : p);
+          toast.success('Location detected');
+        } catch {
+          toast.error('Could not resolve your location');
+        } finally {
+          setGeoDetecting(false);
+        }
+      },
+      (err) => {
+        setGeoDetecting(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          // Fall back to Intl timezone only
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          toast('Location permission denied — using browser timezone only');
+          setPrefs((p) => p ? { ...p, current_timezone: tz } : p);
+        } else {
+          toast.error('Could not detect your location');
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  };
+
+  // Auto-detect timezone on first load when no location is saved
+  useEffect(() => {
+    if (!prefs) return;
+    if (prefs.current_place_name || prefs.current_timezone) return;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setPrefs((p) => p ? { ...p, current_timezone: tz } : p);
+  }, [prefs?.current_place_name, prefs?.current_timezone]);
 
   const save = async () => {
     if (!user || !prefs) return;
@@ -82,6 +231,75 @@ export default function Settings() {
             <option value="equal">Equal</option>
           </select>
         </Field>
+
+        {/* Current location — used for Muhurta, Panchang, transit ascendant */}
+        <div className="block">
+          <div className="text-eyebrow mb-2 text-text-tertiary">Current location</div>
+          <p className="mb-2 text-xs text-text-tertiary">
+            Used for sunrise/sunset, Muhurta, today's Panchang, and the Dashboard transit ascendant.
+            Falls back to birth location if unset.
+          </p>
+          <div className="relative">
+            <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); if (!e.target.value) clearPlace(); }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              className="settings-input pl-9 pr-20"
+              placeholder="Search city (e.g. London, Mumbai, New York...)"
+              autoComplete="off"
+            />
+            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+              {prefs.current_place_name && (
+                <button type="button" onClick={clearPlace}
+                  className="rounded p-1 text-text-tertiary hover:text-text-primary">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <button type="button" onClick={detectLocation} disabled={geoDetecting}
+                className="rounded bg-elevated px-2 py-1 text-[11px] font-medium text-text-secondary hover:text-text-primary disabled:opacity-50">
+                {geoDetecting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Detect'}
+              </button>
+            </div>
+
+            {showSuggestions && searchQuery.trim().length >= 3 && (
+              <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-sm border border-hairline-subtle bg-surface shadow-lg">
+                {isSearching ? (
+                  <div className="flex items-center gap-2 px-4 py-3 text-xs text-text-tertiary">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-saffron" />
+                    Searching locations...
+                  </div>
+                ) : suggestions.length === 0 ? (
+                  <div className="px-4 py-3 text-xs text-text-tertiary">No locations found.</div>
+                ) : (
+                  suggestions.map((s, i) => {
+                    const display = [s.name, s.admin1, s.country].filter(Boolean).join(', ');
+                    return (
+                      <div key={i} onMouseDown={() => selectPlace(s)}
+                        className="cursor-pointer px-4 py-2.5 text-xs text-text-primary hover:bg-elevated transition-colors duration-150">
+                        {display}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {prefs.current_place_name && prefs.current_lat != null && prefs.current_lon != null && (
+            <div className="mt-2 rounded-sm bg-elevated p-3 font-mono text-xs text-text-tertiary">
+              {prefs.current_lat.toFixed(4)}&deg;N, {prefs.current_lon.toFixed(4)}&deg;E
+              {prefs.current_timezone && <> &middot; {prefs.current_timezone}</>}
+            </div>
+          )}
+          {!prefs.current_place_name && prefs.current_timezone && (
+            <div className="mt-2 rounded-sm bg-elevated p-3 font-mono text-xs text-text-tertiary">
+              Timezone: {prefs.current_timezone} (no coordinates — sunrise/sunset will use birth location)
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end pt-2">
           <button onClick={save} disabled={saving}
