@@ -202,13 +202,13 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         firstMahaAntarSigns: [8, 7, 6, 5, 4, 3, 2, 1, 12, 11, 10, 9],
         antarDurationYears: 11 / 12,  // 0.9167
       },
-      // Special Lagnas — apparent sunrise (−0.833°, v15+)
+      // PyJHora v4.8.5 (Lahiri) — Special Lagnas
       specialLagnas: [
-        { name: "Bhava Lagna",     sign: 9,  deg: 24.7947 },
-        { name: "Hora Lagna",      sign: 2,  deg: 13.6436 },
-        { name: "Ghati Lagna",     sign: 4,  deg: 10.1905 },
-        { name: "Vighati Lagna",   sign: 6,  deg: 26.8835 },
-        { name: "Pranapada Lagna", sign: 9,  deg: 21.8632 },
+        { name: "Bhava Lagna",     sign: 9,  deg: 23.8646 },
+        { name: "Hora Lagna",      sign: 2,  deg: 11.7788 },
+        { name: "Ghati Lagna",     sign: 4,  deg: 5.5213 },
+        { name: "Vighati Lagna",   sign: 5,  deg: 0.7996 },
+        { name: "Pranapada Lagna", sign: 9,  deg: 2.3988 },
         { name: "Sree Lagna",      sign: 6,  deg: 23.7395 },
       ],
       // PyJHora v4.8.5 (Lahiri) — Argala per house
@@ -371,13 +371,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         firstMahaAntarSigns: [6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5],
         antarDurationYears: 12 / 12,  // 1.0
       },
-      // Special Lagnas — apparent sunrise (−0.833°, v15+)
       specialLagnas: [
-        { name: "Bhava Lagna",     sign: 6,  deg: 1.6162 },
-        { name: "Hora Lagna",      sign: 6,  deg: 29.2170 },
-        { name: "Ghati Lagna",     sign: 9,  deg: 22.0197 },
-        { name: "Vighati Lagna",   sign: 12, deg: 10.0676 },
-        { name: "Pranapada Lagna", sign: 7,  deg: 14.6684 },
+        { name: "Bhava Lagna",     sign: 6,  deg: 0.7143 },
+        { name: "Hora Lagna",      sign: 6,  deg: 27.4089 },
+        { name: "Ghati Lagna",     sign: 9,  deg: 17.4930 },
+        { name: "Vighati Lagna",   sign: 10, deg: 15.7003 },
+        { name: "Pranapada Lagna", sign: 6,  deg: 25.4369 },
         { name: "Sree Lagna",      sign: 9,  deg: 25.3387 },
       ],
       argala: [
@@ -536,13 +535,12 @@ const REFERENCE_CHARTS: ReferenceChart[] = [
         firstMahaAntarSigns: [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
         antarDurationYears: 9 / 12,  // 0.75
       },
-      // Special Lagnas — apparent sunrise (−0.833°, v15+)
       specialLagnas: [
-        { name: "Bhava Lagna",     sign: 11, deg: 24.5522 },
-        { name: "Hora Lagna",      sign: 4,  deg: 24.8645 },
-        { name: "Ghati Lagna",     sign: 7,  deg: 25.8013 },
-        { name: "Vighati Lagna",   sign: 7,  deg: 12.9761 },
-        { name: "Pranapada Lagna", sign: 2,  deg: 29.8930 },
+        { name: "Bhava Lagna",     sign: 11, deg: 23.6265 },
+        { name: "Hora Lagna",      sign: 4,  deg: 23.0086 },
+        { name: "Ghati Lagna",     sign: 7,  deg: 21.1550 },
+        { name: "Vighati Lagna",   sign: 5,  deg: 17.1719 },
+        { name: "Pranapada Lagna", sign: 2,  deg: 10.4949 },
         { name: "Sree Lagna",      sign: 3,  deg: 16.0685 },
       ],
       argala: [
