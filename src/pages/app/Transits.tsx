@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Info, Compass } from 'lucide-react';
+import { ArrowLeft, Loader2, Info, Compass, MapPin } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { getAstroProvider } from '@/lib/astro/factory';
 import { PLANET_LABELS, type PlanetPosition } from '@/lib/astro/types';
 import { KundliBiWheel } from '@/components/kundli/KundliBiWheel';
 import { useChartStore } from '@/stores/useChartStore';
+import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 
 export default function Transits() {
   const { id = 'demo' } = useParams();
@@ -16,12 +17,20 @@ export default function Transits() {
   const chartStyle = useChartStore((s) => s.chartStyle);
   const setChartStyle = useChartStore((s) => s.setChartStyle);
 
+  // Use current location for transit computation, fallback to birth place
+  const birthLat = (data?.birthDetails as any)?.placeOfBirth?.latitude as number | undefined;
+  const birthLon = (data?.birthDetails as any)?.placeOfBirth?.longitude as number | undefined;
+  const birthTz  = (data?.birthDetails as any)?.placeOfBirth?.timezone as string | undefined;
+  const { location: transitLoc, isFromProfile: transitUsingProfile } = useCurrentLocation(birthLat, birthLon, birthTz);
+
   useEffect(() => {
-    getAstroProvider().getCurrentTransits(0, 0).then((t) => {
+    const lat = transitLoc?.lat ?? 0;
+    const lon = transitLoc?.lon ?? 0;
+    getAstroProvider().getCurrentTransits(lat, lon).then((t) => {
       setTransits(t);
       setLoading(false);
     });
-  }, []);
+  }, [transitLoc?.lat, transitLoc?.lon]);
 
   if (isLoading || !data || loading) {
     return (
@@ -58,6 +67,12 @@ export default function Transits() {
       <p className="mt-2 max-w-2xl text-body text-text-secondary">
         How today's planetary sky activates the natal chart. Houses are reckoned from the natal Lagna and natal Moon — both perspectives matter in classical Gochara.
       </p>
+      {transitLoc && (
+        <div className="mt-2 inline-flex items-center gap-1.5 rounded-sm bg-elevated px-3 py-1.5 text-xs text-text-secondary">
+          <MapPin className="h-3 w-3" />
+          computed for <span className="font-semibold text-text-primary">{transitUsingProfile ? (transitLoc.placeName ?? 'Current location') : ((data.birthDetails as any)?.placeOfBirth?.name ?? `${transitLoc.lat.toFixed(2)}°, ${transitLoc.lon.toFixed(2)}°`)}</span>
+        </div>
+      )}
 
       {/* Bi-Wheel & Info Grid */}
       <div className="mt-8 grid gap-8 lg:grid-cols-12">

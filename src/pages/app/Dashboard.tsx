@@ -11,12 +11,14 @@ import {
   Moon,
   Info,
   ShieldCheck,
-  Bookmark
+  Bookmark,
+  MapPin
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAstroProvider } from '@/lib/astro/factory';
 import { PLANET_LABELS, type PlanetPosition, type KundliData } from '@/lib/astro/types';
 import { toast } from '@/components/ui/sonner';
+import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 
 interface Profile {
   id: string;
@@ -60,9 +62,14 @@ export default function Dashboard() {
     loadProfiles();
   }, []);
 
-  // Fetch current transits
+  // Fetch user's current location for transit computation
+  const { location: currentLocation, isFromProfile: transitUsingProfile } = useCurrentLocation(23.0225, 72.5714, 'Asia/Kolkata');
+
+  // Fetch current transits using user's current location
   useEffect(() => {
-    getAstroProvider().getCurrentTransits(23.0225, 72.5714) // Ahmedabad coords default
+    const lat = currentLocation?.lat ?? 23.0225;
+    const lon = currentLocation?.lon ?? 72.5714;
+    getAstroProvider().getCurrentTransits(lat, lon)
       .then((t) => {
         setTransits(t);
       })
@@ -72,7 +79,7 @@ export default function Dashboard() {
       .finally(() => {
         setLoadingTransits(false);
       });
-  }, []);
+  }, [currentLocation?.lat, currentLocation?.lon]);
 
   // Profile selection logic
   const activeProfile = profiles ? (profiles.find(p => p.id === selectedProfileId) || profiles[0]) : null;
@@ -359,9 +366,17 @@ export default function Dashboard() {
         <div className="lg:col-span-8 space-y-6">
           {/* Today's Transit Card */}
           <div className="rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm hover:shadow transition-shadow">
-            <div className="flex items-center gap-2.5 text-brand-saffron">
-              <Moon className="h-4.5 w-4.5 fill-brand-saffron/20" />
-              <h3 className="font-display text-h3 text-text-primary">Today's Transit Impact (Chandra Gochara)</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5 text-brand-saffron">
+                <Moon className="h-4.5 w-4.5 fill-brand-saffron/20" />
+                <h3 className="font-display text-h3 text-text-primary">Today's Transit Impact (Chandra Gochara)</h3>
+              </div>
+              {currentLocation && (
+                <span className="inline-flex items-center gap-1 rounded-sm bg-elevated px-2 py-1 text-[10px] text-text-tertiary">
+                  <MapPin className="h-2.5 w-2.5" />
+                  {transitUsingProfile ? (currentLocation.placeName ?? 'Current location') : 'default coords'}
+                </span>
+              )}
             </div>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
               {moonHouseText ?? "Live transit data isn't available yet. Reopen this chart to refresh today's Moon gochara."}
