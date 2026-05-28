@@ -4,6 +4,15 @@
 engine outputs that currently have **no UI** — they're computed and used by the
 Guru Debate but a user can't see them.
 
+> ## ✅ Status: shipped
+> All pages in this plan are now built and wired into the ChartDetail module
+> grid — **Strengths** (Shadbala + Bhava Bala + Vargeeya Bala), **KP**,
+> **Jaimini**, **Varshphal**, and the multi-system **Dashas** page (Vimshottari /
+> Yogini / Ashtottari / Chara / Kalachakra). This document is kept as the build
+> record. **The next UI phase is the [Interactive Research Lab](ROADMAP.md#immediate--interactive-research-lab)**
+> (see ROADMAP.md), which turns these read-only views into explorable, tappable
+> proofs with arrows, depth layers, and classical citations.
+
 > **This is a frontend-only task.** Build in `src/` only. Do **NOT** modify
 > `supabase/functions/**` (the calculation engine + edge functions),
 > `.github/workflows/**` (CI + repo mirror), `supabase/migrations/**`, or the
@@ -53,9 +62,9 @@ this chart to generate …"), never crash.
 
 ---
 
-## 3. New pages to build
+## 3. New pages to build  ✅ (all shipped)
 
-### A. Strengths — `/app/chart/:id/strengths`
+### A. Strengths — `/app/chart/:id/strengths`  ✅
 Three sections (tabs or stacked cards):
 
 1. **Shadbala** (planet strength) — `chart.shadbala`:
@@ -71,14 +80,14 @@ Three sections (tabs or stacked cards):
    - `vargeeyaBala.panchaVargeeya: Record<planet, number>` and `vargeeyaBala.dwadasaVargeeya: Record<planet, number>` (a count out of 12).
    - Suggested viz: per-planet two small bars (Pancha value, Dwadasa count/12).
 
-### B. KP (Krishnamurti Paddhati) — `/app/chart/:id/kp`
+### B. KP (Krishnamurti Paddhati) — `/app/chart/:id/kp`  ✅
 `chart.kp`:
 - `kp.planetSubLords[]` → `{ planet, signLord, starLord, subLord }` — a table.
 - `kp.cuspalSubLords[]` (optional) → `{ cusp, longitude, signLord, starLord, subLord }` — a 12-cusp table.
 - `kp.rulingPlanets` (optional) → `{ ascSignLord, ascStarLord, moonSignLord, moonStarLord, dayLord }` — a compact card.
 - `kp.houseSignificators[]` (optional) → `{ house, levelA, levelB, levelC, levelD, nodesActingFor, ordered }` — per house, show the 4 levels (A strongest → D weakest) as grouped chips, plus `nodesActingFor`.
 
-### C. Jaimini — `/app/chart/:id/jaimini`
+### C. Jaimini — `/app/chart/:id/jaimini`  ✅
 `chart.jaimini`:
 - **Chara Karakas:** `charaKarakas[]` → `{ planet, degreeInSign, karaka }` (AK→DK), and `atmakaraka` (highlight). `karakamsa: { sign, signName }`.
 - **Arudha Padas:** `arudhaPadas[]` → `{ house, label, sign, signName }` (label e.g. "Arudha Lagna (AL)", "Upapada (UL)").
@@ -86,14 +95,14 @@ Three sections (tabs or stacked cards):
 - **Special Lagnas:** `specialLagnas[]` → `{ name, sign, signName, degree }` (Bhava/Hora/Ghati/Vighati/Pranapada/Sree) — a small table.
 - **Argala:** `argala[]` → per house `{ argala: { from2nd, from4th, from5th, from11th }, virodha: { from12th, from10th, from9th, from3rd } }` — a per-house view of intervening (argala) vs counter (virodha) planets.
 
-### D. Varshphal (annual chart) — `/app/chart/:id/varshphal`
+### D. Varshphal (annual chart) — `/app/chart/:id/varshphal`  ✅
 `chart.varshphal`:
 - Header: "Year N" (`years`), Varsha Pravesh date (derive from `varshaPraveshJd`).
 - **Annual chart wheel:** ascendant `annualAscSign` (1–12) + `annualAscDeg`, and `planets[]` → `{ planet, signNumber, signName, signDegree, nakshatra, houseNumber, isRetrograde }`. **Reuse `KundliChart`** to render it.
 - **Muntha:** `munthaSign` (1–12) + `munthaHouse`. **Year Lord (Varshesh):** `yearLord`.
 - **Tajik yogas:** `tajikYogas` → `{ ithasala[], eesarpha[], nakta[], yamaya[], ishkavala, induvara }`. Show active yogas with the planet pair(s); `ithasalaType` (1/2/3) as a small label.
 
-### E. Enhance the Dashas page — `/app/chart/:id/dashas`
+### E. Enhance the Dashas page — `/app/chart/:id/dashas`  ✅
 Currently shows **Vimshottari only**. `chart.dashas` is now `DashaSystem[]` with
 `system` ∈ `'vimshottari' | 'yogini' | 'ashtottari'` (and others later). Add a
 **system selector (tabs)** so the user can switch between Vimshottari (existing
