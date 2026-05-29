@@ -43,6 +43,9 @@ API is required.
 - **Kundli generation** from name, date, time, and place of birth, with
   birthplace autocomplete and automatic timezone resolution (Open-Meteo
   geocoding + client-side timezone offset).
+- **Unknown Birth Time support** — cast a chart without a known birth time via
+  a Solar (Sun-as-Lagna), Moon (Moon-as-Lagna), or **KP Horary (1–249)** chart
+  basis.
 - **16 divisional charts (Vargas)** — D1 (Rasi) through D60 (Shashtiamsa) with
   per-varga significance and interpretation.
 - **Dasha systems** — **Vimshottari** (120-yr, five sub-period levels Maha →
@@ -87,8 +90,9 @@ API is required.
 > **Engine vs. UI:** every calculation above is computed by the engine, fed into
 > the Guru Debate dossier, and surfaced in dedicated front-end views — the
 > **Strengths** (Shadbala / Bhava Bala / Vargeeya Bala), **KP**, **Jaimini**,
-> **Varshphal**, and multi-system **Dashas** pages all ship. The next UI phase
-> turns these read-only views into an **Interactive Research Lab** — see
+> **Varshphal**, and multi-system **Dashas** pages all ship. The **Interactive
+> Research Lab** (`/app/chart/:id/lab`) is now underway — Phases 1–2 (Interactive
+> D1 chart, interactive Yogas) have shipped — see
 > [ROADMAP.md](ROADMAP.md#immediate--interactive-research-lab).
 
 ### Interpretation & analysis

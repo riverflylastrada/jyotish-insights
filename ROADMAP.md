@@ -46,7 +46,8 @@ each PR.
 **Engine vs. UI:** the **core engine is feature-complete**, and the **initial UI
 surfacing phase has shipped** — Strengths, KP, Jaimini, and Varshphal pages, plus
 a multi-system Dashas page (Vimshottari / Yogini / Ashtottari / Chara /
-Kalachakra). The next major phase is the **Interactive Research Lab** (below).
+Kalachakra). The **Interactive Research Lab** is now underway — Phases 1–2
+(Interactive D1, Unknown Birth Time, interactive Yogas) have shipped (below).
 Product gaps: transit alerts, monetization.
 
 ---
@@ -123,11 +124,20 @@ Product gaps: transit alerts, monetization.
   Bala + Vargeeya Bala), **KP**, **Jaimini**, and **Varshphal** pages, plus a
   multi-system **Dashas** page (Vimshottari / Yogini / Ashtottari / Chara /
   Kalachakra). All wired into the ChartDetail module grid. (See UI/UX phase.)
+- ✅ **Unknown Birth Time / chart basis** ([engine.ts](supabase/functions/calculate-kundli/engine.ts),
+  [kp_horary.ts](supabase/functions/calculate-kundli/kp_horary.ts)) — `ChartBasis`
+  of Rasi / **Solar** (Sun-as-Lagna) / **Moon** (Moon-as-Lagna) / **KP Horary**
+  on the New Chart form, with the full **KP 1–249** sub-lord table.
+- ✅ **Research Lab — Phase 1: Interactive D1 chart** — tappable planets with
+  lordship/aspect/conjunction arrows ([ResearchLab.tsx](src/pages/app/ResearchLab.tsx),
+  route `/app/chart/:id/lab`).
+- ✅ **Research Lab — Phase 2: interactive Yogas** — step-by-step condition cards.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
-> engine is feature-complete** and the **initial UI surfacing phase has
-> shipped**; the next major focus is the **Interactive Research Lab** (below).
+> engine is feature-complete**, the **initial UI surfacing phase has shipped**,
+> and the **Interactive Research Lab is now underway** — Phases 1–2 (Interactive
+> D1, Unknown Birth Time, interactive Yogas) have shipped (below).
 
 ---
 
@@ -137,8 +147,6 @@ Product gaps: transit alerts, monetization.
 - ⬜ **More dasha systems** — Narayana, Lagna Kendradi, Sudasa and other rasi
   dashas (Vimshottari, Yogini, Ashtottari, Kalachakra, and Jaimini Chara already
   ship); see Mid-term for the full target list.
-- ⬜ **KP horary chart support** — 1–249 number → zodiacal position mapping for
-  Prashna and Unknown Birth Time features.
 
 ### Engine accuracy polish
 - ⬜ **Avasthas** — Baladi, Jagradadi, Deeptadi planetary states (BPHS Ch.45).
@@ -161,6 +169,10 @@ Product gaps: transit alerts, monetization.
 > afterward is born interactive from day one. The Research Lab is the product
 > identity — not a feature.
 
+> **Status:** Phase 1 (Interactive D1 chart, Unknown Birth Time) and Phase 2
+> (interactive Yogas) have shipped — see Recently shipped. **Interactive Doshas
+> is the next item.**
+
 ### Design principles
 1. **Show the Rule, Not Just the Result** — every statement traces to a
    classical rule, tappable to reveal it.
@@ -180,19 +192,19 @@ Product gaps: transit alerts, monetization.
   computation.
 
 ### Phase 1: Core interaction system
-- ⬜ **Interactive D1 chart** — tappable planets with animated arrows:
+- ✅ **Interactive D1 chart** — tappable planets with animated arrows:
   gold solid → lordship, blue dashed → aspects, purple glow → conjunctions.
   Color-coded house highlights (placed / owned / aspected). Labels appear on
   each house ("📍 HERE", "👑 OWNS", "🏹 ASPECTS"). Three depth layers
   togglable. Lordship proof shows formula:
   `House = ((SignNumber - AscSign + 12) mod 12) + 1`. "🔮 Ask 5 Gurus" bridge
   button to Guru Debate with pre-filled context.
-- ⬜ **Unknown Birth Time option** on New Chart form — Solar Chart (Sun as
+- ✅ **Unknown Birth Time option** on New Chart form — Solar Chart (Sun as
   Lagna), Moon Chart (Moon as Lagna), KP Horary Number (1–249). Stops losing
   ~30–40% of users who don't know their birth time.
 
 ### Phase 2: Yogas & Doshas as interactive condition checklists
-- ⬜ **Interactive Yogas** — each yoga presented as a step-by-step condition
+- ✅ **Interactive Yogas** — each yoga presented as a step-by-step condition
   checklist (✓/✗ per step). User walks through and proves/disproves each yoga
   themselves. Cancellation rules equally prominent. Classical source cited per
   yoga (BPHS chapter, Phaladeepika shloka, etc.).
@@ -389,10 +401,10 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 
 | #  | Item                                     | Effort   | Unlocks                           |
 |----|------------------------------------------|----------|-----------------------------------|
-| 1  | Unknown Birth Time (form option)         | 2–3 days | Stops losing 30–40% of users      |
-| 2  | Interactive D1 Chart (arrows + 3 depths) | 5–6 days | Research Lab identity              |
-| 3  | Interactive Yogas (condition checklists)  | 3–4 days | Most shareable feature             |
-| 4  | Interactive Doshas (condition + cancel)   | 3–4 days | Destroys fear-based astrology      |
+| 1  | ✅ Unknown Birth Time (form option)      | 2–3 days | Stops losing 30–40% of users      |
+| 2  | ✅ Interactive D1 Chart (arrows + depths)| 5–6 days | Research Lab identity              |
+| 3  | ✅ Interactive Yogas (condition checklists)| 3–4 days | Most shareable feature           |
+| 4  | Interactive Doshas (condition + cancel) ⬅ next | 3–4 days | Destroys fear-based astrology |
 | 5  | Interactive Dasha (tap → chart highlight) | 3–4 days | Core Research Lab complete         |
 | 6  | Interactive Divisionals (cross-chart nav) | 4–5 days | 16 vargas become explorable        |
 | 7  | Interactive Ashtakavarga/Shadbala/KP      | 5–6 days | Advanced research tools complete   |
