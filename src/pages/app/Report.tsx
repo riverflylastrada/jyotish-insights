@@ -100,7 +100,7 @@ export default function Report() {
           <div className="gold-rule mt-6" />
           <dl className="mt-8 grid grid-cols-2 gap-y-4 text-sm">
             <DT label="Date of birth" value={dayjs(data.birthDetails.dateOfBirth).format('DD MMMM YYYY')} />
-            <DT label="Time of birth" value={data.birthDetails.timeOfBirth} />
+            <DT label="Time of birth" value={data.birthDetails.timeOfBirth ?? 'Unknown'} />
             <DT label="Place of birth" value={data.birthDetails.placeOfBirth.name} />
             <DT label="Coordinates" value={`${data.birthDetails.placeOfBirth.latitude.toFixed(4)}°, ${data.birthDetails.placeOfBirth.longitude.toFixed(4)}°`} />
             <DT label="Ayanamsa" value={data.birthDetails.ayanamsa} />

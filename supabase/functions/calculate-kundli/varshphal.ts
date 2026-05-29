@@ -401,7 +401,7 @@ export function computeVarshphal(
 ): VarshphalData {
   // Parse birth date/time → Julian Day
   const [y, m, d] = details.dateOfBirth.split("-").map(Number);
-  const timeParts = details.timeOfBirth.split(":").map(Number);
+  const timeParts = (details.timeOfBirth || "12:00:00").split(":").map(Number);
   const hour = timeParts[0] ?? 0;
   const minute = timeParts[1] ?? 0;
   const second = timeParts[2] ?? 0;
