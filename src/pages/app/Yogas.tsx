@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Check, X, ChevronRight, FlaskConical } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
-import type { Yoga } from '@/lib/astro/types';
+import { PLANET_LABELS, type PlanetName, type Yoga } from '@/lib/astro/types';
 
 const CATEGORY_LABELS: Record<Yoga['category'], string> = {
   raja: 'Raja Yogas',
@@ -16,10 +16,18 @@ const CATEGORY_LABELS: Record<Yoga['category'], string> = {
 
 const STRENGTH_DOTS: Record<Yoga['strength'], number> = { weak: 1, moderate: 2, strong: 3 };
 
+const PLANET_NAMES = Object.keys(PLANET_LABELS) as PlanetName[];
+/** If a "formed by" string names a planet, return its key (for colour-coding). */
+function planetIn(text: string): PlanetName | null {
+  const lower = text.toLowerCase();
+  return PLANET_NAMES.find((p) => p !== 'ascendant' && lower.includes(p)) ?? null;
+}
+
 export default function Yogas() {
   const { id = 'demo' } = useParams();
   const { data, isLoading } = useKundli(id);
   const [filter, setFilter] = useState<'all' | 'present' | 'absent'>('present');
+  const [open, setOpen] = useState<Set<string>>(new Set());
 
   if (isLoading || !data) {
     return (
@@ -28,6 +36,13 @@ export default function Yogas() {
       </div>
     );
   }
+
+  const toggle = (name: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
 
   const filtered = data.yogas.filter((y) => filter === 'all' || (filter === 'present' ? y.isPresent : !y.isPresent));
   const grouped = filtered.reduce<Record<string, Yoga[]>>((acc, y) => {
@@ -44,10 +59,11 @@ export default function Yogas() {
       </Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-eyebrow text-brand-saffron">Combinations</div>
+          <div className="text-eyebrow text-brand-saffron">Combinations · checkable conditions</div>
           <h1 className="mt-1 font-display text-h1 text-text-primary">Yogas</h1>
           <p className="mt-2 max-w-2xl text-body text-text-secondary">
-            {presentCount} of {data.yogas.length} classical yogas are formed in this chart.
+            A yoga is a <em>mathematical condition</em>, not a fortune. {presentCount} of {data.yogas.length} classical
+            yogas have their condition met in this chart — tap any to see the rule and why it does or doesn't fire.
           </p>
         </div>
         <div className="flex rounded-sm border border-hairline-subtle p-0.5 text-xs">
@@ -66,47 +82,76 @@ export default function Yogas() {
               <div className="h-px flex-1 bg-hairline-subtle" />
               <span className="font-mono text-xs text-text-tertiary">{yogas.length}</span>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {yogas.map((y) => (
-                <article key={y.name} className={`rounded-md border bg-surface p-5 shadow-sm ${y.isPresent ? 'border-hairline-subtle' : 'border-hairline-subtle opacity-70'}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {y.isPresent && <Sparkles className="h-3.5 w-3.5 text-brand-gold" />}
-                        <h3 className="font-display text-h3 text-text-primary">{y.name}</h3>
-                      </div>
-                    </div>
-                    {y.isPresent && (
-                      <div className="flex gap-0.5">
-                        {[1,2,3].map((d) => (
-                          <span key={d} className="h-1.5 w-1.5 rounded-full" style={{ background: d <= STRENGTH_DOTS[y.strength] ? 'hsl(var(--brand-saffron))' : 'hsl(var(--border-subtle))' }} />
-                        ))}
+            <div className="grid gap-3 md:grid-cols-2">
+              {yogas.map((y) => {
+                const isOpen = open.has(y.name);
+                return (
+                  <article key={y.name} className={`rounded-md border bg-surface shadow-sm transition-colors ${y.isPresent ? 'border-hairline-subtle' : 'border-hairline-subtle opacity-80'}`}>
+                    {/* Condition header — tap to expand */}
+                    <button onClick={() => toggle(y.name)} className="flex w-full items-center gap-3 px-5 py-4 text-left">
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${y.isPresent ? 'bg-semantic-positive/15 text-semantic-positive' : 'bg-elevated text-text-muted'}`}>
+                        {y.isPresent ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="font-display text-h3 text-text-primary">{y.name}</span>
+                        <span className="ml-2 text-xs text-text-tertiary">{y.isPresent ? 'condition met' : 'not formed'}</span>
+                      </span>
+                      {y.isPresent && (
+                        <span className="flex shrink-0 gap-0.5">
+                          {[1, 2, 3].map((d) => (
+                            <span key={d} className="h-1.5 w-1.5 rounded-full" style={{ background: d <= STRENGTH_DOTS[y.strength] ? 'hsl(var(--brand-saffron))' : 'hsl(var(--border-subtle))' }} />
+                          ))}
+                        </span>
+                      )}
+                      <ChevronRight className={`h-4 w-4 shrink-0 text-text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                    </button>
+
+                    {isOpen && (
+                      <div className="border-t border-hairline-subtle px-5 py-4 space-y-4">
+                        {/* The rule */}
+                        <div>
+                          <div className="text-eyebrow text-text-tertiary">The rule</div>
+                          <p className="mt-1 text-sm text-text-secondary">{y.explanation}</p>
+                        </div>
+
+                        {/* Formed-by planets as colour chips */}
+                        {y.formedBy.length > 0 && (
+                          <div>
+                            <div className="text-eyebrow text-text-tertiary">Formed by</div>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {y.formedBy.map((f, i) => {
+                                const pl = planetIn(f);
+                                return (
+                                  <span key={i} className="inline-flex items-center gap-1.5 rounded-sm border border-hairline-subtle bg-elevated px-2 py-0.5 text-xs text-text-secondary">
+                                    {pl && <span className="h-2 w-2 rounded-full" style={{ background: `hsl(var(--planet-${pl}))` }} />}
+                                    {f}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Effects */}
+                        {y.isPresent && y.effects.length > 0 && (
+                          <div>
+                            <div className="text-eyebrow text-text-tertiary">Effects</div>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {y.effects.map((e) => (
+                                <span key={e} className="rounded-sm border border-hairline-subtle bg-elevated px-2 py-0.5 text-xs text-text-secondary">{e}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <Link to={`/app/chart/${id}/lab`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                          <FlaskConical className="h-3.5 w-3.5" /> Explore the planets in the Research Lab
+                        </Link>
                       </div>
                     )}
-                  </div>
-                  <p className="mt-3 text-sm text-text-secondary">{y.explanation}</p>
-                  {y.formedBy.length > 0 && (
-                    <div className="mt-4">
-                      <div className="text-eyebrow text-text-tertiary">Formed by</div>
-                      <ul className="mt-2 space-y-1">
-                        {y.formedBy.map((f) => (
-                          <li key={f} className="font-mono text-xs text-text-secondary">· {f}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {y.effects.length > 0 && (
-                    <div className="mt-4">
-                      <div className="text-eyebrow text-text-tertiary">Effects</div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {y.effects.map((e) => (
-                          <span key={e} className="rounded-sm border border-hairline-subtle bg-elevated px-2 py-0.5 text-xs text-text-secondary">{e}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           </section>
         ))}
