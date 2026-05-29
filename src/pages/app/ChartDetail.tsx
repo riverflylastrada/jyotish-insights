@@ -229,6 +229,7 @@ export default function ChartDetail() {
       {/* Sub-nav links */}
       {([
         { heading: 'Core', items: [
+          ['lab', 'Research Lab'],
           ['charts', 'Divisional'],
           ['dashas', 'Dashas'],
           ['doshas', 'Doshas'],

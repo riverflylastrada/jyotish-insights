@@ -35,6 +35,7 @@ const Strengths = lazy(() => import("./pages/app/Strengths"));
 const Kp = lazy(() => import("./pages/app/Kp"));
 const Jaimini = lazy(() => import("./pages/app/Jaimini"));
 const Varshphal = lazy(() => import("./pages/app/Varshphal"));
+const ResearchLab = lazy(() => import("./pages/app/ResearchLab"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminApiKeys = lazy(() => import("./pages/admin/AdminApiKeys"));
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="chart/:id/kp" element={<Kp />} />
               <Route path="chart/:id/jaimini" element={<Jaimini />} />
               <Route path="chart/:id/varshphal" element={<Varshphal />} />
+              <Route path="chart/:id/lab" element={<ResearchLab />} />
             </Route>
 
             <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
