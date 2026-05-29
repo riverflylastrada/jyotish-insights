@@ -69,6 +69,7 @@ const Index = () => {
             <a href="#how" className="text-sm text-text-secondary hover:text-text-primary">How it works</a>
             <a href="#gurus" className="text-sm text-text-secondary hover:text-text-primary">Gurus</a>
             <a href="#report" className="text-sm text-text-secondary hover:text-text-primary">Report</a>
+            <Link to="/mundane" className="text-sm text-text-secondary hover:text-text-primary">Mundane</Link>
             <a href="#pricing" className="text-sm text-text-secondary hover:text-text-primary">Pricing</a>
           </nav>
           <div className="flex items-center gap-3">
@@ -195,7 +196,7 @@ const Index = () => {
             Every interpretation cites its lineage. We draw from Brihat Parashara Hora Shastra, Saravali, Phaladeepika, Jaimini Sutras, and modern KP literature — and we tell you which one is speaking.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-4 text-left sm:grid-cols-3">
-            {['BPHS', 'Saravali', 'Phaladeepika', 'Jaimini Sutras', 'KP Reader', 'Varshphal'].map((t) => (
+            {['BPHS', 'Saravali', 'Phaladeepika', 'Jaimini Sutras', 'KP Reader', 'Varshphal', 'Mundane'].map((t) => (
               <div key={t} className="rounded-sm border border-hairline-subtle bg-surface px-4 py-3 text-sm text-text-secondary">
                 <Sparkles className="mb-1 inline h-3 w-3 text-brand-gold" /> {t}
               </div>
