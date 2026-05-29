@@ -56,6 +56,10 @@ async function getLlmConfig() {
 
 const VERDICT_PROMPT = "You are the Acharya, presiding over a tribunal of gurus. You have just heard their readings on a single chart and question. FIRST, output a single paragraph beginning exactly with 'BOTTOM LINE:' that answers the question directly in 2-3 plain-language sentences a layperson can act on, naming the key timing. Then leave a blank line and deliver your full synthesis in 2-3 paragraphs: name the consensus, name the dissent, then one operative recommendation. Cite the gurus by surname when they made a key point. No bullet points. Calm, judicial tone.";
 
+const PRASHNA_GROUNDING = `IMPORTANT: This is a PRASHNA (horary) chart — a chart cast for the exact moment a question was asked, NOT a natal birth chart. There is NO native/person whose life you are reading. Reason ONLY from the moment-chart provided: the Lagna (ascendant) of the moment, the Moon's position and application (separating/applying aspects), KP sub-lords, cuspal sub-lords, Ruling Planets, and house significators. In KP horary, the sub-lord of the relevant house cusp is the primary determinant of whether the matter will fructify. Pay special attention to: (1) the sub-lord of the cusp governing the question, (2) Ruling Planets at the moment of the question, (3) Moon's last and next aspect (separating and applying), (4) whether significators connect the relevant houses. Do NOT assume any natal data, birth details, dasha periods from a person's life, or long-term transits. The querent's identity is irrelevant — only the moment-chart speaks. Give a clear YES/NO/CONDITIONAL answer with timing if possible. Method: Krishnamurti Paddhati (KP).`;
+
+const PRASHNA_VERDICT_PROMPT = "You are the Acharya, presiding over a horary (Prashna) tribunal. The gurus have each read a MOMENT-CHART cast for the instant a question was asked. FIRST, output a single paragraph beginning exactly with 'BOTTOM LINE:' giving a clear YES/NO/CONDITIONAL answer to the question in 2-3 plain-language sentences, with timing if determinable. Then leave a blank line and deliver your full synthesis in 2-3 paragraphs: name the consensus, name the dissent, then one operative recommendation. Cite the gurus by surname. No bullet points. Calm, judicial tone. Remember: this is HORARY — reason from the moment-chart only, not from any natal data.";
+
 const GROUNDING_INSTRUCTION = `IMPORTANT: Reason ONLY from the CHART DOSSIER and CURRENT TRANSITS provided below. Never invent or assume planetary positions, the current date, dasha periods, or divisional placements. Today's date is provided in the dossier; use the provided CURRENT TRANSITS section for all gochara/Sade Sati/timing reasoning. When the dossier provides a SADE SATI / SATURN TRANSIT STATUS, state that exact phase number and trend (intensifying vs. waning) — do NOT recompute, renumber, or relabel the phase, and do not contradict whether it is weakening or peaking. NEVER invent, estimate, or guess a transit, sign-change, or Sade Sati end date: cite ONLY the dasha dates and the ephemeris-computed end dates given in the dossier. Vedic timing is gradual and probabilistic — phrase relief/onset as "easing around <month/year>", not as an exact calendar day. Distinguish the SIZE of relief: a sub-period change (e.g. a new Pratyantardasha) brings only gradual, partial easing — rank it explicitly BELOW the major turning point of a larger cycle ending (e.g. Sade Sati completing), and say which is the minor vs. the decisive shift. When you cite Ashtakavarga, reference BOTH the strongest and the weakest houses given (do not cherry-pick only the weak one). If your method requires data that is not provided (e.g. KP cuspal sub-lords, Jaimini Arudha padas), state briefly that it is unavailable rather than fabricating it.`;
 
 function genderPronoun(chart: any): string {
@@ -70,9 +74,10 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { guru, question, chart, mode, chatHistory } = body as {
+    const { guru, question, chart, mode, chatHistory, prashnaMode } = body as {
       guru?: string; question: string; chart?: any; mode: "guru" | "verdict";
       chatHistory?: Array<{ role: "user" | "assistant"; content: string }>;
+      prashnaMode?: boolean;
     };
     const priorReadings = body.priorReadings as Array<{ guru: string; text: string }> | undefined;
     const missingVoices = body.missingVoices as string[] | undefined;
@@ -102,11 +107,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "question is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const groundingText = prashnaMode ? PRASHNA_GROUNDING : GROUNDING_INSTRUCTION;
+
     let systemPrompt: string;
     const messages: Array<{ role: string; content: string }> = [];
 
     if (mode === "verdict") {
-      systemPrompt = GROUNDING_INSTRUCTION + "\n\n" + VERDICT_PROMPT;
+      systemPrompt = groundingText + "\n\n" + (prashnaMode ? PRASHNA_VERDICT_PROMPT : VERDICT_PROMPT);
       const readingsText = (priorReadings ?? []).map(r => `--- ${r.guru.toUpperCase()} ---\n${r.text}`).join("\n\n");
       let userContent = `QUESTION: ${question}\n\n${dossier}\n\nPRIOR READINGS:\n${readingsText}`;
       if (missingVoices?.length) {
@@ -122,8 +129,10 @@ Deno.serve(async (req) => {
       if (!guru || !GURU_PROMPTS[guru]) {
         return new Response(JSON.stringify({ error: "invalid guru" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      systemPrompt = GROUNDING_INSTRUCTION + "\n\n" + GURU_PROMPTS[guru];
-      const userContent = `QUESTION: ${question}\n\n${dossier}\n\nGive your reading now, in character. Address the native using ${genderPronoun(chart)} pronouns.`;
+      systemPrompt = groundingText + "\n\n" + GURU_PROMPTS[guru];
+      const userContent = prashnaMode
+        ? `PRASHNA QUESTION: ${question}\n\n${dossier}\n\nThis is a HORARY (Prashna) chart. Give your reading now, in character. Judge the question from this moment-chart using KP sub-lords, Ruling Planets, and Moon's application. Do NOT assume any natal/birth data.`
+        : `QUESTION: ${question}\n\n${dossier}\n\nGive your reading now, in character. Address the native using ${genderPronoun(chart)} pronouns.`;
       
       messages.push({ role: "system", content: systemPrompt });
       if (chatHistory && chatHistory.length > 0) {
