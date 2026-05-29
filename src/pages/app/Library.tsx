@@ -65,7 +65,7 @@ export default function Library() {
               <div className="min-w-0 flex-1">
                 <div className="font-display text-h3 text-text-primary truncate">{r.name}</div>
                 <div className="font-mono text-xs text-text-tertiary truncate">
-                  {r.birth_details?.dateOfBirth} · {r.birth_details?.timeOfBirth} · {r.birth_details?.placeOfBirth?.name ?? '—'}
+                  {r.birth_details?.dateOfBirth}{r.birth_details?.timeOfBirth ? ` · ${r.birth_details.timeOfBirth}` : ''} · {r.birth_details?.placeOfBirth?.name ?? '—'}
                 </div>
                 <div className="font-mono text-[10px] text-text-muted">Saved {dayjs(r.created_at).format('DD MMM YYYY')}</div>
               </div>

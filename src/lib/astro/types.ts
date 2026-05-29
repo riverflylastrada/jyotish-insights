@@ -1,10 +1,12 @@
 export type PlanetName =
   | 'sun' | 'moon' | 'mars' | 'mercury' | 'jupiter' | 'venus' | 'saturn' | 'rahu' | 'ketu' | 'ascendant';
 
+export type ChartBasis = 'rasi' | 'solar' | 'moon' | 'horary';
+
 export interface BirthDetails {
   fullName: string;
   dateOfBirth: string;
-  timeOfBirth: string;
+  timeOfBirth?: string;
   placeOfBirth: {
     name: string;
     latitude: number;
@@ -15,6 +17,8 @@ export interface BirthDetails {
   gender?: 'male' | 'female' | 'other';
   ayanamsa: 'lahiri' | 'raman' | 'krishnamurti' | 'yukteshwar';
   houseSystem: 'whole_sign' | 'placidus' | 'koch' | 'sripati' | 'equal';
+  chartBasis?: ChartBasis;
+  horaryNumber?: number;
 }
 
 export interface PlanetPosition {
@@ -289,7 +293,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 15;
+export const CURRENT_SNAPSHOT_VERSION = 16;
 
 export interface KundliData {
   id: string;
@@ -297,6 +301,8 @@ export interface KundliData {
   snapshotVersion?: number;
   birthDetails: BirthDetails;
   generatedAt: string;
+  chartBasis?: ChartBasis;
+  moonSignUncertain?: boolean;
   ascendant: PlanetPosition;
   panchang: {
     tithi: string;

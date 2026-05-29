@@ -33,13 +33,16 @@ import { detectTajikYogas } from "./tajik_yogas.ts";
 import { computeVargeeyaBala } from "./vargeeya_bala.ts";
 import { buildKalachakraDasha } from "./kalachakra.ts";
 import { computeVimsopakaBala } from "./vimsopaka.ts";
+import { kpHoraryLongitude } from "./kp_horary.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
+
+export type ChartBasis = 'rasi' | 'solar' | 'moon' | 'horary';
 
 export interface BirthDetails {
   fullName: string;
   dateOfBirth: string;   // YYYY-MM-DD
-  timeOfBirth: string;   // HH:MM:SS
+  timeOfBirth?: string;  // HH:MM:SS  (optional for solar/moon/horary)
   placeOfBirth: {
     name: string;
     latitude: number;
@@ -51,6 +54,10 @@ export interface BirthDetails {
   ayanamsa: AyanamsaKey;
   houseSystem: string;
   nodeType?: NodeType;
+  /** Chart basis: how the Lagna is determined. Default 'rasi' (standard). */
+  chartBasis?: ChartBasis;
+  /** KP horary number 1-249 (required when chartBasis is 'horary'). */
+  horaryNumber?: number;
 }
 
 // ─── Planet list ────────────────────────────────────────────────────────────
@@ -75,9 +82,15 @@ function dusthanas(h: number): boolean { return [6, 8, 12].includes(h); }
 // ─── Main calculation ───────────────────────────────────────────────────────
 
 export function calculateKundli(details: BirthDetails) {
+  const basis: ChartBasis = details.chartBasis ?? 'rasi';
+
+  // Default time to noon UTC when birth time is unknown (solar/moon/horary)
+  const effectiveTime = details.timeOfBirth || '12:00:00';
+  const timeKnown = !!details.timeOfBirth;
+
   // Parse birth date/time → Julian Day in UT
   const [y, m, d] = details.dateOfBirth.split('-').map(Number);
-  const timeParts = details.timeOfBirth.split(':').map(Number);
+  const timeParts = effectiveTime.split(':').map(Number);
   const hour = timeParts[0] ?? 0;
   const minute = timeParts[1] ?? 0;
   const second = timeParts[2] ?? 0;
@@ -98,17 +111,41 @@ export function calculateKundli(details: BirthDetails) {
   const aya = ayanamsa(details.ayanamsa, jd);
 
   // Build D1 planet positions
-  const ascSid = toSidereal(trop.ascendant, aya);
-  const ascSign = signNumber(ascSid);
+  let ascSid = toSidereal(trop.ascendant, aya);
+  let ascSign = signNumber(ascSid);
+
+  // Override ascendant based on chartBasis
+  const sunSid = toSidereal(trop.sun, aya);
+  const moonSidRaw = toSidereal(trop.moon, aya);
+
+  let moonSignUncertain = false;
+
+  if (basis === 'solar') {
+    // Sun's sign becomes the 1st house; ascendant = start of Sun's sign
+    ascSign = signNumber(sunSid);
+    ascSid = (ascSign - 1) * 30;
+  } else if (basis === 'moon') {
+    // Moon's sign becomes the 1st house
+    ascSign = signNumber(moonSidRaw);
+    ascSid = (ascSign - 1) * 30;
+    if (!timeKnown) moonSignUncertain = true;
+  } else if (basis === 'horary') {
+    const horaryLon = kpHoraryLongitude(details.horaryNumber ?? 0);
+    if (horaryLon === null) throw new Error(`Invalid KP horary number: ${details.horaryNumber}`);
+    ascSid = horaryLon;
+    ascSign = signNumber(ascSid);
+  }
 
   const d1Planets: PlanetPos[] = PLANETS.map(({ key }) => {
-    const tropLon = (trop as unknown as Record<string, number>)[key];
-    const sidLon = toSidereal(tropLon, aya);
+    // For non-rasi bases, override the ascendant entry with the derived Lagna
+    const sidLon = key === 'ascendant' && basis !== 'rasi'
+      ? ascSid
+      : toSidereal((trop as unknown as Record<string, number>)[key], aya);
     const sn = signNumber(sidLon);
     const sd = signDegree(sidLon);
     const nIdx = nakshatraIndex(sidLon);
     const retro = isRetrograde(key, T);
-    const comb = isCombust(key, sidLon, toSidereal(trop.sun, aya), retro);
+    const comb = isCombust(key, sidLon, sunSid, retro);
 
     return {
       planet: key,
@@ -131,8 +168,8 @@ export function calculateKundli(details: BirthDetails) {
   const divCharts = buildDivisionalCharts(d1Planets, ascSign, ascDeg);
 
   // Vimshottari Dasha
-  const moonSid = toSidereal(trop.moon, aya);
-  const birthDate = new Date(`${details.dateOfBirth}T${details.timeOfBirth}`);
+  const moonSid = moonSidRaw;
+  const birthDate = new Date(`${details.dateOfBirth}T${effectiveTime}`);
   const dashas = [
     buildVimshottari(moonSid, birthDate),
     buildYoginiDasha(moonSid, birthDate),
@@ -228,10 +265,9 @@ export function calculateKundli(details: BirthDetails) {
   const charaDashaTimeline = computeCharaDasha(d1Planets, ascSign, birthDate);
 
   // Jaimini: Special Lagnas & Argala
-  const sunSidAtBirth = toSidereal(trop.sun, aya);
   const birthHours = hour + minute / 60 + second / 3600;
   const specialLagnas = computeSpecialLagnas(
-    jd, lat, lon, tzOffset, aya, sunSidAtBirth, moonSid, ascSid, birthHours,
+    jd, lat, lon, tzOffset, aya, sunSid, moonSid, ascSid, birthHours,
   );
   const argala = computeArgala(d1Planets, ascSign);
 
@@ -254,7 +290,7 @@ export function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 15,
+    snapshotVersion: 16,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -302,6 +338,8 @@ export function calculateKundli(details: BirthDetails) {
           degree: lon % 30,
         }))
       : undefined,
+    chartBasis: basis,
+    moonSignUncertain: moonSignUncertain || undefined,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
   };
 }

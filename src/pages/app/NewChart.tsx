@@ -4,20 +4,30 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Loader2, MapPin } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, MapPin, HelpCircle } from 'lucide-react';
+import type { ChartBasis } from '@/lib/astro/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 
 const schema = z.object({
   fullName: z.string().trim().min(1, 'Required').max(80),
   dateOfBirth: z.string().min(1, 'Required'),
-  timeOfBirth: z.string().min(1, 'Required'),
+  timeOfBirth: z.string().optional(),
+  unknownTime: z.boolean().optional(),
+  chartBasis: z.enum(['rasi', 'solar', 'moon', 'horary']).optional(),
+  horaryNumber: z.coerce.number().int().min(1).max(249).optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
   city: z.string().min(1, 'Pick a city or enter coordinates'),
   ayanamsa: z.enum(['lahiri', 'raman', 'krishnamurti', 'yukteshwar']),
   houseSystem: z.enum(['whole_sign', 'placidus', 'koch', 'sripati', 'equal']),
   chartStyle: z.enum(['north', 'south']),
-});
+}).refine(
+  (d) => d.unknownTime || (d.timeOfBirth && d.timeOfBirth.length > 0),
+  { message: 'Required', path: ['timeOfBirth'] },
+).refine(
+  (d) => d.chartBasis !== 'horary' || (d.horaryNumber && d.horaryNumber >= 1 && d.horaryNumber <= 249),
+  { message: 'Enter a KP number between 1 and 249', path: ['horaryNumber'] },
+);
 type Form = z.infer<typeof schema>;
 
 const stages = [
@@ -48,8 +58,11 @@ export default function NewChart() {
 
   const { register, handleSubmit, formState: { errors }, trigger, watch, setValue } = useForm<Form>({
     resolver: zodResolver(schema),
-    defaultValues: { ayanamsa: 'lahiri', houseSystem: 'whole_sign', chartStyle: 'north' },
+    defaultValues: { ayanamsa: 'lahiri', houseSystem: 'whole_sign', chartStyle: 'north', unknownTime: false, chartBasis: 'solar' },
   });
+
+  const unknownTime = watch('unknownTime');
+  const chartBasis = watch('chartBasis');
 
   // Debounced Place Search (Open-Meteo Geocoding API)
   useEffect(() => {
@@ -90,7 +103,7 @@ export default function NewChart() {
   };
 
   const dob = watch('dateOfBirth');
-  const tob = watch('timeOfBirth');
+  const tob = watch('timeOfBirth') ?? '';
 
   const handleSelectSuggestion = (suggestion: any) => {
     const lat = suggestion.latitude;
@@ -112,7 +125,10 @@ export default function NewChart() {
   };
 
   const next = async () => {
-    const ok = await trigger(['fullName', 'dateOfBirth', 'timeOfBirth']);
+    const fields: (keyof Form)[] = unknownTime
+      ? ['fullName', 'dateOfBirth']
+      : ['fullName', 'dateOfBirth', 'timeOfBirth'];
+    const ok = await trigger(fields);
     if (ok) setStep(2);
   };
 
@@ -130,12 +146,15 @@ export default function NewChart() {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) { nav('/app/chart/demo'); return; }
       
-      const finalOffset = getTimezoneOffset(selectedPlace.tz, data.dateOfBirth, data.timeOfBirth);
-      
-      const birth_details = {
+      const effectiveTob = data.unknownTime ? undefined : data.timeOfBirth;
+      const finalOffset = getTimezoneOffset(selectedPlace.tz, data.dateOfBirth, effectiveTob || '12:00:00');
+
+      const basis: ChartBasis | undefined = data.unknownTime ? (data.chartBasis as ChartBasis) : undefined;
+
+      const birth_details: Record<string, unknown> = {
         fullName: data.fullName,
         dateOfBirth: data.dateOfBirth,
-        timeOfBirth: data.timeOfBirth,
+        ...(effectiveTob ? { timeOfBirth: effectiveTob } : {}),
         gender: data.gender,
         ayanamsa: data.ayanamsa,
         houseSystem: data.houseSystem,
@@ -146,6 +165,8 @@ export default function NewChart() {
           timezone: selectedPlace.tz,
           timezoneOffset: finalOffset,
         },
+        ...(basis ? { chartBasis: basis } : {}),
+        ...(basis === 'horary' && data.horaryNumber ? { horaryNumber: data.horaryNumber } : {}),
       };
       const { data: row, error } = await supabase.from('charts').insert({
         user_id: u.user.id,
@@ -202,10 +223,53 @@ export default function NewChart() {
                 <Field label="Date of birth" error={errors.dateOfBirth?.message}>
                   <input type="date" {...register('dateOfBirth')} min="1900-01-01" max="2100-12-31" className="input" />
                 </Field>
-                <Field label="Time of birth" error={errors.timeOfBirth?.message}>
-                  <input type="time" step="1" {...register('timeOfBirth')} className="input" />
-                </Field>
+                {!unknownTime && (
+                  <Field label="Time of birth" error={errors.timeOfBirth?.message}>
+                    <input type="time" step="1" {...register('timeOfBirth')} className="input" />
+                  </Field>
+                )}
               </div>
+
+              {/* Unknown birth time toggle */}
+              <label className="flex cursor-pointer items-center gap-3 rounded-sm border border-hairline-subtle px-4 py-3 text-sm transition-colors has-[:checked]:border-brand-saffron has-[:checked]:bg-elevated">
+                <input type="checkbox" {...register('unknownTime')} className="accent-brand-saffron" />
+                <HelpCircle className="h-4 w-4 text-text-tertiary" />
+                <span className="text-text-primary">I don't know my birth time</span>
+              </label>
+
+              {unknownTime && (
+                <div className="space-y-4 rounded-sm border border-hairline-subtle bg-elevated p-4">
+                  <div className="text-xs text-text-tertiary">Choose a chart type that does not require an exact birth time:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      ['solar', 'Solar Chart', "Sun's sign = 1st house (stable for a full day)"],
+                      ['moon', 'Moon Chart', "Moon's sign = 1st house (may shift if Moon is near a sign boundary)"],
+                      ['horary', 'KP Horary', 'Think of a number 1\u2013249; that becomes the Lagna'],
+                    ] as const).map(([val, label, hint]) => (
+                      <label key={val} className="flex cursor-pointer items-start gap-2 rounded-sm border border-hairline-subtle px-3 py-2 text-sm has-[:checked]:border-brand-maroon has-[:checked]:bg-surface">
+                        <input type="radio" value={val} {...register('chartBasis')} className="mt-0.5 accent-brand-maroon" />
+                        <div>
+                          <div className="font-medium">{label}</div>
+                          <div className="text-[11px] text-text-tertiary">{hint}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {chartBasis === 'horary' && (
+                    <Field label="KP Horary Number (1\u2013249)" error={errors.horaryNumber?.message}>
+                      <input type="number" min={1} max={249} step={1} {...register('horaryNumber')} className="input" placeholder="e.g. 42" />
+                    </Field>
+                  )}
+
+                  {chartBasis === 'moon' && (
+                    <div className="rounded-sm border border-amber-500/30 bg-amber-500/5 p-2.5 text-xs text-amber-600 dark:text-amber-400">
+                      Without an exact time, the Moon may be in a neighbouring sign. The chart will flag this uncertainty.
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Field label="Gender">
                 <div className="flex flex-wrap gap-2">
                   {(['male', 'female', 'other'] as const).map(g => (
@@ -216,9 +280,6 @@ export default function NewChart() {
                   ))}
                 </div>
               </Field>
-              <div className="rounded-sm border border-hairline-subtle bg-elevated p-3 text-xs text-text-tertiary">
-                Don't know your exact time? Birth Time Rectification ships in Phase 2. For now, the chart will use 12:00 noon as a fallback if left blank.
-              </div>
             </motion.div>
           ) : (
             <motion.div key="s2" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} className="space-y-5">

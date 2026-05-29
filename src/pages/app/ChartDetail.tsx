@@ -128,7 +128,7 @@ export default function ChartDetail() {
             <div className="text-eyebrow text-brand-saffron">Kundli · {dayjs(data.generatedAt).format('DD MMM YYYY')}</div>
             <h1 className="mt-2 font-display text-h1 text-text-primary">{data.birthDetails.fullName}</h1>
             <div className="mt-2 font-mono text-sm text-text-tertiary">
-              {dayjs(data.birthDetails.dateOfBirth).format('DD MMM YYYY')} · {data.birthDetails.timeOfBirth} · {data.birthDetails.placeOfBirth.name}
+              {dayjs(data.birthDetails.dateOfBirth).format('DD MMM YYYY')}{data.birthDetails.timeOfBirth ? ` · ${data.birthDetails.timeOfBirth}` : ''} · {data.birthDetails.placeOfBirth.name}{data.chartBasis && data.chartBasis !== 'rasi' ? ` · ${data.chartBasis.charAt(0).toUpperCase() + data.chartBasis.slice(1)} chart` : ''}
             </div>
             <div className="mt-4 flex flex-wrap gap-2 text-xs">
               <Chip label="Lagna" value={`${data.ascendant.signName} ${data.ascendant.signDegree.toFixed(1)}°`} color="maroon" />
