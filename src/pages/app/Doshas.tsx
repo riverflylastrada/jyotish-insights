@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, ChevronRight, FlaskConical } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, ChevronRight, FlaskConical, Check, X } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
-import type { Dosha } from '@/lib/astro/types';
+import type { Dosha, DoshaCondition } from '@/lib/astro/types';
 
 const DOSHA_LABEL: Record<Dosha['name'], { title: string; deva: string; classical: string }> = {
   mangal:       { title: 'Mangal Dosha',     deva: 'मंगल दोष',      classical: 'Mars in 1, 4, 7, 8, or 12 from Lagna or Moon — Brihat Parashara Hora Sastra, Ch. 80' },
@@ -25,6 +25,92 @@ type DoshaState = 'active' | 'cancelled' | 'absent';
 function doshaState(d: Dosha): DoshaState {
   if (!d.isPresent) return 'absent';
   return d.severity === 'cancelled' ? 'cancelled' : 'active';
+}
+
+/** Renders a single ✓/✗ condition row. */
+function ConditionRow({ c, kind, id }: { c: DoshaCondition; kind: 'condition' | 'cancellation'; id?: string }) {
+  const met = c.isMet;
+  const icon = kind === 'cancellation'
+    ? (met ? <ShieldCheck className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />)
+    : (met ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />);
+
+  const iconColor = kind === 'cancellation'
+    ? (met ? 'text-semantic-positive' : 'text-text-muted')
+    : (met ? 'text-semantic-negative' : 'text-semantic-positive');
+
+  return (
+    <div id={id} className="flex items-start gap-2.5 py-1.5">
+      <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+        kind === 'cancellation'
+          ? (met ? 'bg-semantic-positive/15' : 'bg-elevated')
+          : (met ? 'bg-semantic-negative/15' : 'bg-semantic-positive/15')
+      } ${iconColor}`}>
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm text-text-primary">{c.rule}</div>
+        {c.evidence && <div className="mt-0.5 font-mono text-xs text-text-tertiary">{c.evidence}</div>}
+        {c.citation && <div className="mt-0.5 text-xs italic text-text-muted">{c.citation}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** SVG arrow from a cancellation row to its first met condition row. */
+function CancellationArrow({ fromId, toId, containerRef }: {
+  fromId: string;
+  toId: string;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const [coords, setCoords] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+
+  const measure = useCallback(() => {
+    const container = containerRef.current;
+    const fromEl = document.getElementById(fromId);
+    const toEl = document.getElementById(toId);
+    if (!container || !fromEl || !toEl) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+
+    setCoords({
+      x1: fromRect.left - containerRect.left + 10,
+      y1: fromRect.top - containerRect.top + fromRect.height / 2,
+      x2: toRect.left - containerRect.left + 10,
+      y2: toRect.top - containerRect.top + toRect.height / 2,
+    });
+  }, [fromId, toId, containerRef]);
+
+  useEffect(() => {
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [measure]);
+
+  if (!coords) return null;
+
+  const midX = Math.min(coords.x1, coords.x2) - 16;
+  const path = `M ${coords.x1} ${coords.y1} C ${midX} ${coords.y1}, ${midX} ${coords.y2}, ${coords.x2} ${coords.y2}`;
+
+  return (
+    <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" style={{ zIndex: 0 }}>
+      <defs>
+        <marker id={`arrow-${fromId}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6" fill="hsl(var(--semantic-positive))" />
+        </marker>
+      </defs>
+      <path
+        d={path}
+        fill="none"
+        stroke="hsl(var(--semantic-positive))"
+        strokeWidth="1.5"
+        strokeDasharray="4 3"
+        markerEnd={`url(#arrow-${fromId})`}
+        opacity={0.6}
+      />
+    </svg>
+  );
 }
 
 export default function Doshas() {
@@ -85,89 +171,140 @@ export default function Doshas() {
       </div>
 
       <div className="mt-8 grid gap-3 md:grid-cols-2">
-        {filtered.map((d) => {
-          const meta = DOSHA_LABEL[d.name];
-          const state = doshaState(d);
-          const sev = d.severity ? SEVERITY_BARS[d.severity] : null;
-          const isOpen = open.has(d.name);
-          return (
-            <article key={d.name} className={`rounded-md border bg-surface shadow-sm transition-colors ${state === 'active' ? 'border-hairline-subtle' : 'border-hairline-subtle opacity-80'}`}>
-              {/* Condition header — tap to expand */}
-              <button onClick={() => toggle(d.name)} className="flex w-full items-center gap-3 px-5 py-4 text-left">
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${state === 'active' ? 'bg-brand-saffron/15 text-brand-saffron' : 'bg-semantic-positive/15 text-semantic-positive'}`}>
-                  {state === 'active' ? <AlertTriangle className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="font-display text-h3 text-text-primary">{meta.title}</span>
-                  <span className="ml-2 font-deva text-sm text-text-tertiary">{meta.deva}</span>
-                  <span className="ml-2 text-xs text-text-tertiary">
-                    {state === 'active' ? 'condition met' : state === 'cancelled' ? 'present · cancelled' : 'not present'}
-                  </span>
-                </span>
-                {state === 'active' && (
-                  <span className="flex shrink-0 gap-0.5">
-                    {[1, 2, 3].map((b) => (
-                      <span key={b} className="h-1.5 w-1.5 rounded-full" style={{ background: sev && b <= sev.bars ? sev.color : 'hsl(var(--border-subtle))' }} />
-                    ))}
-                  </span>
-                )}
-                <ChevronRight className={`h-4 w-4 shrink-0 text-text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-              </button>
-
-              {isOpen && (
-                <div className="border-t border-hairline-subtle px-5 py-4 space-y-4">
-                  {/* The rule + classical source */}
-                  <div>
-                    <div className="text-eyebrow text-text-tertiary">The rule</div>
-                    <p className="mt-1 font-mono text-xs text-text-tertiary">{meta.classical}</p>
-                    <p className="mt-2 text-sm text-text-secondary">{d.explanation}</p>
-                  </div>
-
-                  {/* Affected areas */}
-                  {d.affectedAreas.length > 0 && (
-                    <div>
-                      <div className="text-eyebrow text-text-tertiary">Affected areas</div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {d.affectedAreas.map((a) => (
-                          <span key={a} className="rounded-sm border border-hairline-subtle bg-elevated px-2 py-0.5 text-xs text-text-secondary">{a}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Remedies */}
-                  {d.remedies.length > 0 && (
-                    <div>
-                      <div className="text-eyebrow text-text-tertiary">Remedies</div>
-                      <ul className="mt-2 divide-y divide-hairline-subtle">
-                        {d.remedies.map((r) => (
-                          <li key={r.title} className="flex items-start justify-between gap-4 py-2.5">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-display text-sm text-text-primary">{r.title}</span>
-                                <span className="rounded-sm border border-hairline-subtle px-1.5 py-0.5 text-eyebrow capitalize text-text-tertiary">{r.type}</span>
-                              </div>
-                              <p className="mt-1 text-sm text-text-tertiary">{r.description}</p>
-                            </div>
-                            <span className={`text-eyebrow capitalize ${r.priority === 'high' ? 'text-brand-maroon' : r.priority === 'medium' ? 'text-brand-saffron' : 'text-text-tertiary'}`}>{r.priority}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  <Link to={`/app/chart/${id}/lab`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
-                    <FlaskConical className="h-3.5 w-3.5" /> Explore the planets in the Research Lab
-                  </Link>
-                </div>
-              )}
-            </article>
-          );
-        })}
+        {filtered.map((d) => (
+          <DoshaCard key={d.name} d={d} id={id} isOpen={open.has(d.name)} toggle={toggle} />
+        ))}
         {filtered.length === 0 && (
           <div className="md:col-span-2 rounded-md border border-dashed border-hairline-subtle bg-surface p-10 text-center text-sm text-text-tertiary">No doshas match this filter.</div>
         )}
       </div>
     </div>
+  );
+}
+
+function DoshaCard({ d, id, isOpen, toggle }: { d: Dosha; id: string; isOpen: boolean; toggle: (name: string) => void }) {
+  const meta = DOSHA_LABEL[d.name];
+  const state = doshaState(d);
+  const sev = d.severity ? SEVERITY_BARS[d.severity] : null;
+  const hasConditions = d.conditions && d.conditions.length > 0;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Find met cancellations that should draw arrows to the first met condition
+  const metCancellations = d.cancellations?.filter((c) => c.isMet) ?? [];
+  const firstMetCondIdx = d.conditions?.findIndex((c) => c.isMet) ?? -1;
+  const shouldDrawArrows = d.isPresent && metCancellations.length > 0 && firstMetCondIdx >= 0;
+
+  return (
+    <article className={`rounded-md border bg-surface shadow-sm transition-colors ${state === 'active' ? 'border-hairline-subtle' : 'border-hairline-subtle opacity-80'}`}>
+      {/* Condition header — tap to expand */}
+      <button onClick={() => toggle(d.name)} className="flex w-full items-center gap-3 px-5 py-4 text-left">
+        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${state === 'active' ? 'bg-brand-saffron/15 text-brand-saffron' : 'bg-semantic-positive/15 text-semantic-positive'}`}>
+          {state === 'active' ? <AlertTriangle className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="font-display text-h3 text-text-primary">{meta.title}</span>
+          <span className="ml-2 font-deva text-sm text-text-tertiary">{meta.deva}</span>
+          <span className="ml-2 text-xs text-text-tertiary">
+            {state === 'active' ? 'condition met' : state === 'cancelled' ? 'present · cancelled' : 'not present'}
+          </span>
+        </span>
+        {state === 'active' && (
+          <span className="flex shrink-0 gap-0.5">
+            {[1, 2, 3].map((b) => (
+              <span key={b} className="h-1.5 w-1.5 rounded-full" style={{ background: sev && b <= sev.bars ? sev.color : 'hsl(var(--border-subtle))' }} />
+            ))}
+          </span>
+        )}
+        <ChevronRight className={`h-4 w-4 shrink-0 text-text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="border-t border-hairline-subtle px-5 py-4 space-y-4">
+          {hasConditions ? (
+            /* ── Structured checklist view ── */
+            <div ref={containerRef} className="relative">
+              {/* Conditions */}
+              <div>
+                <div className="text-eyebrow text-text-tertiary">Conditions</div>
+                <div className="mt-2 space-y-0.5">
+                  {d.conditions!.map((c, i) => (
+                    <ConditionRow key={i} c={c} kind="condition" id={`cond-${d.name}-${i}`} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Cancellations */}
+              {d.cancellations && d.cancellations.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-eyebrow text-text-tertiary">Cancellations</div>
+                  <div className="mt-2 space-y-0.5">
+                    {d.cancellations.map((c, i) => (
+                      <ConditionRow key={i} c={c} kind="cancellation" id={`cancel-${d.name}-${i}`} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Arrows from met cancellations to the first met condition */}
+              {shouldDrawArrows && metCancellations.map((_, ci) => {
+                const cancelIdx = d.cancellations!.findIndex((c) => c === metCancellations[ci]);
+                return (
+                  <CancellationArrow
+                    key={ci}
+                    fromId={`cancel-${d.name}-${cancelIdx}`}
+                    toId={`cond-${d.name}-${firstMetCondIdx}`}
+                    containerRef={containerRef}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            /* ── Prose fallback for old snapshots ── */
+            <div>
+              <div className="text-eyebrow text-text-tertiary">The rule</div>
+              <p className="mt-1 font-mono text-xs text-text-tertiary">{meta.classical}</p>
+              <p className="mt-2 text-sm text-text-secondary">{d.explanation}</p>
+            </div>
+          )}
+
+          {/* Affected areas */}
+          {d.affectedAreas.length > 0 && (
+            <div>
+              <div className="text-eyebrow text-text-tertiary">Affected areas</div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {d.affectedAreas.map((a) => (
+                  <span key={a} className="rounded-sm border border-hairline-subtle bg-elevated px-2 py-0.5 text-xs text-text-secondary">{a}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Remedies */}
+          {d.remedies.length > 0 && (
+            <div>
+              <div className="text-eyebrow text-text-tertiary">Remedies</div>
+              <ul className="mt-2 divide-y divide-hairline-subtle">
+                {d.remedies.map((r) => (
+                  <li key={r.title} className="flex items-start justify-between gap-4 py-2.5">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm text-text-primary">{r.title}</span>
+                        <span className="rounded-sm border border-hairline-subtle px-1.5 py-0.5 text-eyebrow capitalize text-text-tertiary">{r.type}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-text-tertiary">{r.description}</p>
+                    </div>
+                    <span className={`text-eyebrow capitalize ${r.priority === 'high' ? 'text-brand-maroon' : r.priority === 'medium' ? 'text-brand-saffron' : 'text-text-tertiary'}`}>{r.priority}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <Link to={`/app/chart/${id}/lab`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+            <FlaskConical className="h-3.5 w-3.5" /> Explore the planets in the Research Lab
+          </Link>
+        </div>
+      )}
+    </article>
   );
 }

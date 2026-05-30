@@ -70,6 +70,13 @@ export interface Remedy {
   priority: 'high' | 'medium' | 'low';
 }
 
+export interface DoshaCondition {
+  rule: string;
+  isMet: boolean;
+  evidence?: string;
+  citation?: string;
+}
+
 export interface Dosha {
   name: 'mangal' | 'kaal_sarp' | 'sade_sati' | 'pitra' | 'guru_chandal' | 'shakat';
   isPresent: boolean;
@@ -77,6 +84,8 @@ export interface Dosha {
   explanation: string;
   affectedAreas: string[];
   remedies: Remedy[];
+  conditions?: DoshaCondition[];
+  cancellations?: DoshaCondition[];
 }
 
 export interface Yoga {
@@ -293,7 +302,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 16;
+export const CURRENT_SNAPSHOT_VERSION = 17;
 
 export interface KundliData {
   id: string;
