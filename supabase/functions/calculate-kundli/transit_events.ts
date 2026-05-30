@@ -59,6 +59,7 @@ interface KundliSnapshot {
       planet: string;
       startDate: string;
       endDate: string;
+      durationYears?: number;
       children?: Array<{
         level: string;
         planet: string;
