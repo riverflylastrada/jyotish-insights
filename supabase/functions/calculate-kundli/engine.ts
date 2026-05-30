@@ -35,6 +35,10 @@ import { buildKalachakraDasha } from "./kalachakra.ts";
 import { buildNarayanaDasha } from "./narayana.ts";
 import { buildLagnaKendradiDasha } from "./lagna_kendradi.ts";
 import { buildSudasaDasha } from "./sudasa.ts";
+import { buildDrigdasa } from "./drigdasa.ts";
+import { buildShoolaDasha } from "./shoola.ts";
+import { buildDwisaptatiDasha } from "./dwisaptati.ts";
+import { buildShatTrimsaDasha } from "./shat_trimsa.ts";
 import { computeVimsopakaBala } from "./vimsopaka.ts";
 import { kpHoraryLongitude } from "./kp_horary.ts";
 import { computeAvasthas } from "./avasthas.ts";
@@ -181,6 +185,12 @@ export async function calculateKundli(details: BirthDetails) {
   // Vimshottari Dasha
   const moonSid = moonSidRaw;
   const birthDate = new Date(`${details.dateOfBirth}T${effectiveTime}`);
+  // Jaimini AK sign (needed for Drigdasa / Shoola before the full Jaimini block)
+  const earlyCharaKarakas = computeCharaKarakas(d1Planets);
+  const earlyAk = earlyCharaKarakas.find((ck) => ck.karaka === 'AK');
+  const akPlanet = earlyAk?.planet ?? 'sun';
+  const akSign = d1Planets.find(p => p.planet === akPlanet)?.signNumber ?? ascSign;
+
   const dashas = [
     buildVimshottari(moonSid, birthDate),
     buildYoginiDasha(moonSid, birthDate),
@@ -189,7 +199,11 @@ export async function calculateKundli(details: BirthDetails) {
     buildNarayanaDasha(d1Planets, ascSign, birthDate),
     buildLagnaKendradiDasha(d1Planets, ascSign, birthDate),
     buildSudasaDasha(d1Planets, ascSign, birthDate, divCharts),
-  ];
+    buildDrigdasa(d1Planets, ascSign, birthDate, akSign),
+    buildShoolaDasha(d1Planets, ascSign, birthDate, akSign),
+    buildDwisaptatiDasha(d1Planets, ascSign, moonSid, birthDate),
+    buildShatTrimsaDasha(d1Planets, ascSign, moonSid, birthDate, akPlanet),
+  ].filter((d): d is NonNullable<typeof d> => d !== null);
 
   // Yogas & Doshas
   const yogas = detectYogas(d1Planets);
@@ -269,8 +283,9 @@ export async function calculateKundli(details: BirthDetails) {
   const houseSignificators = computeHouseSignificators(d1Planets, ascSign);
 
   // Jaimini: Chara Karakas, Karakamsa, Arudha Padas, Chara Dasha
-  const charaKarakas = computeCharaKarakas(d1Planets);
-  const ak = charaKarakas.find((ck) => ck.karaka === 'AK');
+  // (reuse early computation from dasha block above)
+  const charaKarakas = earlyCharaKarakas;
+  const ak = earlyAk;
   const d9Chart = divCharts.find((c) => c.varga === 'D9');
   const karakamsaResult = ak && d9Chart
     ? karakamsa(ak.planet, d9Chart.planets)
@@ -304,7 +319,7 @@ export async function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 20,
+    snapshotVersion: 21,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
