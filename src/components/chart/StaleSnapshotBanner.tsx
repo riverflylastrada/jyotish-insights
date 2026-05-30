@@ -1,6 +1,5 @@
 import { useMatch } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { CURRENT_SNAPSHOT_VERSION } from '@/lib/astro/types';
 
@@ -22,15 +21,14 @@ export function StaleSnapshotBanner() {
 }
 
 function Banner({ chartId }: { chartId: string }) {
-  const { data } = useKundli(chartId);
-  const queryClient = useQueryClient();
+  const { data, isFetching, refetch } = useKundli(chartId);
 
   if (!data) return null;
   const version = data.snapshotVersion ?? 0;
   if (version >= CURRENT_SNAPSHOT_VERSION) return null;
 
   const handleRecalculate = () => {
-    void queryClient.invalidateQueries({ queryKey: ['chart', chartId] });
+    void refetch();
   };
 
   return (
@@ -46,15 +44,24 @@ function Banner({ chartId }: { chartId: string }) {
             This chart was computed at engine{' '}
             <span className="font-mono">v{version}</span> — current is{' '}
             <span className="font-mono">v{CURRENT_SNAPSHOT_VERSION}</span>.
-            Some new yogas, dashas, vargas, or analyses may be missing until you
-            recalculate.
+            {isFetching
+              ? ' Recalculating now — this can take a few seconds.'
+              : ' Some new yogas, dashas, vargas, or analyses may be missing until you recalculate.'}
           </span>
         </div>
         <button
+          type="button"
           onClick={handleRecalculate}
-          className="shrink-0 rounded-sm bg-brand-maroon px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+          disabled={isFetching}
+          className="inline-flex shrink-0 items-center gap-2 rounded-sm bg-brand-maroon px-3 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
         >
-          Recalculate now
+          {isFetching ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Recalculating…
+            </>
+          ) : (
+            'Recalculate now'
+          )}
         </button>
       </div>
     </div>
