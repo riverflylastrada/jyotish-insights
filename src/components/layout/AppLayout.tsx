@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, GitCompareArrows } from 'lucide-react';
+import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, HelpCircle, Building2, GitCompareArrows } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -10,6 +10,8 @@ const navItems = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/app/new', label: 'New Chart', icon: PlusCircle },
   { to: '/app/library', label: 'Library', icon: Library },
+  { to: '/app/prashna', label: 'Prashna', icon: HelpCircle },
+  { to: '/app/business/new', label: 'Business', icon: Building2 },
   { to: '/app/compatibility', label: 'Compatibility', icon: Users },
   { to: '/app/twins/new', label: 'Twins', icon: GitCompareArrows },
   { to: '/app/settings', label: 'Settings', icon: Settings },
