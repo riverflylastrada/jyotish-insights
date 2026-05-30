@@ -105,7 +105,7 @@ export interface Dosha {
 
 export interface Yoga {
   name: string;
-  category: 'raja' | 'dhana' | 'pancha_mahapurusha' | 'nabhasa' | 'chandra' | 'sun' | 'other';
+  category: 'raja' | 'dhana' | 'pancha_mahapurusha' | 'nabhasa' | 'chandra' | 'sun' | 'aristha' | 'daridra' | 'sanyasa' | 'other';
   isPresent: boolean;
   strength: 'weak' | 'moderate' | 'strong';
   formedBy: string[];

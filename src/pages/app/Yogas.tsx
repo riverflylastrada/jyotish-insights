@@ -11,6 +11,9 @@ const CATEGORY_LABELS: Record<Yoga['category'], string> = {
   nabhasa: 'Nabhasa Yogas',
   chandra: 'Chandra Yogas',
   sun: 'Surya Yogas',
+  aristha: 'Aristha Yogas',
+  daridra: 'Daridra Yogas',
+  sanyasa: 'Sanyasa Yogas',
   other: 'Other',
 };
 
