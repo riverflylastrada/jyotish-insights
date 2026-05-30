@@ -14,11 +14,11 @@ import type { BirthDetails } from "./engine.ts";
 
 // ─── KP 1-249 table structure ──────────────────────────────────────────────
 
-Deno.test("KP horary table has exactly 249 segments", () => {
+Deno.test("KP horary table has exactly 249 segments", async () => {
   assertEquals(kpHoraryTable().length, 249);
 });
 
-Deno.test("KP table is continuous (no gaps)", () => {
+Deno.test("KP table is continuous (no gaps)", async () => {
   const t = kpHoraryTable();
   for (let i = 1; i < t.length; i++) {
     assertAlmostEquals(t[i].startDeg, t[i - 1].endDeg, 1e-6,
@@ -26,7 +26,7 @@ Deno.test("KP table is continuous (no gaps)", () => {
   }
 });
 
-Deno.test("KP table covers 0-360 degrees", () => {
+Deno.test("KP table covers 0-360 degrees", async () => {
   const t = kpHoraryTable();
   assertAlmostEquals(t[0].startDeg, 0, 1e-9);
   assertAlmostEquals(t[248].endDeg, 360, 1e-6);
@@ -55,14 +55,14 @@ Deno.test("KP number 9: last Ashwini sub (Ketu-Mercury), ends at 13°20'", () =>
   assertAlmostEquals(seg.endDeg, 40 / 3, 0.001); // 13.333°
 });
 
-Deno.test("KP number 10: Bharani start (Venus-Venus)", () => {
+Deno.test("KP number 10: Bharani start (Venus-Venus)", async () => {
   const seg = kpHorarySegment(10)!;
   assertEquals(seg.sign, 1);
   assertEquals(seg.starLord, "Venus");
   assertEquals(seg.subLord, "Venus");
 });
 
-Deno.test("KP 30° boundary splits Krittika/Rahu into numbers 22 and 23", () => {
+Deno.test("KP 30° boundary splits Krittika/Rahu into numbers 22 and 23", async () => {
   const n22 = kpHorarySegment(22)!;
   const n23 = kpHorarySegment(23)!;
   assertEquals(n22.sign, 1); // Aries
@@ -73,31 +73,31 @@ Deno.test("KP 30° boundary splits Krittika/Rahu into numbers 22 and 23", () => 
   assertEquals(n22.subLord, n23.subLord);
 });
 
-Deno.test("KP 60° is NOT split (sub boundary coincidence)", () => {
+Deno.test("KP 60° is NOT split (sub boundary coincidence)", async () => {
   const t = kpHoraryTable();
   const gemStart = t.find(s => s.sign === 3)!;
   assertAlmostEquals(gemStart.startDeg, 60, 0.001);
 });
 
-Deno.test("KP 120° is NOT split (nakshatra boundary)", () => {
+Deno.test("KP 120° is NOT split (nakshatra boundary)", async () => {
   const t = kpHoraryTable();
   const leoStart = t.find(s => s.sign === 5)!;
   assertAlmostEquals(leoStart.startDeg, 120, 0.001);
 });
 
-Deno.test("KP number 249: Meena/Revati/Mercury-Saturn", () => {
+Deno.test("KP number 249: Meena/Revati/Mercury-Saturn", async () => {
   const seg = kpHorarySegment(249)!;
   assertEquals(seg.sign, 12);
   assertEquals(seg.starLord, "Mercury");
   assertEquals(seg.subLord, "Saturn");
 });
 
-Deno.test("kpHoraryLongitude returns midpoint", () => {
+Deno.test("kpHoraryLongitude returns midpoint", async () => {
   const seg = kpHorarySegment(1)!;
   assertAlmostEquals(kpHoraryLongitude(1)!, (seg.startDeg + seg.endDeg) / 2, 1e-9);
 });
 
-Deno.test("kpHoraryLongitude returns null for invalid numbers", () => {
+Deno.test("kpHoraryLongitude returns null for invalid numbers", async () => {
   assertEquals(kpHoraryLongitude(0), null);
   assertEquals(kpHoraryLongitude(250), null);
   assertEquals(kpHoraryLongitude(1.5), null);
@@ -119,30 +119,30 @@ const BASE_DETAILS: BirthDetails = {
   houseSystem: "whole_sign",
 };
 
-Deno.test("Solar chart: ascendant sign matches Sun's sign", () => {
-  const result = calculateKundli({ ...BASE_DETAILS, chartBasis: "solar" });
+Deno.test("Solar chart: ascendant sign matches Sun's sign", async () => {
+  const result = await calculateKundli({ ...BASE_DETAILS, chartBasis: "solar" });
   const sunPos = result.divisionalCharts[0].planets.find((p) => p.planet === "sun")!;
   assertEquals(result.ascendant.signNumber, sunPos.signNumber);
   assertEquals(result.chartBasis, "solar");
 });
 
-Deno.test("Solar chart: ascendant at 0° of Sun's sign", () => {
-  const result = calculateKundli({ ...BASE_DETAILS, chartBasis: "solar" });
+Deno.test("Solar chart: ascendant at 0° of Sun's sign", async () => {
+  const result = await calculateKundli({ ...BASE_DETAILS, chartBasis: "solar" });
   // For whole-sign solar chart, ascendant is placed at sign start
   assertEquals(result.ascendant.signDegree, 0);
 });
 
 // ─── Chart basis: moon ──────────────────────────────────────────────────────
 
-Deno.test("Moon chart: ascendant sign matches Moon's sign", () => {
-  const result = calculateKundli({ ...BASE_DETAILS, chartBasis: "moon" });
+Deno.test("Moon chart: ascendant sign matches Moon's sign", async () => {
+  const result = await calculateKundli({ ...BASE_DETAILS, chartBasis: "moon" });
   const moonPos = result.divisionalCharts[0].planets.find((p) => p.planet === "moon")!;
   assertEquals(result.ascendant.signNumber, moonPos.signNumber);
   assertEquals(result.chartBasis, "moon");
 });
 
-Deno.test("Moon chart without timeOfBirth flags uncertainty", () => {
-  const result = calculateKundli({
+Deno.test("Moon chart without timeOfBirth flags uncertainty", async () => {
+  const result = await calculateKundli({
     ...BASE_DETAILS,
     chartBasis: "moon",
     timeOfBirth: undefined,
@@ -150,8 +150,8 @@ Deno.test("Moon chart without timeOfBirth flags uncertainty", () => {
   assertEquals(result.moonSignUncertain, true);
 });
 
-Deno.test("Moon chart with timeOfBirth does not flag uncertainty", () => {
-  const result = calculateKundli({
+Deno.test("Moon chart with timeOfBirth does not flag uncertainty", async () => {
+  const result = await calculateKundli({
     ...BASE_DETAILS,
     chartBasis: "moon",
     timeOfBirth: "15:35:00",
@@ -161,8 +161,8 @@ Deno.test("Moon chart with timeOfBirth does not flag uncertainty", () => {
 
 // ─── Chart basis: horary ────────────────────────────────────────────────────
 
-Deno.test("Horary chart: ascendant from KP number 42", () => {
-  const result = calculateKundli({
+Deno.test("Horary chart: ascendant from KP number 42", async () => {
+  const result = await calculateKundli({
     ...BASE_DETAILS,
     chartBasis: "horary",
     horaryNumber: 42,
@@ -173,9 +173,9 @@ Deno.test("Horary chart: ascendant from KP number 42", () => {
   assertEquals(result.chartBasis, "horary");
 });
 
-Deno.test("Horary chart: ascendant sign matches KP segment sign", () => {
+Deno.test("Horary chart: ascendant sign matches KP segment sign", async () => {
   for (const num of [1, 42, 100, 200, 249]) {
-    const result = calculateKundli({
+    const result = await calculateKundli({
       ...BASE_DETAILS,
       chartBasis: "horary",
       horaryNumber: num,
@@ -188,9 +188,9 @@ Deno.test("Horary chart: ascendant sign matches KP segment sign", () => {
 
 // ─── Default (rasi) unchanged ───────────────────────────────────────────────
 
-Deno.test("Default rasi chart: same as before (no chartBasis field)", () => {
-  const withBasis = calculateKundli({ ...BASE_DETAILS, timeOfBirth: "15:35:00", chartBasis: "rasi" });
-  const without = calculateKundli({ ...BASE_DETAILS, timeOfBirth: "15:35:00" });
+Deno.test("Default rasi chart: same as before (no chartBasis field)", async () => {
+  const withBasis = await calculateKundli({ ...BASE_DETAILS, timeOfBirth: "15:35:00", chartBasis: "rasi" });
+  const without = await calculateKundli({ ...BASE_DETAILS, timeOfBirth: "15:35:00" });
   assertEquals(withBasis.ascendant.signNumber, without.ascendant.signNumber);
   assertAlmostEquals(withBasis.ascendant.longitude, without.ascendant.longitude, 0.001);
 });

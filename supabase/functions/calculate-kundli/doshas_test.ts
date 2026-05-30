@@ -112,8 +112,8 @@ function findDosha(doshas: Dosha[], name: string): Dosha {
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
-Deno.test("doshas: all doshas have conditions[] and cancellations[]", () => {
-  const kundli = calculateKundli(DEV_CHART);
+Deno.test("doshas: all doshas have conditions[] and cancellations[]", async () => {
+  const kundli = await calculateKundli(DEV_CHART);
   for (const d of kundli.doshas) {
     assert(
       Array.isArray(d.conditions),
@@ -135,8 +135,8 @@ Deno.test("doshas: all doshas have conditions[] and cancellations[]", () => {
   }
 });
 
-Deno.test("doshas: conditions correctness — Dev Chart (Mangal Dosha active)", () => {
-  const kundli = calculateKundli(DEV_CHART);
+Deno.test("doshas: conditions correctness — Dev Chart (Mangal Dosha active)", async () => {
+  const kundli = await calculateKundli(DEV_CHART);
   const mangal = findDosha(kundli.doshas, "mangal");
 
   // Dev chart: Mars in H8 from Lagna (Dhanu) — Mangal Dosha present, mitigated by Jupiter
@@ -153,8 +153,8 @@ Deno.test("doshas: conditions correctness — Dev Chart (Mangal Dosha active)", 
   assert(mangal.cancellations!.length >= 2, "Should have at least 2 cancellation rules");
 });
 
-Deno.test("doshas: conditions correctness — Rajiv Gandhi (Mangal in H2)", () => {
-  const kundli = calculateKundli(RAJIV_GANDHI);
+Deno.test("doshas: conditions correctness — Rajiv Gandhi (Mangal in H2)", async () => {
+  const kundli = await calculateKundli(RAJIV_GANDHI);
   const mangal = findDosha(kundli.doshas, "mangal");
 
   // Rajiv: Mars@sign6 (Kanya), Asc@sign5 (Simha), house = 2 — mangal houses include 2
@@ -166,8 +166,8 @@ Deno.test("doshas: conditions correctness — Rajiv Gandhi (Mangal in H2)", () =
   assertEquals(mangal.isPresent, condLagna!.isMet);
 });
 
-Deno.test("doshas: conditions correctness — Amitabh Bachchan", () => {
-  const kundli = calculateKundli(AMITABH_BACHCHAN);
+Deno.test("doshas: conditions correctness — Amitabh Bachchan", async () => {
+  const kundli = await calculateKundli(AMITABH_BACHCHAN);
   const mangal = findDosha(kundli.doshas, "mangal");
   const condLagna = mangal.conditions!.find((c) => c.rule.includes("Lagna"));
   assert(condLagna !== undefined, "Should have Mars-from-Lagna condition");
@@ -179,9 +179,9 @@ Deno.test("doshas: conditions correctness — Amitabh Bachchan", () => {
   assertEquals(kaalSarp.isPresent, kaalSarp.conditions![0].isMet);
 });
 
-Deno.test("doshas: Kaal Sarp conditions — all 3 charts", () => {
+Deno.test("doshas: Kaal Sarp conditions — all 3 charts", async () => {
   for (const bd of [DEV_CHART, RAJIV_GANDHI, AMITABH_BACHCHAN]) {
-    const kundli = calculateKundli(bd);
+    const kundli = await calculateKundli(bd);
     const ks = findDosha(kundli.doshas, "kaal_sarp");
     assert(ks.conditions!.length >= 1, `${bd.fullName}: Kaal Sarp needs conditions`);
     const hemming = ks.conditions![0];
@@ -191,9 +191,9 @@ Deno.test("doshas: Kaal Sarp conditions — all 3 charts", () => {
   }
 });
 
-Deno.test("doshas: Sade Sati conditions — all 3 charts", () => {
+Deno.test("doshas: Sade Sati conditions — all 3 charts", async () => {
   for (const bd of [DEV_CHART, RAJIV_GANDHI, AMITABH_BACHCHAN]) {
-    const kundli = calculateKundli(bd);
+    const kundli = await calculateKundli(bd);
     const ss = findDosha(kundli.doshas, "sade_sati");
     assert(ss.conditions!.length === 3, `${bd.fullName}: Sade Sati needs 3 conditions (12th/1st/2nd)`);
     // At most one should be met (or none)
@@ -203,9 +203,9 @@ Deno.test("doshas: Sade Sati conditions — all 3 charts", () => {
   }
 });
 
-Deno.test("doshas: Pitra conditions — all 3 charts", () => {
+Deno.test("doshas: Pitra conditions — all 3 charts", async () => {
   for (const bd of [DEV_CHART, RAJIV_GANDHI, AMITABH_BACHCHAN]) {
-    const kundli = calculateKundli(bd);
+    const kundli = await calculateKundli(bd);
     const pitra = findDosha(kundli.doshas, "pitra");
     assert(pitra.conditions!.length === 2, `${bd.fullName}: Pitra needs 2 conditions`);
     const anyMet = pitra.conditions!.some((c) => c.isMet);
@@ -213,9 +213,9 @@ Deno.test("doshas: Pitra conditions — all 3 charts", () => {
   }
 });
 
-Deno.test("doshas: Guru Chandal conditions — all 3 charts", () => {
+Deno.test("doshas: Guru Chandal conditions — all 3 charts", async () => {
   for (const bd of [DEV_CHART, RAJIV_GANDHI, AMITABH_BACHCHAN]) {
-    const kundli = calculateKundli(bd);
+    const kundli = await calculateKundli(bd);
     const gc = findDosha(kundli.doshas, "guru_chandal");
     assert(gc.conditions!.length === 1, `${bd.fullName}: Guru Chandal needs 1 condition`);
     assertEquals(gc.conditions![0].rule, "Jupiter conjunct Rahu");
@@ -223,9 +223,9 @@ Deno.test("doshas: Guru Chandal conditions — all 3 charts", () => {
   }
 });
 
-Deno.test("doshas: Shakat conditions — all 3 charts", () => {
+Deno.test("doshas: Shakat conditions — all 3 charts", async () => {
   for (const bd of [DEV_CHART, RAJIV_GANDHI, AMITABH_BACHCHAN]) {
-    const kundli = calculateKundli(bd);
+    const kundli = await calculateKundli(bd);
     const shakat = findDosha(kundli.doshas, "shakat");
     assert(shakat.conditions!.length === 2, `${bd.fullName}: Shakat needs 2 conditions (6th/8th)`);
     const anyMet = shakat.conditions!.some((c) => c.isMet);
@@ -235,8 +235,8 @@ Deno.test("doshas: Shakat conditions — all 3 charts", () => {
 
 // ─── Byte-identical verdict tests ───────────────────────────────────────────
 
-Deno.test("doshas: verdict byte-identical — Dev Chart", () => {
-  const kundli = calculateKundli(DEV_CHART);
+Deno.test("doshas: verdict byte-identical — Dev Chart", async () => {
+  const kundli = await calculateKundli(DEV_CHART);
   for (const expected of PRE_REFACTOR_VERDICTS.dev) {
     const actual = findDosha(kundli.doshas, expected.name);
     assertEquals(actual.isPresent, expected.isPresent, `${expected.name}: isPresent mismatch`);
@@ -244,8 +244,8 @@ Deno.test("doshas: verdict byte-identical — Dev Chart", () => {
   }
 });
 
-Deno.test("doshas: verdict byte-identical — Rajiv Gandhi", () => {
-  const kundli = calculateKundli(RAJIV_GANDHI);
+Deno.test("doshas: verdict byte-identical — Rajiv Gandhi", async () => {
+  const kundli = await calculateKundli(RAJIV_GANDHI);
   for (const expected of PRE_REFACTOR_VERDICTS.rajiv) {
     const actual = findDosha(kundli.doshas, expected.name);
     assertEquals(actual.isPresent, expected.isPresent, `${expected.name}: isPresent mismatch`);
@@ -253,8 +253,8 @@ Deno.test("doshas: verdict byte-identical — Rajiv Gandhi", () => {
   }
 });
 
-Deno.test("doshas: verdict byte-identical — Amitabh Bachchan", () => {
-  const kundli = calculateKundli(AMITABH_BACHCHAN);
+Deno.test("doshas: verdict byte-identical — Amitabh Bachchan", async () => {
+  const kundli = await calculateKundli(AMITABH_BACHCHAN);
   for (const expected of PRE_REFACTOR_VERDICTS.amitabh) {
     const actual = findDosha(kundli.doshas, expected.name);
     assertEquals(actual.isPresent, expected.isPresent, `${expected.name}: isPresent mismatch`);

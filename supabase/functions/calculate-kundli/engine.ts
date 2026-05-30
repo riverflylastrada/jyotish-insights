@@ -81,7 +81,7 @@ function dusthanas(h: number): boolean { return [6, 8, 12].includes(h); }
 
 // ─── Main calculation ───────────────────────────────────────────────────────
 
-export function calculateKundli(details: BirthDetails) {
+export async function calculateKundli(details: BirthDetails) {
   const basis: ChartBasis = details.chartBasis ?? 'rasi';
 
   // Default time to noon UTC when birth time is unknown (solar/moon/horary)
@@ -285,12 +285,12 @@ export function calculateKundli(details: BirthDetails) {
   // Vimsopaka Bala (Shodhasavarga — 16-varga dignity score out of 20)
   const vimsopakaBala = computeVimsopakaBala(d1Planets, divCharts);
 
-  return {
+  const result: Record<string, unknown> = {
     id: crypto.randomUUID(),
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 17,
+    snapshotVersion: 18,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -342,6 +342,53 @@ export function calculateKundli(details: BirthDetails) {
     moonSignUncertain: moonSignUncertain || undefined,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
   };
+
+  // ─── Auto-insights (non-fatal) ──────────────────────────────────────────
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+    // Check feature flag
+    let autoInsightsEnabled = true;
+    if (supabaseUrl && serviceRoleKey) {
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+      const admin = createClient(supabaseUrl, serviceRoleKey);
+      const { data: flagRow } = await admin
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'auto_insights_enabled')
+        .maybeSingle();
+      if (flagRow?.value === 'false' || flagRow?.value === false) {
+        autoInsightsEnabled = false;
+      }
+    }
+
+    if (autoInsightsEnabled && supabaseUrl && serviceRoleKey) {
+      const guruDebateUrl = `${supabaseUrl}/functions/v1/guru-debate`;
+      const resp = await fetch(guruDebateUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode: 'auto-insights',
+          question: 'auto-insights',
+          chart: result,
+        }),
+      });
+      if (resp.ok) {
+        const insights = await resp.json();
+        if (insights && !insights.error) {
+          (result as Record<string, unknown>).autoInsights = insights;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Auto-insights generation skipped:', e);
+  }
+
+  return result;
 }
 
 // ─── Transit positions ─────────────────────────────────────────────────────

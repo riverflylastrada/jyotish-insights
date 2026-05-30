@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Check, X, ChevronRight, FlaskConical } from 'lucide-react';
+import { ArrowLeft, Loader2, Check, X, ChevronRight, FlaskConical, Sparkles, MessageSquare } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { PLANET_LABELS, type PlanetName, type Yoga } from '@/lib/astro/types';
 
@@ -143,6 +143,20 @@ export default function Yogas() {
                             </div>
                           </div>
                         )}
+
+                        {/* Auto-insight reading */}
+                        {y.isPresent && data.autoInsights?.yogas?.[y.name] ? (
+                          <div className="rounded-sm border border-brand-gold/20 bg-brand-gold/5 p-3">
+                            <div className="flex items-center gap-1.5 text-xs text-brand-gold font-medium mb-1">
+                              <Sparkles className="h-3.5 w-3.5" /> Guru Insight
+                            </div>
+                            <p className="text-sm text-text-secondary">{data.autoInsights.yogas[y.name]}</p>
+                          </div>
+                        ) : y.isPresent ? (
+                          <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                            <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
+                          </Link>
+                        ) : null}
 
                         <Link to={`/app/chart/${id}/lab`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
                           <FlaskConical className="h-3.5 w-3.5" /> Explore the planets in the Research Lab

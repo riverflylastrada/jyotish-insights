@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useKundli } from '@/hooks/useKundli';
 import { useChartStore } from '@/stores/useChartStore';
@@ -186,7 +186,7 @@ export default function ChartDetail() {
           </div>
 
           {tab === 'overview' && <OverviewTab chart={d1} doshaCount={data.doshas.filter(d => d.isPresent).length} yogas={data.yogas} md={md.planet} ad={ad?.planet ?? '—'} />}
-          {tab === 'houses' && <HousesTab chart={d1} />}
+          {tab === 'houses' && <HousesTab chart={d1} autoInsights={data.autoInsights} chartId={id} />}
           {tab === 'planets' && <PlanetsTab chart={d1} />}
         </div>
 
@@ -373,7 +373,8 @@ function OverviewTab({ chart, doshaCount, yogas, md, ad }: { chart: DivisionalCh
   );
 }
 
-function HousesTab({ chart }: { chart: DivisionalChart }) {
+function HousesTab({ chart, autoInsights, chartId }: { chart: DivisionalChart; autoInsights?: { houses?: Record<string, string> }; chartId: string }) {
+  const [expandedHouse, setExpandedHouse] = useState<number | null>(null);
   const planetsByHouse = new Map<number, PlanetPosition[]>();
   chart.planets.forEach(p => {
     if (p.planet === 'ascendant') return;
@@ -398,15 +399,35 @@ function HousesTab({ chart }: { chart: DivisionalChart }) {
             const sign = ((chart.ascendantSign - 1 + i) % 12) + 1;
             const occ = planetsByHouse.get(h) ?? [];
             return (
-              <tr key={h} className="hover:bg-elevated/50">
-                <td className="px-4 py-3 font-mono text-text-primary">H{h}</td>
-                <td className="px-4 py-3"><span className="text-text-primary">{SIGN_NAMES[sign - 1]}</span> <span className="ml-1 font-deva text-xs text-text-tertiary">{SIGN_NAMES_DEVA[sign - 1]}</span></td>
-                <td className="px-4 py-3">
-                  {occ.length === 0 ? <span className="text-text-muted">—</span> :
-                    occ.map(p => <span key={p.planet} className="mr-2 font-mono text-xs" style={{ color: `hsl(var(--planet-${p.planet}))` }}>{PLANET_LABELS[p.planet].short}</span>)}
-                </td>
-                <td className="px-4 py-3 text-text-tertiary">{HOUSE_THEMES[h]}</td>
-              </tr>
+              <React.Fragment key={h}>
+                <tr className="hover:bg-elevated/50 cursor-pointer" onClick={() => setExpandedHouse(expandedHouse === h ? null : h)}>
+                  <td className="px-4 py-3 font-mono text-text-primary">H{h}</td>
+                  <td className="px-4 py-3"><span className="text-text-primary">{SIGN_NAMES[sign - 1]}</span> <span className="ml-1 font-deva text-xs text-text-tertiary">{SIGN_NAMES_DEVA[sign - 1]}</span></td>
+                  <td className="px-4 py-3">
+                    {occ.length === 0 ? <span className="text-text-muted">—</span> :
+                      occ.map(p => <span key={p.planet} className="mr-2 font-mono text-xs" style={{ color: `hsl(var(--planet-${p.planet}))` }}>{PLANET_LABELS[p.planet].short}</span>)}
+                  </td>
+                  <td className="px-4 py-3 text-text-tertiary">{HOUSE_THEMES[h]}</td>
+                </tr>
+                {expandedHouse === h && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-3 bg-elevated/30">
+                      {autoInsights?.houses?.[String(h)] ? (
+                        <div className="rounded-sm border border-brand-gold/20 bg-brand-gold/5 p-3">
+                          <div className="flex items-center gap-1.5 text-xs text-brand-gold font-medium mb-1">
+                            <Sparkles className="h-3.5 w-3.5" /> Guru Insight
+                          </div>
+                          <p className="text-sm text-text-secondary">{autoInsights.houses[String(h)]}</p>
+                        </div>
+                      ) : (
+                        <Link to={`/app/chart/${chartId}/debate`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                          <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             );
           })}
         </tbody>
