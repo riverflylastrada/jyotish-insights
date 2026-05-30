@@ -36,6 +36,7 @@ const Kp = lazy(() => import("./pages/app/Kp"));
 const Jaimini = lazy(() => import("./pages/app/Jaimini"));
 const Varshphal = lazy(() => import("./pages/app/Varshphal"));
 const ResearchLab = lazy(() => import("./pages/app/ResearchLab"));
+const VargaExplorer = lazy(() => import("./pages/app/VargaExplorer"));
 const Prashna = lazy(() => import("./pages/app/Prashna"));
 const BusinessNew = lazy(() => import("./pages/app/BusinessNew"));
 const TwinsNew = lazy(() => import("./pages/app/TwinsNew"));
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="settings" element={<Settings />} />
               <Route path="chart/:id" element={<ChartDetail />} />
               <Route path="chart/:id/charts" element={<DivisionalCharts />} />
+              <Route path="chart/:id/charts/:varga" element={<VargaExplorer />} />
               <Route path="chart/:id/dashas" element={<Dashas />} />
               <Route path="chart/:id/doshas" element={<Doshas />} />
               <Route path="chart/:id/yogas" element={<Yogas />} />
