@@ -2,14 +2,54 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
-import { PLANET_LABELS, SIGN_NAMES, type PlanetName } from '@/lib/astro/types';
+import { PLANET_LABELS, type PlanetName } from '@/lib/astro/types';
+
+type Depth = 'visual' | 'explain' | 'math';
 
 const BALA_KEYS = ['sthanaBala', 'digBala', 'kalaBala', 'cheshtaBala', 'naisargikaBala', 'drikBala'] as const;
-const BALA_LABELS: Record<typeof BALA_KEYS[number], string> = {
+type BalaKey = typeof BALA_KEYS[number];
+const BALA_LABELS: Record<BalaKey, string> = {
   sthanaBala: 'Sthana', digBala: 'Dig', kalaBala: 'Kala', cheshtaBala: 'Cheshta', naisargikaBala: 'Naisargika', drikBala: 'Drik',
 };
 const BALA_HUES = ['var(--planet-sun)', 'var(--planet-moon)', 'var(--planet-mars)', 'var(--planet-mercury)', 'var(--planet-jupiter)', 'var(--planet-venus)'];
 const PLANET_KEYS: PlanetName[] = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
+
+const BALA_FORMULAS: Record<BalaKey, { name: string; components: string; formula: string }> = {
+  sthanaBala: {
+    name: 'Sthana Bala (Positional Strength)',
+    components: 'Uchcha Bala + Saptavargeeya Bala + Ojhayugma Bala + Kendra Bala + Drekkana Bala',
+    formula: 'Sum of five sub-balas based on exaltation proximity, dignity in 7 vargas, odd/even sign-house parity, angular placement, and decanate position.',
+  },
+  digBala: {
+    name: 'Dig Bala (Directional Strength)',
+    components: 'Based on cardinal direction of planet from the four angles (Lagna, 4th, 7th, 10th).',
+    formula: 'Dig Bala = (angular distance from point of weakness) / 3 Virupas per degree. Ju & Me strongest in Lagna (East), Su & Ma in 10th (South), Sa in 7th (West), Mo & Ve in 4th (North).',
+  },
+  kalaBala: {
+    name: 'Kala Bala (Temporal Strength)',
+    components: 'Nathonnatha + Paksha + Tribhaga + Varsha-Masa-Vara-Hora + Ayana Bala',
+    formula: 'Temporal strength from day/night position, lunar phase (waxing/waning), tripart of day/night, lordship of year/month/weekday/hora, and declination.',
+  },
+  cheshtaBala: {
+    name: 'Cheshta Bala (Motional Strength)',
+    components: 'Based on the planet\'s true daily motion relative to its mean motion.',
+    formula: 'Cheshta = f(speed). Retrograde and stationary planets gain maximum Cheshta (60 Virupas); fast-moving planets gain less. Sun and Moon use Ayana Bala instead.',
+  },
+  naisargikaBala: {
+    name: 'Naisargika Bala (Natural Strength)',
+    components: 'Fixed, inherent strength: Su 60, Mo 51.43, Ve 42.86, Ju 34.29, Me 25.71, Ma 17.14, Sa 8.57 Virupas.',
+    formula: 'Immutable natural luminosity values assigned to each graha; does not vary by chart.',
+  },
+  drikBala: {
+    name: 'Drik Bala (Aspectual Strength)',
+    components: 'Net benefic/malefic aspects received by the planet.',
+    formula: 'Drik = Σ (benefic aspect strengths) − Σ (malefic aspect strengths). Benefic aspects from Ju, Ve, unafflicted Me/Mo add; malefic aspects from Sa, Ma, Su, Rahu subtract.',
+  },
+};
+
+const NAISARGIKA_VALUES: Record<string, number> = {
+  sun: 60, moon: 51.43, venus: 42.86, jupiter: 34.29, mercury: 25.71, mars: 17.14, saturn: 8.57,
+};
 
 function toRupas(v: number) {
   return (v / 60).toFixed(2);
@@ -75,13 +115,26 @@ export default function Strengths() {
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Interactive Shadbala
+   ───────────────────────────────────────────────────────────── */
+interface ShadbalaFocus {
+  planet: PlanetName;
+  bala: BalaKey;
+}
+
 function ShadbalaSection({ data }: { data: NonNullable<ReturnType<typeof useKundli>['data']>['shadbala'] & {} }) {
   const rows = PLANET_KEYS.filter((p) => data.planets[p]);
   const strongest = data.rank?.[0];
   const weakest = data.rank?.[data.rank.length - 1];
+  const [focus, setFocus] = useState<ShadbalaFocus | null>(null);
+  const [depth, setDepth] = useState<Depth>('visual');
+
+  const focusRow = focus ? data.planets[focus.planet] : null;
 
   return (
     <div className="space-y-6">
+      {/* Ranking */}
       <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
         <div className="text-eyebrow text-text-tertiary">Ranking</div>
         <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
@@ -98,74 +151,256 @@ function ShadbalaSection({ data }: { data: NonNullable<ReturnType<typeof useKund
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-hairline-subtle bg-surface shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-elevated text-left text-xs uppercase tracking-wide text-text-tertiary">
-            <tr>
-              <th className="px-4 py-2 font-medium">Planet</th>
-              {BALA_KEYS.map((k) => <th key={k} className="px-3 py-2 text-right font-medium">{BALA_LABELS[k]}</th>)}
-              <th className="px-4 py-2 text-right font-medium">Total (Rupas)</th>
-              <th className="px-3 py-2 text-right font-medium">Ishta</th>
-              <th className="px-3 py-2 text-right font-medium">Kashta</th>
-              <th className="px-3 py-2 text-right font-medium">Required</th>
-              <th className="px-3 py-2 text-right font-medium">Ratio</th>
-              <th className="px-3 py-2 font-medium">Composition</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-hairline-subtle">
-            {rows.map((p) => {
-              const row = data.planets[p];
-              const isStrong = p === strongest;
-              const isWeak = p === weakest;
-              const below = row.ratio < 1;
-              const sum = BALA_KEYS.reduce((s, k) => s + row[k], 0) || 1;
-              return (
-                <tr key={p} className={isStrong ? 'bg-semantic-positive/5' : isWeak ? 'bg-semantic-negative/5' : ''}>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: `hsl(var(--planet-${p}))` }} />
-                      <span className="font-display capitalize text-text-primary">{PLANET_LABELS[p].full}</span>
-                      {isStrong && <span className="rounded-sm bg-semantic-positive/15 px-1.5 py-0.5 text-[10px] font-medium text-semantic-positive">Strongest</span>}
-                      {isWeak && <span className="rounded-sm bg-semantic-negative/15 px-1.5 py-0.5 text-[10px] font-medium text-semantic-negative">Weakest</span>}
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Left: stacked bars */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="text-eyebrow text-text-tertiary">Tap a segment to explore its bala</div>
+          {rows.map((p) => {
+            const row = data.planets[p];
+            const isStrong = p === strongest;
+            const isWeak = p === weakest;
+            const below = row.ratio < 1;
+            const totalV = BALA_KEYS.reduce((s, k) => s + row[k], 0) || 1;
+            return (
+              <div key={p} className={`rounded-md border p-4 ${
+                isStrong ? 'border-semantic-positive/30 bg-semantic-positive/[0.03]'
+                : isWeak ? 'border-semantic-negative/30 bg-semantic-negative/[0.03]'
+                : 'border-hairline-subtle bg-surface'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: `hsl(var(--planet-${p}))` }} />
+                    <span className="font-display text-sm capitalize text-text-primary">{PLANET_LABELS[p].full}</span>
+                    {isStrong && <span className="rounded-sm bg-semantic-positive/15 px-1.5 py-0.5 text-[10px] font-medium text-semantic-positive">Strongest</span>}
+                    {isWeak && <span className="rounded-sm bg-semantic-negative/15 px-1.5 py-0.5 text-[10px] font-medium text-semantic-negative">Weakest</span>}
+                  </span>
+                  <span className="text-xs font-mono text-text-secondary">
+                    {toRupas(row.totalVirupas)} R
+                    <span className={`ml-2 ${below ? 'text-semantic-negative' : 'text-semantic-positive'}`}>
+                      ×{row.ratio.toFixed(2)}
                     </span>
-                  </td>
-                  {BALA_KEYS.map((k) => (
-                    <td key={k} className="px-3 py-3 text-right font-mono text-xs text-text-secondary">{toRupas(row[k])}</td>
-                  ))}
-                  <td className="px-4 py-3 text-right font-mono text-text-primary">{toRupas(row.totalVirupas)}</td>
-                  <td className="px-3 py-3 text-right font-mono text-xs text-text-secondary">{(row.ishtaPhala ?? 0).toFixed(2)}</td>
-                  <td className="px-3 py-3 text-right font-mono text-xs text-text-secondary">{(row.kashtaPhala ?? 0).toFixed(2)}</td>
-                  <td className="px-3 py-3 text-right font-mono text-xs text-text-tertiary">{(row.required / 60).toFixed(2)}</td>
-                  <td className={`px-3 py-3 text-right font-mono text-xs ${below ? 'text-semantic-negative' : 'text-semantic-positive'}`}>
-                    {row.ratio.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex h-2.5 w-40 overflow-hidden rounded-sm border border-hairline-subtle">
-                      {BALA_KEYS.map((k, i) => (
-                        <div key={k} title={`${BALA_LABELS[k]}: ${toRupas(row[k])}`}
-                          style={{ width: `${(row[k] / sum) * 100}%`, background: `hsl(${BALA_HUES[i]})` }} />
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  </span>
+                </div>
 
-      <div className="flex flex-wrap gap-3 text-xs text-text-tertiary">
-        {BALA_KEYS.map((k, i) => (
-          <span key={k} className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-sm" style={{ background: `hsl(${BALA_HUES[i]})` }} />
-            {BALA_LABELS[k]} Bala
-          </span>
-        ))}
+                {/* Stacked horizontal bar */}
+                <div className="flex h-6 w-full overflow-hidden rounded-sm border border-hairline-subtle">
+                  {BALA_KEYS.map((k, i) => {
+                    const pct = (row[k] / totalV) * 100;
+                    const isFocused = focus?.planet === p && focus.bala === k;
+                    return (
+                      <button
+                        key={k}
+                        title={`${BALA_LABELS[k]}: ${toRupas(row[k])} Rupas`}
+                        className={`relative h-full transition-opacity ${isFocused ? 'ring-2 ring-inset ring-text-primary' : 'hover:opacity-80'}`}
+                        style={{ width: `${pct}%`, background: `hsl(${BALA_HUES[i]})` }}
+                        onClick={() => {
+                          if (isFocused) {
+                            setFocus(null);
+                          } else {
+                            setFocus({ planet: p, bala: k });
+                          }
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Labels under bar */}
+                <div className="mt-1 flex justify-between text-[10px] text-text-tertiary font-mono">
+                  <span>Req: {(row.required / 60).toFixed(2)} R</span>
+                  <span>Ishta: {(row.ishtaPhala ?? 0).toFixed(2)} · Kashta: {(row.kashtaPhala ?? 0).toFixed(2)}</span>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3 text-xs text-text-tertiary">
+            {BALA_KEYS.map((k, i) => (
+              <span key={k} className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-sm" style={{ background: `hsl(${BALA_HUES[i]})` }} />
+                {BALA_LABELS[k]} Bala
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: focus panel */}
+        <aside className="lg:col-span-5 space-y-4">
+          {/* Depth toggle */}
+          <div className="flex rounded-sm border border-hairline-subtle p-0.5 text-xs">
+            {([['visual', '👁️ Visual'], ['explain', '👆 Explain'], ['math', '🔬 Math Proof']] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setDepth(k)}
+                className={`flex-1 rounded-sm px-3 py-1.5 transition-colors ${depth === k ? 'bg-brand-maroon text-primary-foreground' : 'text-text-tertiary hover:text-text-primary'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {!focus ? (
+            <div className="rounded-md border border-dashed border-hairline-subtle bg-surface p-8 text-center text-sm text-text-tertiary">
+              Tap a colored segment in any planet's bar to see that bala's formula and value.
+            </div>
+          ) : focusRow && (
+            <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm space-y-4">
+              {/* Header */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full" style={{ background: `hsl(var(--planet-${focus.planet}))` }} />
+                  <span className="font-display text-h3 capitalize text-text-primary">{PLANET_LABELS[focus.planet].full}</span>
+                  <span className="text-xs text-text-tertiary">→</span>
+                  <span className="font-display text-h3 text-text-primary">{BALA_LABELS[focus.bala]} Bala</span>
+                </div>
+              </div>
+
+              {/* Visual: value cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-sm border border-hairline-subtle bg-elevated/50 p-3 text-center">
+                  <div className="text-eyebrow text-text-tertiary text-[10px]">Virupas</div>
+                  <div className="font-mono text-lg text-text-primary">{focusRow[focus.bala].toFixed(2)}</div>
+                </div>
+                <div className="rounded-sm border border-hairline-subtle bg-elevated/50 p-3 text-center">
+                  <div className="text-eyebrow text-text-tertiary text-[10px]">Rupas</div>
+                  <div className="font-mono text-lg text-text-primary">{toRupas(focusRow[focus.bala])}</div>
+                </div>
+                <div className="rounded-sm border border-hairline-subtle bg-elevated/50 p-3 text-center">
+                  <div className="text-eyebrow text-text-tertiary text-[10px]">% of Total</div>
+                  <div className="font-mono text-lg text-text-primary">
+                    {((focusRow[focus.bala] / (focusRow.totalVirupas || 1)) * 100).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="rounded-sm border border-hairline-subtle bg-elevated/50 p-3 text-center">
+                  <div className="text-eyebrow text-text-tertiary text-[10px]">Ratio</div>
+                  <div className={`font-mono text-lg ${focusRow.ratio >= 1 ? 'text-semantic-positive' : 'text-semantic-negative'}`}>
+                    {focusRow.ratio.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-text-tertiary">{focusRow.ratio >= 1 ? 'Sufficient' : 'Deficient'}</div>
+                </div>
+              </div>
+
+              {/* All 6 balas breakdown for this planet */}
+              <div className="space-y-1.5">
+                <div className="text-eyebrow text-text-tertiary">All 6 balas — {PLANET_LABELS[focus.planet].full}</div>
+                {BALA_KEYS.map((k, i) => {
+                  const v = focusRow[k];
+                  const isCurrent = k === focus.bala;
+                  return (
+                    <button
+                      key={k}
+                      className={`flex w-full items-center gap-2 rounded-sm px-2 py-1 text-xs transition-colors ${isCurrent ? 'bg-brand-maroon/10 ring-1 ring-brand-maroon/30' : 'hover:bg-elevated'}`}
+                      onClick={() => setFocus({ planet: focus.planet, bala: k })}
+                    >
+                      <span className="h-2 w-2 rounded-sm" style={{ background: `hsl(${BALA_HUES[i]})` }} />
+                      <span className={`flex-1 text-left ${isCurrent ? 'text-text-primary font-medium' : 'text-text-secondary'}`}>{BALA_LABELS[k]}</span>
+                      <span className="font-mono text-text-primary">{toRupas(v)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Explain layer */}
+              {depth !== 'visual' && (
+                <div className="space-y-2 border-t border-hairline-subtle pt-3 text-sm text-text-secondary">
+                  <p>
+                    <span className="font-medium text-text-primary">{BALA_FORMULAS[focus.bala].name}</span> measures{' '}
+                    {focus.bala === 'sthanaBala' && 'positional dignity based on exaltation, varga placements, and angular strength.'}
+                    {focus.bala === 'digBala' && 'directional strength based on angular placement from the planet\'s point of maximum directional power.'}
+                    {focus.bala === 'kalaBala' && 'temporal strength from day/night, lunar phase, and rulership of time units.'}
+                    {focus.bala === 'cheshtaBala' && 'motional strength from the planet\'s speed — retrograde and stationary planets are strongest.'}
+                    {focus.bala === 'naisargikaBala' && 'inherent natural luminosity — fixed values that do not change between charts.'}
+                    {focus.bala === 'drikBala' && 'net aspectual strength from benefic and malefic aspects received.'}
+                  </p>
+                  <p>
+                    {PLANET_LABELS[focus.planet].full}'s {BALA_LABELS[focus.bala]} Bala is{' '}
+                    <span className="font-mono font-semibold">{toRupas(focusRow[focus.bala])} Rupas</span> ({focusRow[focus.bala].toFixed(2)} Virupas),
+                    contributing <span className="font-mono font-semibold">{((focusRow[focus.bala] / (focusRow.totalVirupas || 1)) * 100).toFixed(1)}%</span> of its total Shadbala.
+                  </p>
+                  <p className="text-xs text-text-tertiary">
+                    Overall ratio: {focusRow.ratio.toFixed(2)} — {focusRow.ratio >= 1 ? 'planet meets its required minimum strength.' : 'planet is below required minimum; may underperform.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Math Proof layer */}
+              {depth === 'math' && (
+                <div className="space-y-3 rounded-sm bg-elevated/50 p-3 text-xs border-t border-hairline-subtle">
+                  <div className="text-eyebrow text-text-tertiary">Math proof — BPHS Ch. 27</div>
+
+                  <div>
+                    <div className="text-text-secondary font-medium">{BALA_FORMULAS[focus.bala].name}</div>
+                    <div className="mt-1 font-mono text-text-tertiary leading-relaxed">
+                      {BALA_FORMULAS[focus.bala].components}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-text-secondary font-medium">Formula:</div>
+                    <div className="mt-1 font-mono text-text-tertiary leading-relaxed">
+                      {BALA_FORMULAS[focus.bala].formula}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-text-secondary font-medium">Computed value ({PLANET_LABELS[focus.planet].full}):</div>
+                    <code className="block font-mono text-text-primary mt-1">
+                      {BALA_LABELS[focus.bala]} = {focusRow[focus.bala].toFixed(2)} Virupas = {toRupas(focusRow[focus.bala])} Rupas
+                    </code>
+                  </div>
+
+                  <div>
+                    <div className="text-text-secondary font-medium">Shadbala total:</div>
+                    <code className="block font-mono text-text-primary mt-1">
+                      Total = {BALA_KEYS.map((k) => focusRow[k].toFixed(2)).join(' + ')}
+                    </code>
+                    <code className="block font-mono text-text-primary">
+                      = {focusRow.totalVirupas.toFixed(2)} Virupas = {toRupas(focusRow.totalVirupas)} Rupas
+                    </code>
+                  </div>
+
+                  <div>
+                    <div className="text-text-secondary font-medium">Sufficiency:</div>
+                    <code className="block font-mono text-text-primary mt-1">
+                      Required = {focusRow.required.toFixed(2)} Virupas = {(focusRow.required / 60).toFixed(2)} Rupas
+                    </code>
+                    <code className="block font-mono mt-0.5">
+                      <span className={focusRow.ratio >= 1 ? 'text-semantic-positive' : 'text-semantic-negative'}>
+                        Ratio = {toRupas(focusRow.totalVirupas)} / {(focusRow.required / 60).toFixed(2)} = {focusRow.ratio.toFixed(2)} {focusRow.ratio >= 1 ? '≥ 1 (sufficient)' : '< 1 (deficient)'}
+                      </span>
+                    </code>
+                  </div>
+
+                  {focus.bala === 'naisargikaBala' && (
+                    <div className="border-t border-hairline-subtle pt-2">
+                      <div className="text-text-secondary font-medium">Fixed natural strengths:</div>
+                      <table className="mt-1 w-full font-mono text-text-tertiary">
+                        <tbody>
+                          {Object.entries(NAISARGIKA_VALUES).map(([pl, val]) => (
+                            <tr key={pl}>
+                              <td className="py-0.5 capitalize" style={{ color: `hsl(var(--planet-${pl}))` }}>{PLANET_LABELS[pl as PlanetName].full}</td>
+                              <td className="py-0.5 text-right text-text-primary">{val.toFixed(2)} Virupas</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="text-text-muted italic pt-1">
+                    Ref: Brihat Parashara Hora Shastra, Ch. 27 (Shadbaladhyaya).
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Bhava Bala Section (unchanged)
+   ───────────────────────────────────────────────────────────── */
 function BhavaBalaSection({ data }: { data: NonNullable<ReturnType<typeof useKundli>['data']>['bhavaBala'] & {} }) {
   const max = Math.max(...data.houses.map((h) => h.totalRupas), 1);
   const strongest = data.rank?.[0];
@@ -224,6 +459,9 @@ function BhavaBalaSection({ data }: { data: NonNullable<ReturnType<typeof useKun
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Vargeeya Bala Section (unchanged)
+   ───────────────────────────────────────────────────────────── */
 function VargeeyaBalaSection({ data }: { data: NonNullable<ReturnType<typeof useKundli>['data']>['vargeeyaBala'] & {} }) {
   const planets = PLANET_KEYS.filter((p) => data.panchaVargeeya[p] !== undefined || data.dwadasaVargeeya[p] !== undefined);
   const maxPancha = Math.max(...Object.values(data.panchaVargeeya), 1);
@@ -264,6 +502,9 @@ function VargeeyaBalaSection({ data }: { data: NonNullable<ReturnType<typeof use
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Vimsopaka Section (unchanged)
+   ───────────────────────────────────────────────────────────── */
 function VimsopakaSection({ data }: { data: NonNullable<ReturnType<typeof useKundli>['data']>['vimsopakaBala'] & {} }) {
   const planets = PLANET_KEYS.filter((p) => data.planets[p]);
 
