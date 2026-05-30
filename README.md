@@ -91,8 +91,11 @@ API is required.
 > the Guru Debate dossier, and surfaced in dedicated front-end views — the
 > **Strengths** (Shadbala / Bhava Bala / Vargeeya Bala), **KP**, **Jaimini**,
 > **Varshphal**, and multi-system **Dashas** pages all ship. The **Interactive
-> Research Lab** (`/app/chart/:id/lab`) is now underway — Phases 1–2 (Interactive
-> D1 chart, interactive Yogas) have shipped — see
+> Research Lab** (`/app/chart/:id/lab`) is underway — Phases 1–2 (Interactive D1
+> chart, interactive Yogas + Doshas) have shipped, alongside all four
+> **Specialized Kundli types** — Prashna (`/app/prashna`), Twins
+> (`/app/twins/new`), Business (`/app/business/new`), and **public** Mundane
+> (`/mundane`). Next: Research Lab Phase 3. See
 > [ROADMAP.md](ROADMAP.md#immediate--interactive-research-lab).
 
 ### Interpretation & analysis
@@ -419,10 +422,11 @@ automated — follow.
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned work, including the **Interactive
-Research Lab**, specialized kundli types (Prashna, Twins, Business, Mundane), a
-**pan-India multi-language launch**, billing/subscriptions, and additional dasha
-systems.
+See [ROADMAP.md](ROADMAP.md) for planned work. Recently shipped: all four
+**Specialized Kundli types** (Prashna, Twins, Business, public Mundane) and
+Research Lab Phases 1–2. Up next: **Research Lab Phase 3** (Interactive Dasha +
+Divisional), a **pan-India multi-language launch**, billing/subscriptions, and
+additional dasha systems.
 
 ---
 

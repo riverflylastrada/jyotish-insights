@@ -46,9 +46,11 @@ each PR.
 **Engine vs. UI:** the **core engine is feature-complete**, and the **initial UI
 surfacing phase has shipped** — Strengths, KP, Jaimini, and Varshphal pages, plus
 a multi-system Dashas page (Vimshottari / Yogini / Ashtottari / Chara /
-Kalachakra). The **Interactive Research Lab** is now underway — Phases 1–2
-(Interactive D1, Unknown Birth Time, interactive Yogas) have shipped (below).
-Product gaps: transit alerts, monetization.
+Kalachakra). The **Interactive Research Lab** is underway — Phases 1–2 complete
+(Interactive D1, Unknown Birth Time, interactive Yogas + Doshas), plus all four
+**Specialized Kundli types** (Prashna, Twins, Business, public Mundane). Next
+focus: Research Lab Phase 3 (Interactive Dasha + Divisional). Product gaps:
+transit alerts, monetization.
 
 ---
 
@@ -132,12 +134,36 @@ Product gaps: transit alerts, monetization.
   lordship/aspect/conjunction arrows ([ResearchLab.tsx](src/pages/app/ResearchLab.tsx),
   route `/app/chart/:id/lab`).
 - ✅ **Research Lab — Phase 2: interactive Yogas** — step-by-step condition cards.
+- ✅ **Research Lab — Phase 2: interactive Doshas** ([Doshas.tsx](src/pages/app/Doshas.tsx)) —
+  filterable, expandable condition cards with classical-source citations,
+  three-state status (active / present·cancelled / not present), and the
+  anti-fear banner. Frontend-only; engine extension for true ✓/✗-per-rule
+  + cancellation-arrow checklists is a planned follow-up.
+- ✅ **Prashna (horary) kundli** ([Prashna.tsx](src/pages/app/Prashna.tsx),
+  route `/app/prashna`) — "This moment" + KP horary number (1–249) casting,
+  KP-driven 8-guru debate with a backward-compatible `prashnaMode` in
+  [guru-debate](supabase/functions/guru-debate/index.ts).
+- ✅ **Twins kundli comparison** ([TwinsNew.tsx](src/pages/app/TwinsNew.tsx),
+  [TwinsCompare.tsx](src/pages/app/TwinsCompare.tsx), `/app/twins/new` and
+  `/app/twins/:idA/:idB`) — D-60 side-by-side, KP cuspal sub-lord delta,
+  parallel Vimshottari timeline, Pranapada/Special Lagna comparison.
+- ✅ **Business kundli** ([BusinessNew.tsx](src/pages/app/BusinessNew.tsx),
+  `/app/business/new`) — founding chart with business-context house labels
+  (1=entity, 2=revenue, 7=clients, 10=reputation, 11=profits); ungated via
+  a `usePlanGate('business')` stub pending billing.
+- ✅ **Mundane astrology page** ([Mundane.tsx](src/pages/Mundane.tsx),
+  [mundane.ts](src/lib/astro/mundane.ts), public route `/mundane`) — national
+  presets (India 15-Aug-1947), solar ingress, eclipse, and custom event charts
+  with mundane house significations (Choudhry/K.N. Rao/B.V. Raman). Public
+  (no auth); reuses the validated engine via the provider.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
 > engine is feature-complete**, the **initial UI surfacing phase has shipped**,
-> and the **Interactive Research Lab is now underway** — Phases 1–2 (Interactive
-> D1, Unknown Birth Time, interactive Yogas) have shipped (below).
+> and the **Interactive Research Lab is underway** — Phases 1–2 (Interactive
+> D1, Unknown Birth Time, interactive Yogas, interactive Doshas) have shipped,
+> plus all four **Specialized Kundli types** (Prashna, Twins, Business,
+> Mundane). Next focus: Research Lab Phase 3 (Interactive Dasha + Divisional).
 
 ---
 
@@ -169,9 +195,9 @@ Product gaps: transit alerts, monetization.
 > afterward is born interactive from day one. The Research Lab is the product
 > identity — not a feature.
 
-> **Status:** Phase 1 (Interactive D1 chart, Unknown Birth Time) and Phase 2
-> (interactive Yogas) have shipped — see Recently shipped. **Interactive Doshas
-> is the next item.**
+> **Status:** Phases 1 (Interactive D1 chart, Unknown Birth Time) and 2
+> (interactive Yogas + Doshas) have shipped — see Recently shipped. **Phase 3
+> (Interactive Dasha + Divisional) is the next item.**
 
 ### Design principles
 1. **Show the Rule, Not Just the Result** — every statement traces to a
@@ -208,9 +234,10 @@ Product gaps: transit alerts, monetization.
   checklist (✓/✗ per step). User walks through and proves/disproves each yoga
   themselves. Cancellation rules equally prominent. Classical source cited per
   yoga (BPHS chapter, Phaladeepika shloka, etc.).
-- ⬜ **Interactive Doshas** — same condition-check approach. Anti-fear banner:
-  "Doshas are NOT curses — they are mathematical conditions." Each cancellation
-  rule checked visually with arrows showing the cancelling planet/aspect.
+- ✅ **Interactive Doshas** — condition-card pattern shipped (filterable cards
+  with classical-source citations, three-state status, anti-fear banner).
+  Follow-up: extend the engine to expose structured `conditions[]` /
+  `cancellations[]` for a true ✓/✗-per-rule checklist with cancellation arrows.
 
 ### Phase 3: Dasha & Divisional chart interaction
 - ⬜ **Interactive Dasha timeline** — tap any period → D1 chart highlights that
@@ -243,29 +270,22 @@ Product gaps: transit alerts, monetization.
 
 ---
 
-## Near-term — Specialized Kundli types
+## Near-term — Specialized Kundli types ✅
 
-> Each type reuses the existing engine with different input forms and
-> interpretation contexts. All launch as interactive Research Lab experiences.
+> All four types shipped. Each reuses the existing engine with different input
+> forms and interpretation contexts. See Recently shipped for routes/files.
 
-- ⬜ **Prashna Kundli (प्रश्न कुंडली)** — chart cast for the exact moment a
-  question is asked. GPS-based timestamp capture. Guru Debate runs in "Prashna
-  mode" with horary interpretation rules. Route: `/app/prashna`. No birth data
-  needed = zero barrier to entry, drives daily engagement.
-- ⬜ **Twins Kundli (जुड़वा कुंडली)** — side-by-side comparison of charts with
-  30s–2min birth time difference. Key differentiators: **D-60 (Shastiamsha)
-  comparison** (changes in <2 min of Lagna movement), **KP cuspal sub-lord
-  delta table**, **parallel dasha timeline** showing period divergence,
-  **Pranapada Lagna comparison**. Route: `/app/twins/new`.
-- ⬜ **Business Kundli (व्यापार कुंडली)** — chart for incorporation/founding
-  datetime. Houses reinterpreted: 1st=entity, 2nd=revenue/cashflow,
-  7th=clients/partnerships, 10th=reputation/market position, 11th=profits.
-  Connects to Muhurta for launch timing. Acharya tier. Route: `/app/business/new`.
-- ⬜ **Mundane Kundli (मुण्डेन कुंडली)** — Solar Ingress (Mesha Sankranti)
-  charts, Eclipse charts, National charts (India 15-Aug-1947), Event charts.
-  Houses = national sectors (1st=nation, 2nd=economy, 6th=military, 7th=foreign
-  relations, 10th=government). Free public page for SEO + thought leadership.
-  Route: `/app/mundane`.
+- ✅ **Prashna Kundli (प्रश्न कुंडली)** — "This moment" + KP horary number
+  (1–249); KP-driven 8-guru debate with `prashnaMode`. Route: `/app/prashna`.
+- ✅ **Twins Kundli (जुड़वा कुंडली)** — D-60 side-by-side, KP cuspal sub-lord
+  delta, parallel Vimshottari, Pranapada/Special Lagna comparison.
+  Routes: `/app/twins/new`, `/app/twins/:idA/:idB`.
+- ✅ **Business Kundli (व्यापार कुंडली)** — founding chart with reinterpreted
+  business houses; ungated via `usePlanGate('business')` stub pending billing.
+  Route: `/app/business/new`.
+- ✅ **Mundane Kundli (मुण्डेन कुंडली)** — national presets (India 15-Aug-1947),
+  solar ingress, eclipse, custom event charts with mundane house labels
+  (Choudhry / K.N. Rao / B.V. Raman). **Public** route `/mundane` (no auth).
 
 ---
 
@@ -404,19 +424,19 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 | 1  | ✅ Unknown Birth Time (form option)      | 2–3 days | Stops losing 30–40% of users      |
 | 2  | ✅ Interactive D1 Chart (arrows + depths)| 5–6 days | Research Lab identity              |
 | 3  | ✅ Interactive Yogas (condition checklists)| 3–4 days | Most shareable feature           |
-| 4  | Interactive Doshas (condition + cancel) ⬅ next | 3–4 days | Destroys fear-based astrology |
-| 5  | Interactive Dasha (tap → chart highlight) | 3–4 days | Core Research Lab complete         |
+| 4  | ✅ Interactive Doshas (condition cards)  | 3–4 days | Destroys fear-based astrology      |
+| 5  | Interactive Dasha (tap → chart highlight) ⬅ next | 3–4 days | Core Research Lab complete |
 | 6  | Interactive Divisionals (cross-chart nav) | 4–5 days | 16 vargas become explorable        |
 | 7  | Interactive Ashtakavarga/Shadbala/KP      | 5–6 days | Advanced research tools complete   |
 | 8  | Razorpay billing + plan gating           | 2–3 wks  | Revenue starts                     |
 | 9  | Hindi + Marathi + Tamil + Telugu + Bengali| 3–4 wks  | 75% of India covered               |
 | 10 | Daily Panchang page + WhatsApp share     | 3–4 days | Top-of-funnel growth engine        |
 | 11 | Narayana + Lagna Kendradi + Sudasa Dasha | 1–2 wks  | 8+ dasha systems, pro credibility  |
-| 12 | Prashna Kundli (born interactive)        | 4–5 days | Daily engagement, zero barrier     |
-| 13 | Twins Kundli (D-60 comparison)           | 5–6 days | Press-worthy, unique in market     |
+| 12 | ✅ Prashna Kundli (born interactive)     | 4–5 days | Daily engagement, zero barrier     |
+| 13 | ✅ Twins Kundli (D-60 comparison)        | 5–6 days | Press-worthy, unique in market     |
 | 14 | 5 more languages (Phase 2)               | 2–3 wks  | 88% of India covered               |
-| 15 | Business Kundli                          | 4–5 days | Acharya tier monetization          |
-| 16 | Mundane Kundli (public page)             | 5–6 days | SEO + thought leadership           |
+| 15 | ✅ Business Kundli                       | 4–5 days | Acharya tier monetization          |
+| 16 | ✅ Mundane Kundli (public page)          | 5–6 days | SEO + thought leadership           |
 | 17 | PWA + mobile pass                        | 2–3 wks  | Mobile-first India market          |
 | 18 | RAG pipeline + classical text corpus     | 3–4 wks  | Verifiable shloka citations        |
 | 19 | Remaining languages (Phase 3–4)          | 2–3 wks  | 97% of India covered               |
