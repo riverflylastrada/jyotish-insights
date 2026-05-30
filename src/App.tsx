@@ -38,6 +38,8 @@ const Varshphal = lazy(() => import("./pages/app/Varshphal"));
 const ResearchLab = lazy(() => import("./pages/app/ResearchLab"));
 const Prashna = lazy(() => import("./pages/app/Prashna"));
 const BusinessNew = lazy(() => import("./pages/app/BusinessNew"));
+const TwinsNew = lazy(() => import("./pages/app/TwinsNew"));
+const TwinsCompare = lazy(() => import("./pages/app/TwinsCompare"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminApiKeys = lazy(() => import("./pages/admin/AdminApiKeys"));
@@ -90,6 +92,8 @@ const App = () => (
               <Route path="chart/:id/lab" element={<ResearchLab />} />
               <Route path="prashna" element={<Prashna />} />
               <Route path="business/new" element={<BusinessNew />} />
+              <Route path="twins/new" element={<TwinsNew />} />
+              <Route path="twins/:idA/:idB" element={<TwinsCompare />} />
             </Route>
 
             <Route path="/admin" element={<RequireAdmin><AdminLayout /></RequireAdmin>}>
