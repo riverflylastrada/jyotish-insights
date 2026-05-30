@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
-import { PLANET_LABELS, type PlanetName, type SubBalasData } from '@/lib/astro/types';
+import { PLANET_LABELS, type PlanetName, type SubBalasData, type AvasthasData, type BaladiState, type JagradadiState, type DeeptadiState } from '@/lib/astro/types';
 
 type Depth = 'visual' | 'explain' | 'math';
 
@@ -137,7 +137,7 @@ function EmptyState({ label }: { label: string }) {
 export default function Strengths() {
   const { id = 'demo' } = useParams();
   const { data, isLoading } = useKundli(id);
-  const [tab, setTab] = useState<'shadbala' | 'bhava' | 'vargeeya' | 'vimsopaka'>('shadbala');
+  const [tab, setTab] = useState<'shadbala' | 'bhava' | 'vargeeya' | 'vimsopaka' | 'avasthas'>('shadbala');
 
   if (isLoading || !data) {
     return (
@@ -164,6 +164,7 @@ export default function Strengths() {
           ['bhava', 'Bhava Bala'],
           ['vargeeya', 'Vargeeya Bala'],
           ['vimsopaka', 'Vimsopaka Bala'],
+          ['avasthas', 'Avasthas'],
         ] as const).map(([key, label]) => {
           const isActive = tab === key;
           return (
@@ -181,6 +182,7 @@ export default function Strengths() {
         {tab === 'bhava' && (data.bhavaBala ? <BhavaBalaSection data={data.bhavaBala} /> : <EmptyState label="Bhava Bala" />)}
         {tab === 'vargeeya' && (data.vargeeyaBala ? <VargeeyaBalaSection data={data.vargeeyaBala} /> : <EmptyState label="Vargeeya Bala" />)}
         {tab === 'vimsopaka' && (data.vimsopakaBala ? <VimsopakaSection data={data.vimsopakaBala} /> : <EmptyState label="Vimsopaka Bala" />)}
+        {tab === 'avasthas' && <AvasthasSection data={data} />}
       </div>
     </div>
   );
@@ -677,6 +679,144 @@ function VimsopakaSection({ data }: { data: NonNullable<ReturnType<typeof useKun
         <div className="mt-5 flex gap-4 text-xs text-text-tertiary">
           <span>Score = weighted dignity (0–20)</span>
           <span>Count = # of vargas where planet is in own/exalted/mooltrikona</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Avasthas — Planetary States (BPHS Ch. 45)
+   ───────────────────────────────────────────────────────────── */
+
+const BALADI_TOOLTIPS: Record<BaladiState, string> = {
+  bala: 'Infant — planet is very young and immature, giving weak results',
+  kumara: 'Adolescent — growing in strength, moderate results',
+  yuva: 'Youth — peak vitality, strongest results',
+  vriddha: 'Old — declining strength, weakening results',
+  mrita: 'Dead — planet gives negligible results',
+};
+
+const JAGRADADI_TOOLTIPS: Record<JagradadiState, string> = {
+  jagrat: 'Awake — planet is fully alert in own/exalted/mooltrikona sign, delivers full results',
+  swapna: 'Dreaming — planet is in a neutral/friend sign, delivers moderate results',
+  sushupti: 'Sleeping — planet is debilitated or in enemy sign, delivers minimal results',
+};
+
+const DEEPTADI_TOOLTIPS: Record<DeeptadiState, string> = {
+  deepta: 'Blazing — exalted, maximum brilliance and auspicious results',
+  swastha: 'Healthy — in own sign, comfortable and strong',
+  pramudita: 'Delighted — in friend\'s sign, giving good results',
+  shanta: 'Peaceful — in neutral/benefic placement, calm and moderate',
+  shakta: 'Powerful — retrograde, gains extra force and assertiveness',
+  peedita: 'Tormented — in enemy sign, results are obstructed',
+  dina: 'Distressed — conjunct a malefic, weakened and afflicted',
+  vikala: 'Disabled — combust (too close to Sun), results are burnt away',
+  khala: 'Wicked — debilitated, gives the worst results',
+};
+
+const BALADI_COLORS: Record<BaladiState, string> = {
+  yuva: 'hsl(var(--semantic-positive))',
+  kumara: 'hsl(var(--brand-saffron))',
+  bala: 'hsl(var(--brand-gold))',
+  vriddha: 'hsl(var(--text-tertiary))',
+  mrita: 'hsl(var(--semantic-negative))',
+};
+
+const JAGRADADI_COLORS: Record<JagradadiState, string> = {
+  jagrat: 'hsl(var(--semantic-positive))',
+  swapna: 'hsl(var(--brand-saffron))',
+  sushupti: 'hsl(var(--semantic-negative))',
+};
+
+const DEEPTADI_COLORS: Record<DeeptadiState, string> = {
+  deepta: 'hsl(var(--semantic-positive))',
+  swastha: 'hsl(142 71% 45%)',
+  pramudita: 'hsl(var(--brand-saffron))',
+  shanta: 'hsl(var(--brand-gold))',
+  shakta: 'hsl(210 80% 55%)',
+  peedita: 'hsl(var(--text-tertiary))',
+  dina: 'hsl(30 80% 50%)',
+  vikala: 'hsl(0 60% 50%)',
+  khala: 'hsl(var(--semantic-negative))',
+};
+
+function StateBadge({ label, color, tooltip }: { label: string; color: string; tooltip: string }) {
+  return (
+    <span
+      title={tooltip}
+      className="inline-block cursor-help rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize"
+      style={{ borderColor: color, color }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function AvasthasSection({ data }: { data: NonNullable<ReturnType<typeof useKundli>['data']> }) {
+  const d1 = data.divisionalCharts?.find((c) => c.varga === 'D1');
+  const planets = d1?.planets?.filter((p) => !['rahu', 'ketu', 'ascendant'].includes(p.planet)) ?? [];
+  const hasAvasthas = planets.some((p) => p.avasthas);
+
+  if (!hasAvasthas) {
+    return (
+      <div className="rounded-md border border-dashed border-hairline-subtle bg-surface p-10 text-center text-sm text-text-tertiary">
+        Recalculate this chart to generate Avasthas.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
+        <div className="text-eyebrow text-text-tertiary">Avasthas — Planetary States</div>
+        <p className="mt-1 text-xs text-text-tertiary">
+          Three classical state systems from BPHS Ch. 45 — Baladi (age), Jagradadi (alertness), and Deeptadi (condition).
+          Hover over each state for its meaning.
+        </p>
+
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-hairline-subtle text-left text-xs text-text-tertiary">
+                <th className="pb-2 pr-4 font-medium">Planet</th>
+                <th className="pb-2 pr-4 font-medium">Baladi (Age)</th>
+                <th className="pb-2 pr-4 font-medium">Jagradadi (Alertness)</th>
+                <th className="pb-2 font-medium">Deeptadi (Condition)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {planets.map((p) => {
+                const av = p.avasthas as AvasthasData | undefined;
+                if (!av) return null;
+                return (
+                  <tr key={p.planet} className="border-b border-hairline-subtle/50">
+                    <td className="py-3 pr-4">
+                      <div className="inline-flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ background: `hsl(var(--planet-${p.planet}))` }} />
+                        <span className="font-display capitalize text-text-primary">{PLANET_LABELS[p.planet as PlanetName]?.full ?? p.planet}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <StateBadge label={av.baladi} color={BALADI_COLORS[av.baladi]} tooltip={BALADI_TOOLTIPS[av.baladi]} />
+                    </td>
+                    <td className="py-3 pr-4">
+                      <StateBadge label={av.jagradadi} color={JAGRADADI_COLORS[av.jagradadi]} tooltip={JAGRADADI_TOOLTIPS[av.jagradadi]} />
+                    </td>
+                    <td className="py-3">
+                      <StateBadge label={av.deeptadi} color={DEEPTADI_COLORS[av.deeptadi]} tooltip={DEEPTADI_TOOLTIPS[av.deeptadi]} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-5 space-y-2 text-xs text-text-tertiary">
+          <p><strong>Baladi (śl. 3–4):</strong> 0–6° Bāla / 6–12° Kumāra / 12–18° Yuva / 18–24° Vriddha / 24–30° Mrita. Even signs reverse the order.</p>
+          <p><strong>Jagradadi (śl. 10–15):</strong> Jāgrat = own/exalted/mooltrikona; Svapna = friend/neutral; Sushupti = debilitated/enemy.</p>
+          <p><strong>Deeptadi (śl. 16–25):</strong> Dīpta (exalted) → Svastha (own) → Pramudita (friend) → Shānta (neutral) → Shakta (retro) → Pīdita (enemy) → Dīna (conj. malefic) → Vikala (combust) → Khala (debilitated).</p>
         </div>
       </div>
     </div>

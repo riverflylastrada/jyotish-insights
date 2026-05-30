@@ -11,6 +11,15 @@ import {
 
 // ─── types re-exported for convenience ──────────────────────────────────────
 
+export interface AvasthasResult {
+  baladi: 'bala' | 'kumara' | 'yuva' | 'vriddha' | 'mrita';
+  baladiCitation: string;
+  jagradadi: 'jagrat' | 'swapna' | 'sushupti';
+  jagradadiCitation: string;
+  deeptadi: 'deepta' | 'swastha' | 'pramudita' | 'shanta' | 'shakta' | 'peedita' | 'dina' | 'vikala' | 'khala';
+  deeptadiCitation: string;
+}
+
 export interface PlanetPos {
   planet: string;
   longitude: number;          // sidereal 0-360
@@ -24,6 +33,7 @@ export interface PlanetPos {
   isCombust: boolean;
   speed?: number;
   dignity?: string;
+  avasthas?: AvasthasResult;
 }
 
 export interface DivChart {

@@ -21,6 +21,19 @@ export interface BirthDetails {
   horaryNumber?: number;
 }
 
+export type BaladiState = 'bala' | 'kumara' | 'yuva' | 'vriddha' | 'mrita';
+export type JagradadiState = 'jagrat' | 'swapna' | 'sushupti';
+export type DeeptadiState = 'deepta' | 'swastha' | 'pramudita' | 'shanta' | 'shakta' | 'peedita' | 'dina' | 'vikala' | 'khala';
+
+export interface AvasthasData {
+  baladi: BaladiState;
+  baladiCitation: string;
+  jagradadi: JagradadiState;
+  jagradadiCitation: string;
+  deeptadi: DeeptadiState;
+  deeptadiCitation: string;
+}
+
 export interface PlanetPosition {
   planet: PlanetName;
   longitude: number;
@@ -34,6 +47,7 @@ export interface PlanetPosition {
   isCombust: boolean;
   speed?: number;
   dignity?: 'exalted' | 'debilitated' | 'own_sign' | 'mooltrikona' | 'friend' | 'neutral' | 'enemy';
+  avasthas?: AvasthasData;
 }
 
 export type VargaCode =
@@ -327,7 +341,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 18;
+export const CURRENT_SNAPSHOT_VERSION = 19;
 
 export interface KundliData {
   id: string;

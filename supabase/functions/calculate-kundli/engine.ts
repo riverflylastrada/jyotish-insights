@@ -34,6 +34,7 @@ import { computeVargeeyaBala } from "./vargeeya_bala.ts";
 import { buildKalachakraDasha } from "./kalachakra.ts";
 import { computeVimsopakaBala } from "./vimsopaka.ts";
 import { kpHoraryLongitude } from "./kp_horary.ts";
+import { computeAvasthas } from "./avasthas.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -163,6 +164,13 @@ export async function calculateKundli(details: BirthDetails) {
     };
   });
 
+  // Avasthas — Baladi, Jagradadi, Deeptadi planetary states (BPHS Ch. 45)
+  // Must run before buildDivisionalCharts so D1 spread copies pick up avasthas.
+  for (const p of d1Planets) {
+    const av = computeAvasthas(p, d1Planets);
+    if (av) p.avasthas = av;
+  }
+
   // Divisional charts
   const ascDeg = signDegree(ascSid);
   const divCharts = buildDivisionalCharts(d1Planets, ascSign, ascDeg);
@@ -290,7 +298,7 @@ export async function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 18,
+    snapshotVersion: 19,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
