@@ -128,6 +128,15 @@ export interface KpData {
   houseSignificators?: KpHouseSignificatorData[];
 }
 
+export interface SubBalasData {
+  sthana?: { uchcha: number; saptavargeeya: number; ojhayugma: number; kendra: number; drekkana: number };
+  dig?: { fromCardinal: number; idealDirection: 'east' | 'south' | 'west' | 'north'; offset: number };
+  kala?: { nathonnatha: number; paksha: number; tribhaga: number; varsha: number; masa: number; vara: number; hora: number; ayana: number; yuddha: number };
+  cheshta?: { motionFactor: number };
+  naisargika?: { source: string };
+  drik?: { fromPlanet: Record<string, number> };
+}
+
 export interface PlanetShadbalaData {
   sthanaBala: number;
   digBala: number;
@@ -141,6 +150,7 @@ export interface PlanetShadbalaData {
   ratio: number;
   ishtaPhala: number;
   kashtaPhala: number;
+  subBalas?: SubBalasData;
 }
 
 export interface PlanetVimsopakaData {
@@ -293,7 +303,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 16;
+export const CURRENT_SNAPSHOT_VERSION = 17;
 
 export interface KundliData {
   id: string;
