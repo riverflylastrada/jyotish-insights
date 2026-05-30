@@ -51,8 +51,10 @@ API is required.
   vargas: D81 (Nava-Navamsa), D108 (Ashtottaramsa), and D144 (Dwadas-Dwadasamsa).
 - **Dasha systems** — **Vimshottari** (120-yr, five sub-period levels Maha →
   Antar → Pratyantar → Sookshma → Prana, live "now" marker), plus **Yogini**
-  (36-yr), **Ashtottari** (108-yr), **Kalachakra**, and **Jaimini Chara**
-  (Maha + Antar) — all JHora-validated.
+  (36-yr), **Ashtottari** (108-yr), **Kalachakra**, **Jaimini Chara**
+  (Maha + Antar), **Narayana / नारायण** (Padakrama rasi dasha),
+  **Lagna Kendradi / लग्न केन्द्रादि** (strength-ordered rasi dasha), and
+  **Sudasa / सुदशा** (wealth dasha from D-2 Hora) — all JHora-validated.
 - **Yogas** — 44 classical yogas (Raja, Dhana, Pancha Mahapurusha, etc.) with
   cancellation/negation rules, strength rating, and the planetary combinations
   that form them.

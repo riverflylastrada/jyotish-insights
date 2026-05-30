@@ -73,7 +73,7 @@ export interface DashaPeriod {
 }
 
 export interface DashaSystem {
-  system: 'vimshottari' | 'yogini' | 'char' | 'ashtottari' | 'kalachakra';
+  system: 'vimshottari' | 'yogini' | 'char' | 'ashtottari' | 'kalachakra' | 'narayana' | 'lagna_kendradi' | 'sudasa';
   currentMahaDasha: DashaPeriod;
   timeline: DashaPeriod[];
 }

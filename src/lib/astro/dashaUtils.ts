@@ -51,9 +51,9 @@ export function resolveDashaLord(planetField: string): Graha | null {
   return null;
 }
 
-/** True for sign-based dasha systems (Chara, Kalachakra). */
+/** True for sign-based dasha systems (Chara, Kalachakra, Narayana, Lagna Kendradi, Sudasa). */
 export function isSignBasedSystem(system: string): boolean {
-  return system === 'char' || system === 'kalachakra';
+  return system === 'char' || system === 'kalachakra' || system === 'narayana' || system === 'lagna_kendradi' || system === 'sudasa';
 }
 
 /* ------------------------------------------------------------------ */
