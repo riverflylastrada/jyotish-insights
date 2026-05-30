@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useKundli } from '@/hooks/useKundli';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { SIGN_NAMES, SIGN_NAMES_DEVA, PLANET_LABELS, type PlanetName } from '@/lib/astro/types';
+import { SIGN_NAMES, SIGN_NAMES_DEVA, PLANET_LABELS, type PlanetName, type HouseAttribution } from '@/lib/astro/types';
 
 type Depth = 'visual' | 'explain' | 'math';
 
@@ -10,22 +10,28 @@ const BHINNA_PLANETS: PlanetName[] = ['sun','moon','mars','mercury','jupiter','v
 
 function heat(value: number, max: number) {
   const t = Math.min(1, Math.max(0, value / max));
-  // Map 0..1 → muted ivory → saffron → maroon
   const alpha = 0.08 + t * 0.55;
   return { background: `hsl(var(--brand-saffron) / ${alpha})` };
+}
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
 }
 
 export default function Ashtakavarga() {
   const { id = 'demo' } = useParams();
   const { data, isLoading } = useKundli(id);
   const [selectedHouse, setSelectedHouse] = useState<number | null>(null);
+  const [selectedPlanet, setSelectedPlanet] = useState<PlanetName | null>(null);
   const [depth, setDepth] = useState<Depth>('visual');
 
   if (isLoading || !data) {
     return <div className="mx-auto max-w-7xl px-6 py-24 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-saffron" /></div>;
   }
 
-  const { bhinna, sarva } = data.ashtakavarga;
+  const { bhinna, sarva, attribution } = data.ashtakavarga;
   const sarvaMax = Math.max(...sarva);
   const bhinnaMax = 8;
 
@@ -98,7 +104,7 @@ export default function Ashtakavarga() {
                         key={houseNum}
                         style={heat(b, sarvaMax)}
                         className={`cursor-pointer transition-colors ${isLagna ? 'bg-brand-saffron/[0.03] border-y border-brand-saffron/20' : ''} ${isSelected ? 'ring-2 ring-inset ring-brand-maroon' : 'hover:brightness-95'}`}
-                        onClick={() => setSelectedHouse(isSelected ? null : houseNum)}
+                        onClick={() => { setSelectedHouse(isSelected ? null : houseNum); setSelectedPlanet(null); }}
                       >
                         <td className="px-3 py-2.5 font-mono text-text-primary">
                           <span className="flex items-center gap-1.5">
@@ -145,7 +151,7 @@ export default function Ashtakavarga() {
                         <th
                           key={i}
                           className={`px-1 py-2 text-center font-medium cursor-pointer transition-colors ${isLagna ? 'bg-brand-saffron/10 border-x border-brand-saffron/20 rounded-t-sm' : ''} ${isColSelected ? 'bg-brand-maroon/10' : ''}`}
-                          onClick={() => setSelectedHouse(isColSelected ? null : houseNum)}
+                          onClick={() => { setSelectedHouse(isColSelected ? null : houseNum); setSelectedPlanet(null); }}
                         >
                           <div className={`text-xs ${isLagna ? 'text-brand-saffron font-bold' : 'text-text-primary'}`}>{s.slice(0, 3)}</div>
                           <div className={`font-mono text-[10px] ${isLagna ? 'text-brand-saffron font-bold' : 'text-text-tertiary'}`}>
@@ -174,8 +180,8 @@ export default function Ashtakavarga() {
                           return (
                             <td
                               key={i}
-                              className={`px-1 py-1 text-center font-mono cursor-pointer ${isLagna ? 'bg-brand-saffron/[0.02] border-x border-brand-saffron/10' : ''} ${isColSelected ? 'bg-brand-maroon/5' : ''}`}
-                              onClick={() => setSelectedHouse(isColSelected ? null : houseNum)}
+                              className={`px-1 py-1 text-center font-mono cursor-pointer ${isLagna ? 'bg-brand-saffron/[0.02] border-x border-brand-saffron/10' : ''} ${isColSelected ? 'bg-brand-maroon/5' : ''} ${selectedPlanet === p && selectedHouse === houseNum ? 'ring-2 ring-inset ring-brand-maroon' : ''}`}
+                              onClick={() => { setSelectedHouse(isColSelected && selectedPlanet === p ? null : houseNum); setSelectedPlanet(isColSelected && selectedPlanet === p ? null : p); }}
                             >
                               <div className="mx-auto inline-block h-7 w-7 rounded-sm leading-7" style={heat(v, bhinnaMax)}>
                                 <span className="text-text-primary">{v}</span>
@@ -227,30 +233,79 @@ export default function Ashtakavarga() {
                 </div>
               </div>
 
-              {/* Visual: 7-planet contribution bar chart */}
-              <div className="space-y-2">
-                <div className="text-eyebrow text-text-tertiary">7-planet contribution matrix</div>
-                {BHINNA_PLANETS.map((p) => {
-                  const row = bhinna[p] ?? [];
-                  const v = row[selectedSignIdx!] ?? 0;
+              {/* Attribution drill-down (when a bhinna cell is selected) */}
+              {(() => {
+                const attrForPlanet: HouseAttribution[] | undefined =
+                  selectedPlanet && attribution ? attribution[selectedPlanet] : undefined;
+                const houseAttr = attrForPlanet && selectedSignIdx !== null
+                  ? attrForPlanet[selectedSignIdx]
+                  : undefined;
+
+                if (selectedPlanet && houseAttr && houseAttr.contributingPositions.length > 0) {
+                  const binduCount = houseAttr.contributingPositions.length;
                   return (
-                    <div key={p} className="flex items-center gap-3">
-                      <div className="w-20 flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full" style={{ background: `hsl(var(--planet-${p}))` }} />
-                        <span className="text-xs text-text-primary capitalize">{PLANET_LABELS[p].full}</span>
+                    <div className="space-y-2">
+                      <div className="text-eyebrow text-text-tertiary">
+                        <span style={{ color: `hsl(var(--planet-${selectedPlanet}))` }} className="font-semibold capitalize">
+                          {PLANET_LABELS[selectedPlanet].full}
+                        </span>
+                        {' '}— {binduCount} bindu{binduCount !== 1 ? 's' : ''} in House {selectedHouse}
                       </div>
-                      <div className="relative h-4 flex-1 overflow-hidden rounded-sm border border-hairline-subtle bg-canvas">
-                        <div className="absolute inset-y-0 left-0" style={{ width: `${(v / bhinnaMax) * 100}%`, background: `hsl(var(--planet-${p}))`, opacity: 0.7 }} />
+                      <div className="space-y-1.5">
+                        {houseAttr.contributingPositions.map((cp, idx) => (
+                          <div key={idx} className="flex items-start gap-2 rounded-sm bg-elevated/40 px-3 py-2 text-xs">
+                            <span className="mt-0.5 text-semantic-positive shrink-0">✓</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-text-primary font-medium">{cp.rule}</div>
+                              <div className="text-text-tertiary font-mono mt-0.5">
+                                {cp.fromReference !== 'lagna' ? PLANET_LABELS[cp.fromReference as PlanetName]?.full ?? cp.fromReference : 'Lagna'}
+                                {' '}at {cp.relativeSign}{ordinal(cp.relativeSign)} house
+                                <span className="ml-2 italic">{cp.citation}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <span className="w-6 text-right font-mono text-xs text-text-primary">{v}</span>
+                      <button
+                        onClick={() => setSelectedPlanet(null)}
+                        className="mt-1 text-xs text-text-tertiary hover:text-text-primary underline underline-offset-2"
+                      >
+                        ← Back to 7-planet view
+                      </button>
                     </div>
                   );
-                })}
-                <div className="flex items-center justify-between border-t border-hairline-subtle pt-2 text-xs">
-                  <span className="text-text-tertiary">Sum (Sarva)</span>
-                  <span className="font-mono text-text-primary font-semibold">{selectedSarvaBindu}</span>
-                </div>
-              </div>
+                }
+
+                // Fall back: 7-planet contribution bar chart
+                return (
+                  <div className="space-y-2">
+                    <div className="text-eyebrow text-text-tertiary">
+                      7-planet contribution matrix
+                      {attribution && <span className="ml-1 text-text-muted">(tap a bindu cell for rule drill-down)</span>}
+                    </div>
+                    {BHINNA_PLANETS.map((p) => {
+                      const row = bhinna[p] ?? [];
+                      const v = row[selectedSignIdx!] ?? 0;
+                      return (
+                        <div key={p} className="flex items-center gap-3">
+                          <div className="w-20 flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full" style={{ background: `hsl(var(--planet-${p}))` }} />
+                            <span className="text-xs text-text-primary capitalize">{PLANET_LABELS[p].full}</span>
+                          </div>
+                          <div className="relative h-4 flex-1 overflow-hidden rounded-sm border border-hairline-subtle bg-canvas">
+                            <div className="absolute inset-y-0 left-0" style={{ width: `${(v / bhinnaMax) * 100}%`, background: `hsl(var(--planet-${p}))`, opacity: 0.7 }} />
+                          </div>
+                          <span className="w-6 text-right font-mono text-xs text-text-primary">{v}</span>
+                        </div>
+                      );
+                    })}
+                    <div className="flex items-center justify-between border-t border-hairline-subtle pt-2 text-xs">
+                      <span className="text-text-tertiary">Sum (Sarva)</span>
+                      <span className="font-mono text-text-primary font-semibold">{selectedSarvaBindu}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Explain layer */}
               {depth !== 'visual' && (
