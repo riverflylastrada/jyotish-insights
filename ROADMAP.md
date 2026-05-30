@@ -230,6 +230,22 @@ Product gaps: transit alerts, monetization.
   Doshas / Dashas / ChartDetail. Feature flag `app_settings.auto_insights_enabled`;
   failure non-fatal; server-side JSON schema validation; `calculateKundli`
   becomes async to await the LLM call. (PR #61.) Snapshot version bumped to 18.
+- ✅ **Daily Panchang public page** ([Panchang.tsx](src/pages/Panchang.tsx),
+  public route `/panchang`) — today's Tithi / Vara / Nakshatra / Yoga / Karana
+  / sunrise–sunset plus Muhurta strips (Choghadiya, planetary Hora, Rahu Kaal,
+  Gulika Kaal, Yamaghanda); date picker, location switcher, EN + HI bilingual
+  labels, WhatsApp share, SEO meta. No auth; reuses the validated engine via
+  the provider (same anon-invoke pattern as Mundane). Linked from the landing
+  page. (PR #63.)
+- ✅ **Avasthas — planetary states** ([avasthas.ts](supabase/functions/calculate-kundli/avasthas.ts),
+  [avasthas_test.ts](supabase/functions/calculate-kundli/avasthas_test.ts)) —
+  Baladi (5 age states with odd-/even-sign order), Jagradadi (3 awake / dream /
+  sleep states by dignity), and Deeptadi (9 states from dignity + retrogression
+  + conjunction + combustion), all cited to BPHS Ch. 45 (śl. 3–4 / 10–15 /
+  16–25). Each `PlanetPos.avasthas?` field is optional and additive. Surfaced
+  as a new "Avasthas — Planetary States" section on the Strengths page with
+  per-planet badges + tooltips. Skip Rahu/Ketu (nodes aren't sign-degree
+  positioned). (PR #64.) Snapshot version bumped to 19.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
@@ -252,7 +268,9 @@ Product gaps: transit alerts, monetization.
   ship); see Mid-term for the full target list.
 
 ### Engine accuracy polish
-- ⬜ **Avasthas** — Baladi, Jagradadi, Deeptadi planetary states (BPHS Ch.45).
+- ✅ **Avasthas** — Baladi, Jagradadi, Deeptadi planetary states (BPHS Ch. 45)
+  shipped in [avasthas.ts](supabase/functions/calculate-kundli/avasthas.ts) +
+  Strengths page section.
 
 ### Quality & testing
 - 🟡 **Engine unit coverage.** KP, Jaimini, Shadbala, the dossier, and a
@@ -278,7 +296,8 @@ Product gaps: transit alerts, monetization.
 > Transits, and the Phase 5 template insight database + pre-computed Guru
 > snapshots (see Recently shipped). **The Research Lab is feature-complete.**
 > Next focus: **monetization** (Razorpay billing + plan gating) and the small
-> remaining engine items (Avasthas, more dasha systems, the 150+ yoga target).
+> remaining engine items (more dasha systems, the 150+ yoga target, expanded
+> vargas).
 
 ### Design principles
 1. **Show the Rule, Not Just the Result** — every statement traces to a
@@ -478,7 +497,7 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
     per language (not generic AI translation). Budget: ₹5K–15K per language.
   - Guru Debate: add `"Respond in ${userLanguage}"` to guru system prompts.
   - Community correction loop: "Suggest better translation" button.
-- ⬜ **Daily Panchang page** (`/panchang`) — free, no auth, language-aware.
+- ✅ **Daily Panchang page** (`/panchang`) — public, no auth, language-aware.
   Today's Tithi, Vara, Nakshatra, Yoga, Karana, Choghadiya, Rahu Kaal. "Share
   on WhatsApp" button. `panchang.ts` already computes all data. "आज का पंचांग"
   = millions of monthly searches — top-of-funnel growth engine.
@@ -524,7 +543,7 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 | 7  | ✅ Interactive Ashtakavarga/Shadbala/KP/Transits | 5–6 days | Advanced research tools complete |
 | 8  | Razorpay billing + plan gating ⬅ next    | 2–3 wks  | Revenue starts                     |
 | 9  | Hindi + Marathi + Tamil + Telugu + Bengali| 3–4 wks  | 75% of India covered               |
-| 10 | Daily Panchang page + WhatsApp share     | 3–4 days | Top-of-funnel growth engine        |
+| 10 | ✅ Daily Panchang page + WhatsApp share  | 3–4 days | Top-of-funnel growth engine        |
 | 11 | Narayana + Lagna Kendradi + Sudasa Dasha | 1–2 wks  | 8+ dasha systems, pro credibility  |
 | 12 | ✅ Prashna Kundli (born interactive)     | 4–5 days | Daily engagement, zero barrier     |
 | 13 | ✅ Twins Kundli (D-60 comparison)        | 5–6 days | Press-worthy, unique in market     |
