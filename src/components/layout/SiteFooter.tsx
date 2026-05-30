@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export function SiteFooter() {
   return (
     <footer className="border-t border-hairline-subtle bg-elevated">
@@ -15,6 +17,7 @@ export function SiteFooter() {
               <li><a href="#how" className="text-text-secondary hover:text-text-primary">How it works</a></li>
               <li><a href="#gurus" className="text-text-secondary hover:text-text-primary">The Gurus</a></li>
               <li><a href="#report" className="text-text-secondary hover:text-text-primary">Inside a report</a></li>
+              <li><Link to="/mundane" className="text-text-secondary hover:text-text-primary">Mundane Astrology</Link></li>
             </ul>
           </div>
           <div>
