@@ -30,8 +30,10 @@ Two modes serve two needs:
 
 ## Where we are today
 
-The platform delivers a **Swiss-Ephemeris-grade** engine: 16 divisional charts,
-Vimshottari + Yogini + Ashtottari + Kalachakra + Jaimini Chara dashas, a
+The platform delivers a **Swiss-Ephemeris-grade** engine: 19 divisional charts
+(including D-81 / D-108 / D-144 high-divisional vargas), 8 dasha systems
+(Vimshottari + Yogini + Ashtottari + Kalachakra + Jaimini Chara + Narayana +
+Lagna Kendradi + Sudasa), a
 **44-yoga catalog** (with cancellation rules), doshas, Ashtakavarga, Panchang,
 **six-source Shadbala** (+ Ishta/Kashta phala, Vimsopaka & Vargeeya bala),
 **Bhava Bala**, **KP (with Placidus cuspal sub-lords)**, full **Jaimini** (Chara
@@ -246,6 +248,25 @@ Product gaps: transit alerts, monetization.
   as a new "Avasthas — Planetary States" section on the Strengths page with
   per-planet badges + tooltips. Skip Rahu/Ketu (nodes aren't sign-degree
   positioned). (PR #64.) Snapshot version bumped to 19.
+- ✅ **High-divisional vargas — D-81, D-108, D-144**
+  ([divisional.ts](supabase/functions/calculate-kundli/divisional.ts),
+  [vargaData.ts](src/components/research/vargaData.ts)) — Nava-Navamsa,
+  Ashtottaramsa, and Dwadas-Dwadasamsa cited to BPHS Ch. 7 + Sanjay Rath's
+  "Vargas" treatise. Each gets a tile on DivisionalCharts with the existing
+  🔬 interactive explorer (depth layers, division formula on Math Proof).
+  Total now 19 vargas (was 16). (PR #66.)
+- ✅ **Three Jaimini rasi dashas — Narayana, Lagna Kendradi, Sudasa**
+  ([narayana.ts](supabase/functions/calculate-kundli/narayana.ts),
+  [lagna_kendradi.ts](supabase/functions/calculate-kundli/lagna_kendradi.ts),
+  [sudasa.ts](supabase/functions/calculate-kundli/sudasa.ts) + tests) —
+  Narayana (Padakrama, zodiacal for odd / anti-zodiacal for even, cited to
+  Sanjay Rath + Jaimini Sutra 2.3), Lagna Kendradi (strength-ordered with
+  kendra → panaphara → apoklima per KN Rao), and Sudasa (wealth dasha from
+  D-2 Hora chart, Jaimini Sutra Pada 4). Each appears as a new tab on the
+  multi-system Dashas page with bilingual labels (नारायण / लग्न केन्द्रादि /
+  सुदशा). The Interactive Dasha focus panel from #50 already handles
+  sign-based dashas — no refactor needed. Total now 8 dasha systems.
+  (PR #67.) Snapshot version bumped to 20.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
@@ -263,9 +284,10 @@ Product gaps: transit alerts, monetization.
 ## Near-term
 
 ### Optional engine additions (the core engine is otherwise complete)
-- ⬜ **More dasha systems** — Narayana, Lagna Kendradi, Sudasa and other rasi
-  dashas (Vimshottari, Yogini, Ashtottari, Kalachakra, and Jaimini Chara already
-  ship); see Mid-term for the full target list.
+- ⬜ **More dasha systems** — Drigdasa, Shoola, and conditional dashas
+  (Vimshottari, Yogini, Ashtottari, Kalachakra, Jaimini Chara, Narayana,
+  Lagna Kendradi, and Sudasa already ship — 8 systems total); see Mid-term
+  for the full target list.
 
 ### Engine accuracy polish
 - ✅ **Avasthas** — Baladi, Jagradadi, Deeptadi planetary states (BPHS Ch. 45)
@@ -430,10 +452,8 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 
 ### Additional classical systems
 - ⬜ **More dasha systems** (target: 12+) — beyond shipped Vimshottari, Jaimini
-  Chara, Yogini, Ashtottari, and Kalachakra:
-  - Narayana / Padakrama (rasi dasha, Sanjay Rath method)
-  - Lagna Kendradi (strength-ordered rasi dasha)
-  - Sudasa (wealth-focused from D2)
+  Chara, Yogini, Ashtottari, Kalachakra, Narayana, Lagna Kendradi, and Sudasa
+  (8 already ship):
   - Drigdasa (aspect-based ordering)
   - Shoola (death/health rasi dasha)
   - 💡 Conditional dashas (Dwisaptati-sama, Shat-trimsa-sama — apply only when
@@ -446,10 +466,10 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
   - Aristha yogas (health) with longevity implications
   - Daridra, Sanyasa, Kemadruma yogas + cancellation rules
   - Each yoga presented as interactive condition checklist (Research Lab style)
-- ⬜ **Divisional chart expansion** (target: 23+ vargas) — add D-81
-  (Nava-Navamsa), D-108 (Ashtottaramsa), D-144 (Dwadas-Dwadasamsa), and
-  D-2/D-3/D-4/D-8 variations (Parashari, Kashinatha, Parivrittitraya,
-  Somanatha, Krishnamurthy schemes).
+- 🟡 **Divisional chart expansion** (target: 23+ vargas) — D-81 (Nava-Navamsa),
+  D-108 (Ashtottaramsa), and D-144 (Dwadas-Dwadasamsa) already ship (19 total);
+  still planned: D-2 / D-3 / D-4 / D-8 scheme variants (Parashari, Kashinatha,
+  Parivrittitraya, Somanatha, Krishnamurthy schemes).
 
 ### Features
 - ⬜ **Muhurta extensions** — core Muhurta (Choghadiya/Hora/Rahu Kaal/Gulika)
@@ -544,7 +564,7 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 | 8  | Razorpay billing + plan gating ⬅ next    | 2–3 wks  | Revenue starts                     |
 | 9  | Hindi + Marathi + Tamil + Telugu + Bengali| 3–4 wks  | 75% of India covered               |
 | 10 | ✅ Daily Panchang page + WhatsApp share  | 3–4 days | Top-of-funnel growth engine        |
-| 11 | Narayana + Lagna Kendradi + Sudasa Dasha | 1–2 wks  | 8+ dasha systems, pro credibility  |
+| 11 | ✅ Narayana + Lagna Kendradi + Sudasa Dasha | 1–2 wks  | 8 dasha systems, pro credibility |
 | 12 | ✅ Prashna Kundli (born interactive)     | 4–5 days | Daily engagement, zero barrier     |
 | 13 | ✅ Twins Kundli (D-60 comparison)        | 5–6 days | Press-worthy, unique in market     |
 | 14 | 5 more languages (Phase 2)               | 2–3 wks  | 88% of India covered               |
