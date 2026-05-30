@@ -152,6 +152,74 @@ function vargaSign(code: string, origSign: number, degInSign: number): number {
       return wrap((origSign % 2 === 1 ? 1 : 7) + part);
     }
 
+    // ─── High-divisional vargas ───────────────────────────────────────
+
+    /**
+     * D-81 Nava-Navamsa — navamsa-of-navamsa.
+     * Each sign → 81 sub-segments of 30°/81 ≈ 0°22′13.33″.
+     * Scheme: compute D-9 sign for the planet's position, then apply
+     * the D-9 mapping again within that sub-arc.
+     *
+     * Step 1: D-9 part index = floor(deg / (30/9)).
+     * Step 2: D-9 sign = element-based start + part1.
+     * Step 3: sub-degree within the D-9 arc = (deg mod (30/9)) * 9
+     *         (scaled back to 0-30 range within that D-9 sign).
+     * Step 4: apply D-9 formula again on the D-9 sign with sub-degree.
+     *
+     * Ref: BPHS Ch. 7; Sanjay Rath, "Vargas" treatise (navamsa-of-navamsa).
+     */
+    case 'D81': {
+      const navArc = 30 / 9;
+      const part1 = Math.floor(degInSign / navArc);
+      const starts9 = [1, 10, 7, 4]; // fire, earth, air, water
+      const d9Sign = wrap(starts9[element(origSign)] + part1);
+      const subDeg = (degInSign - part1 * navArc) * 9; // 0–30 within D-9 arc
+      const part2 = Math.floor(subDeg / navArc);
+      return wrap(starts9[element(d9Sign)] + part2);
+    }
+
+    /**
+     * D-108 Ashtottaramsa — each sign → 108 = 9 × 12 sub-segments.
+     * Arc per segment: 30°/108 ≈ 0°16′40″.
+     * Scheme: navamsa-of-dwadasamsa (D-9 applied to each D-12 arc).
+     *
+     * Step 1: D-12 part = floor(deg / 2.5), D-12 sign = origSign + part1.
+     * Step 2: sub-degree within D-12 arc = (deg - part1*2.5) * 12 → 0-30.
+     * Step 3: apply D-9 formula on the D-12 sign with sub-degree.
+     *
+     * Ref: BPHS Ch. 7 — Ashtottaramsa (used in Ashtottari-dasha contexts).
+     */
+    case 'D108': {
+      const d12Arc = 2.5;
+      const part1 = Math.floor(degInSign / d12Arc);
+      const d12Sign = wrap(origSign + part1);
+      const subDeg = (degInSign - part1 * d12Arc) * 12; // 0–30 within D-12 arc
+      const navArc108 = 30 / 9;
+      const part2 = Math.floor(subDeg / navArc108);
+      const starts9_108 = [1, 10, 7, 4];
+      return wrap(starts9_108[element(d12Sign)] + part2);
+    }
+
+    /**
+     * D-144 Dwadas-Dwadasamsa — dwadasamsa-of-dwadasamsa (12-of-12).
+     * Each sign → 144 sub-segments, arc = 30°/144 ≈ 0°12′30″.
+     * Scheme: compute D-12 sign, then apply D-12 again.
+     *
+     * Step 1: D-12 part = floor(deg / 2.5), D-12 sign = origSign + part1.
+     * Step 2: sub-degree = (deg - part1*2.5) * 12 → 0–30.
+     * Step 3: D-12 part2 = floor(subDeg / 2.5), final sign = D-12 sign + part2.
+     *
+     * Ref: BPHS Ch. 7 — Dwadas-Dwadasamsa.
+     */
+    case 'D144': {
+      const d12Arc144 = 2.5;
+      const part1 = Math.floor(degInSign / d12Arc144);
+      const d12Sign = wrap(origSign + part1);
+      const subDeg = (degInSign - part1 * d12Arc144) * 12;
+      const part2 = Math.floor(subDeg / d12Arc144);
+      return wrap(d12Sign + part2);
+    }
+
     default: return origSign;
   }
 }

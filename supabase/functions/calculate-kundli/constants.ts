@@ -133,6 +133,9 @@ export const VARGA_META: Array<{
   { code: 'D40', name: 'Khavedamsa',      sig: 'Maternal legacy',               divisor: 40 },
   { code: 'D45', name: 'Akshavedamsa',    sig: 'Paternal legacy',               divisor: 45 },
   { code: 'D60', name: 'Shashtiamsa',     sig: 'Karmic refinement',             divisor: 60 },
+  { code: 'D81',  name: 'Nava-Navamsa',    sig: 'Navamsa-of-navamsa — finest marriage/dharma lens', divisor: 81 },
+  { code: 'D108', name: 'Ashtottaramsa',   sig: 'Ashtottari context — deep karmic sub-layer',       divisor: 108 },
+  { code: 'D144', name: 'Dwadas-Dwadasamsa', sig: 'Dwadasamsa-of-dwadasamsa — ancestral micro-lens', divisor: 144 },
 ];
 
 /** Panchang yoga names (27). */

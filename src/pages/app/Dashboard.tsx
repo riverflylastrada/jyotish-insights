@@ -131,7 +131,7 @@ export default function Dashboard() {
           <Link to="/app/new" className="group rounded-md border border-hairline-subtle bg-surface p-8 shadow-sm transition-shadow hover:shadow-md">
             <div className="text-eyebrow text-brand-saffron">Cast Chart</div>
             <div className="mt-2 font-display text-h2 text-text-primary">New Kundli</div>
-            <p className="mt-2 text-sm text-text-secondary">Two-step birthplace geocoding wizard. We compute all 16 divisional charts.</p>
+            <p className="mt-2 text-sm text-text-secondary">Two-step birthplace geocoding wizard. We compute all 19 divisional charts.</p>
             <div className="mt-6 inline-flex items-center gap-1 text-sm text-brand-maroon font-semibold">
               Get Started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>

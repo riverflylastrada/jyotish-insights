@@ -121,7 +121,7 @@ const Index = () => {
             lead="Each report is the product of computation, classical interpretation, structured debate, and editorial synthesis." />
           <div className="mt-14 grid gap-px overflow-hidden rounded-md border border-hairline-subtle bg-hairline-subtle md:grid-cols-4">
             {[
-              { n: '०१', t: 'Compute', d: 'High-precision planetary positions across 16 divisional charts and dasha systems.' },
+              { n: '०१', t: 'Compute', d: 'High-precision planetary positions across 19 divisional charts and dasha systems.' },
               { n: '०२', t: 'Interpret', d: 'Eight Gurus read the chart from their own classical lineage, in parallel.' },
               { n: '०३', t: 'Debate', d: 'Verdicts are compared. Agreements and disagreements are surfaced explicitly.' },
               { n: '०४', t: 'Synthesize', d: 'A Master Acharya weighs evidence and issues the consensus reading.' },
@@ -213,7 +213,7 @@ const Index = () => {
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {[
               { tier: 'Free', price: '₹0', features: ['1 saved chart', 'D1 + D9 charts', 'Basic dasha & yoga read'] },
-              { tier: 'Pro', price: '₹499', highlight: true, features: ['Unlimited charts', 'All 16 vargas', 'Multi-Guru debate', 'PDF export'] },
+              { tier: 'Pro', price: '₹499', highlight: true, features: ['Unlimited charts', 'All 19 vargas', 'Multi-Guru debate', 'PDF export'] },
               { tier: 'Acharya', price: '₹1,999', features: ['Pro + transit alerts', 'Custom debate questions', 'Annual Varshphal', 'Priority compute'] },
             ].map((p) => (
               <div key={p.tier} className={`rounded-md border p-8 shadow-sm ${p.highlight ? 'border-brand-maroon bg-surface' : 'border-hairline-subtle bg-surface'}`}>

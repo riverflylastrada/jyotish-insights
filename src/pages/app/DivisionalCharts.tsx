@@ -32,7 +32,7 @@ export default function DivisionalCharts() {
           <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
             <ArrowLeft className="h-4 w-4" /> Back to chart
           </Link>
-          <div className="mt-3 text-eyebrow text-brand-saffron">Vargas · D1 — D60</div>
+          <div className="mt-3 text-eyebrow text-brand-saffron">Vargas · D1 — D144</div>
           <h1 className="mt-1 font-display text-h1 text-text-primary">Divisional Charts</h1>
           <p className="mt-2 max-w-2xl text-body text-text-secondary">
             Each varga is a magnification of a specific area of life — a refraction of the natal Rasi through a different harmonic lens.
