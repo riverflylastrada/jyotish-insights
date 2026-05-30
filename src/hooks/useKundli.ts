@@ -23,7 +23,11 @@ export function useKundli(chartId: string, details: BirthDetails = DEMO_BIRTH) {
     ? new URLSearchParams(window.location.search).get('share')
     : null;
   return useQuery<KundliData>({
-    queryKey: ['chart', chartId, 'kundli', shareToken ?? ''],
+    // CURRENT_SNAPSHOT_VERSION is part of the key so a deploy that bumps the
+    // engine invalidates the in-memory cache for every chart — without this,
+    // a tab kept open across the deploy would keep serving the stale snapshot
+    // (which lacks new vargas/dashas/fields) for up to 24h.
+    queryKey: ['chart', chartId, 'kundli', CURRENT_SNAPSHOT_VERSION, shareToken ?? ''],
     queryFn: async () => {
       // Public share link
       if (shareToken && isUuid(shareToken)) {
