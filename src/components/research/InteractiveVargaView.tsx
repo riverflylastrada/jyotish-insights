@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, MessageSquare } from 'lucide-react';
 import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type PlanetName, type VargaCode } from '@/lib/astro/types';
 import { VARGA_META, VARGA_CODES } from './vargaData';
+import { PLANET_IN_HOUSE, type HouseNumber } from '@/lib/astro/planetInHouse';
 
 /**
  * Shared interactive chart component used by both the D1 ResearchLab and
@@ -225,6 +226,24 @@ export function InteractiveVargaView({
                 <p><span className="text-planet-mercury font-medium">Aspects</span> House{aspectedHouses.length > 1 ? 's' : ''} {[...new Set(aspectedHouses)].sort((a, b) => a - b).join(', ')} — its {ASPECT_LABEL[selected]} drishti.</p>
               </div>
             )}
+
+            {/* D1 Planet-in-House classical interpretation (Explain depth only) */}
+            {depth === 'explain' && sel && placedHouse && (!currentVarga || currentVarga === 'D1') && (() => {
+              const entry = PLANET_IN_HOUSE[selected]?.[placedHouse as HouseNumber];
+              if (!entry) return null;
+              return (
+                <div className="space-y-3 rounded-sm border border-hairline-subtle bg-elevated/30 p-4">
+                  <p className="font-display text-base text-text-primary leading-snug">{entry.brief}</p>
+                  <p className="text-sm text-text-secondary leading-relaxed">{entry.full}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {entry.keywords.map((kw) => (
+                      <span key={kw} className="inline-block rounded-sm border border-hairline-subtle bg-surface px-2 py-0.5 text-xs text-text-tertiary">{kw}</span>
+                    ))}
+                  </div>
+                  <p className="font-mono text-xs text-text-tertiary">{entry.citation}</p>
+                </div>
+              );
+            })()}
 
             {/* Math Proof layer */}
             {depth === 'math' && sel && (
