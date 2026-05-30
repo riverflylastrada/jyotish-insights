@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
 import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from '@/components/ui/sonner';
+import { StaleSnapshotBanner } from '@/components/chart/StaleSnapshotBanner';
 
 const navItems = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -65,6 +66,7 @@ export function AppLayout() {
           </nav>
         </div>
       </header>
+      <StaleSnapshotBanner />
       <main>
         <Outlet />
       </main>
