@@ -57,7 +57,7 @@ Interactive Ashtakavarga + Shadbala + KP + Transits, 108-entry classical
 planet-in-house templates, and pre-computed Guru snapshots cached per chart) —
 plus all four **Specialized Kundli types** (Prashna, Twins, Business, public
 Mundane). Next focus: **monetization** (Razorpay billing + plan gating).
-Product gaps: transit alerts, monetization.
+Product gap: monetization.
 
 ---
 
@@ -294,6 +294,29 @@ Product gaps: transit alerts, monetization.
   Yogas.tsx CATEGORY_LABELS extended for the three new categories. Existing
   44 yogas' tests still pass on reference charts. (PR #71.) Snapshot
   version bumped to 21.
+- ✅ **Transit alerts + in-app notification center**
+  ([transit_events.ts](supabase/functions/calculate-kundli/transit_events.ts),
+  [transit-scan/index.ts](supabase/functions/transit-scan/index.ts),
+  [Notifications.tsx](src/pages/app/Notifications.tsx)) — pure-function
+  detector covers seven event categories with classical citations: Sade Sati
+  phase transitions (Saravali Ch. 35), Ashtama Shani, sign ingresses of
+  Saturn / Jupiter / Rahu / Ketu, Guru Bala (Phaladeepika Ch. 26), major
+  retrograde stations, eclipse activations within ±10° of natal positions,
+  and Vimshottari Maha/Antar transitions. Daily-scheduled `transit-scan`
+  edge function iterates over consenting users' charts, upserts events
+  into a new `transit_alerts` table with a `(chart_id, event_key)` dedup
+  constraint and per-user RLS. Notification bell in the AppLayout header
+  shows unread count; `/app/notifications` lists events grouped by chart
+  with severity colouring, filters, mark-as-read, and deep-links into the
+  relevant chart sub-page. Settings page gains a master toggle +
+  per-category checkboxes. Gated behind `usePlanGate('transit_alerts')`
+  stub (returns true). Additive throughout — no engine changes, no
+  snapshot version bump. Email + browser-push delivery queued as v2 / v3.
+  (PR #75.)
+  > **Operational steps to enable in prod** (one-time after deploy):
+  > apply the migration, run `supabase functions deploy transit-scan`,
+  > then schedule the daily job via `cron.schedule(...)` in the Supabase
+  > SQL editor (recipe documented in `supabase/config.toml`).
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
@@ -500,8 +523,13 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
   already ships; add Abhijit Muhurta, an activity-specific auspicious date finder
   (Tithi+Nakshatra+Vara combos), and Vivah Muhurta (marriage rules). Connects to
   Business Kundli for launch timing.
-- ⬜ **Transit alerts & notifications.** Promised by the "Acharya" pricing tier;
-  detect significant gochara/Sade Sati events and notify users.
+- ✅ **Transit alerts & notifications.** Shipped — daily-scheduled
+  `transit-scan` edge function detects upcoming Sade Sati phase transitions,
+  Ashtama Shani, Saturn/Jupiter/Rahu/Ketu sign ingresses, Guru Bala,
+  major retrograde stations, eclipse activations within ±10° of natal
+  positions, and Vimshottari dasha transitions. Surfaced via a notification
+  bell + `/app/notifications` page + Settings toggles. Email and browser
+  push delivery are queued as v2 / v3.
 - 💡 **RAG-backed citations** for the Guru debate — ground readings in the
   actual source texts (BPHS, Saravali, Phaladeepika) for verifiable quotes.
 - 💡 **Birth Time Rectification** — user provides 3–5 major life events;
