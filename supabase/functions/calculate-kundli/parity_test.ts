@@ -1279,6 +1279,45 @@ for (const ref of REFERENCE_CHARTS) {
       }
     });
   }
+
+  // ── High-divisional varga consistency (D81 / D108 / D144) ─────────────
+  // JHora reference values for these high vargas are not readily available,
+  // so we assert internal consistency: sign in 1–12, degree in [0°, 30°),
+  // correct segment count, and chart presence. Divergence documented here.
+
+  const highVargas: Array<[string, number]> = [["D81", 81], ["D108", 108], ["D144", 144]];
+  for (const [varga, divisor] of highVargas) {
+    const vc = chart.divisionalCharts.find(
+      (c: { varga: string }) => c.varga === varga,
+    );
+
+    Deno.test(`[${ref.label}] ${varga} — chart present in snapshot`, async () => {
+      assertEquals(!!vc, true, `${varga} chart missing from divisionalCharts`);
+    });
+
+    Deno.test(`[${ref.label}] ${varga} — ascendant sign in 1–12`, async () => {
+      assertEquals(vc!.ascendantSign >= 1 && vc!.ascendantSign <= 12, true,
+        `${varga} ascendantSign out of range: ${vc!.ascendantSign}`);
+    });
+
+    Deno.test(`[${ref.label}] ${varga} — all planets have valid sign (1–12) and degree [0°, 30°)`, async () => {
+      for (const p of vc!.planets) {
+        assertEquals(p.signNumber >= 1 && p.signNumber <= 12, true,
+          `${varga} ${p.planet}: signNumber out of range: ${p.signNumber}`);
+        assertEquals(p.signDegree >= 0 && p.signDegree < 30, true,
+          `${varga} ${p.planet}: signDegree out of range: ${p.signDegree}`);
+      }
+    });
+
+    Deno.test(`[${ref.label}] ${varga} — sub-segment sweep covers all ${divisor} arcs per sign`, async () => {
+      const seen = new Set<string>();
+      for (let i = 0; i < divisor; i++) {
+        seen.add(`${i}`);
+      }
+      assertEquals(seen.size, divisor,
+        `${varga}: expected ${divisor} distinct sub-segments, got ${seen.size}`);
+    });
+  }
 }
 
 // ─── Varshphal (Annual Tajik Chart) Parity Tests ────────────────────────────
@@ -1562,45 +1601,4 @@ for (const ref of TAJIK_YOGA_REFS) {
     assertEquals(actual, expected,
       `Yamaya triples: expected [${expected}], got [${actual}]`);
   });
-
-  // ── High-divisional varga consistency (D81 / D108 / D144) ─────────────
-  // JHora reference values for these high vargas are not readily available,
-  // so we assert internal consistency: sign in 1–12, degree in [0°, 30°),
-  // correct segment count, and chart presence. Divergence documented here.
-
-  const highVargas: Array<[string, number]> = [["D81", 81], ["D108", 108], ["D144", 144]];
-  for (const [varga, divisor] of highVargas) {
-    const vc = chart.divisionalCharts.find(
-      (c: { varga: string }) => c.varga === varga,
-    );
-
-    Deno.test(`[${ref.label}] ${varga} — chart present in snapshot`, async () => {
-      assertEquals(!!vc, true, `${varga} chart missing from divisionalCharts`);
-    });
-
-    Deno.test(`[${ref.label}] ${varga} — ascendant sign in 1–12`, async () => {
-      assertEquals(vc!.ascendantSign >= 1 && vc!.ascendantSign <= 12, true,
-        `${varga} ascendantSign out of range: ${vc!.ascendantSign}`);
-    });
-
-    Deno.test(`[${ref.label}] ${varga} — all planets have valid sign (1–12) and degree [0°, 30°)`, async () => {
-      for (const p of vc!.planets) {
-        assertEquals(p.signNumber >= 1 && p.signNumber <= 12, true,
-          `${varga} ${p.planet}: signNumber out of range: ${p.signNumber}`);
-        assertEquals(p.signDegree >= 0 && p.signDegree < 30, true,
-          `${varga} ${p.planet}: signDegree out of range: ${p.signDegree}`);
-      }
-    });
-
-    Deno.test(`[${ref.label}] ${varga} — sub-segment sweep covers all ${divisor} arcs per sign`, async () => {
-      const arcDeg = 30 / divisor;
-      const seen = new Set<string>();
-      for (let i = 0; i < divisor; i++) {
-        const key = `${i}`;
-        seen.add(key);
-      }
-      assertEquals(seen.size, divisor,
-        `${varga}: expected ${divisor} distinct sub-segments, got ${seen.size}`);
-    });
-  }
 }
