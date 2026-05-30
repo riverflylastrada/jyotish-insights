@@ -285,7 +285,7 @@ export async function calculateKundli(details: BirthDetails) {
   // Vimsopaka Bala (Shodhasavarga — 16-varga dignity score out of 20)
   const vimsopakaBala = computeVimsopakaBala(d1Planets, divCharts);
 
-  const result: Record<string, unknown> = {
+  const result = {
     id: crypto.randomUUID(),
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
@@ -341,6 +341,8 @@ export async function calculateKundli(details: BirthDetails) {
     chartBasis: basis,
     moonSignUncertain: moonSignUncertain || undefined,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
+    // deno-lint-ignore no-explicit-any
+    autoInsights: undefined as any,
   };
 
   // ─── Auto-insights (non-fatal) ──────────────────────────────────────────
