@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
     }
 
     // Full kundli calculation
-    const kundli = calculateKundli(birthDetails);
+    const kundli = await calculateKundli(birthDetails);
     return new Response(
       JSON.stringify(kundli),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },

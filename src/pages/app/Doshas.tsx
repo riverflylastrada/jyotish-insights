@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, ChevronRight, FlaskConical, Check, X } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, ChevronRight, FlaskConical, Check, X, Sparkles, MessageSquare } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import type { Dosha, DoshaCondition } from '@/lib/astro/types';
 
@@ -172,7 +172,7 @@ export default function Doshas() {
 
       <div className="mt-8 grid gap-3 md:grid-cols-2">
         {filtered.map((d) => (
-          <DoshaCard key={d.name} d={d} id={id} isOpen={open.has(d.name)} toggle={toggle} />
+          <DoshaCard key={d.name} d={d} id={id} isOpen={open.has(d.name)} toggle={toggle} autoInsights={data.autoInsights} />
         ))}
         {filtered.length === 0 && (
           <div className="md:col-span-2 rounded-md border border-dashed border-hairline-subtle bg-surface p-10 text-center text-sm text-text-tertiary">No doshas match this filter.</div>
@@ -182,7 +182,7 @@ export default function Doshas() {
   );
 }
 
-function DoshaCard({ d, id, isOpen, toggle }: { d: Dosha; id: string; isOpen: boolean; toggle: (name: string) => void }) {
+function DoshaCard({ d, id, isOpen, toggle, autoInsights }: { d: Dosha; id: string; isOpen: boolean; toggle: (name: string) => void; autoInsights?: { doshas?: Record<string, string> } }) {
   const meta = DOSHA_LABEL[d.name];
   const state = doshaState(d);
   const sev = d.severity ? SEVERITY_BARS[d.severity] : null;
@@ -299,6 +299,20 @@ function DoshaCard({ d, id, isOpen, toggle }: { d: Dosha; id: string; isOpen: bo
               </ul>
             </div>
           )}
+
+          {/* Auto-insight reading */}
+          {d.isPresent && autoInsights?.doshas?.[d.name] ? (
+            <div className="rounded-sm border border-brand-gold/20 bg-brand-gold/5 p-3">
+              <div className="flex items-center gap-1.5 text-xs text-brand-gold font-medium mb-1">
+                <Sparkles className="h-3.5 w-3.5" /> Guru Insight
+              </div>
+              <p className="text-sm text-text-secondary">{autoInsights.doshas[d.name]}</p>
+            </div>
+          ) : d.isPresent ? (
+            <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+              <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
+            </Link>
+          ) : null}
 
           <Link to={`/app/chart/${id}/lab`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
             <FlaskConical className="h-3.5 w-3.5" /> Explore the planets in the Research Lab

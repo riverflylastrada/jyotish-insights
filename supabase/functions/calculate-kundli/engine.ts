@@ -81,7 +81,7 @@ function dusthanas(h: number): boolean { return [6, 8, 12].includes(h); }
 
 // ─── Main calculation ───────────────────────────────────────────────────────
 
-export function calculateKundli(details: BirthDetails) {
+export async function calculateKundli(details: BirthDetails) {
   const basis: ChartBasis = details.chartBasis ?? 'rasi';
 
   // Default time to noon UTC when birth time is unknown (solar/moon/horary)
@@ -285,12 +285,12 @@ export function calculateKundli(details: BirthDetails) {
   // Vimsopaka Bala (Shodhasavarga — 16-varga dignity score out of 20)
   const vimsopakaBala = computeVimsopakaBala(d1Planets, divCharts);
 
-  return {
+  const result = {
     id: crypto.randomUUID(),
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 17,
+    snapshotVersion: 18,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -341,7 +341,56 @@ export function calculateKundli(details: BirthDetails) {
     chartBasis: basis,
     moonSignUncertain: moonSignUncertain || undefined,
     raw: { source: 'calculate-kundli', ayanamsa: aya, julianDay: jd },
+    // deno-lint-ignore no-explicit-any
+    autoInsights: undefined as any,
   };
+
+  // ─── Auto-insights (non-fatal) ──────────────────────────────────────────
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+    // Check feature flag via PostgREST (no supabase-js import needed)
+    let autoInsightsEnabled = true;
+    if (supabaseUrl && serviceRoleKey) {
+      const flagResp = await fetch(
+        `${supabaseUrl}/rest/v1/app_settings?key=eq.auto_insights_enabled&select=value`,
+        { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } },
+      );
+      if (flagResp.ok) {
+        const rows = await flagResp.json();
+        if (rows?.[0]?.value === 'false' || rows?.[0]?.value === false) {
+          autoInsightsEnabled = false;
+        }
+      }
+    }
+
+    if (autoInsightsEnabled && supabaseUrl && serviceRoleKey) {
+      const guruDebateUrl = `${supabaseUrl}/functions/v1/guru-debate`;
+      const resp = await fetch(guruDebateUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode: 'auto-insights',
+          question: 'auto-insights',
+          chart: result,
+        }),
+      });
+      if (resp.ok) {
+        const insights = await resp.json();
+        if (insights && !insights.error) {
+          result.autoInsights = insights;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Auto-insights generation skipped:', e);
+  }
+
+  return result;
 }
 
 // ─── Transit positions ─────────────────────────────────────────────────────

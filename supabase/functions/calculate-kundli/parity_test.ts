@@ -610,11 +610,11 @@ function signName(n: number): string {
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 for (const ref of REFERENCE_CHARTS) {
-  const chart = calculateKundli(ref.birthDetails);
+  const chart = await calculateKundli(ref.birthDetails);
   const d1 = chart.divisionalCharts.find(c => c.varga === "D1")!;
 
   // ── Ascendant sign ──────────────────────────────────────────────────────
-  Deno.test(`[${ref.label}] Ascendant sign = ${signName(ref.expected.ascSign)}`, () => {
+  Deno.test(`[${ref.label}] Ascendant sign = ${signName(ref.expected.ascSign)}`, async () => {
     assertEquals(
       chart.ascendant.signNumber,
       ref.expected.ascSign,
@@ -622,7 +622,7 @@ for (const ref of REFERENCE_CHARTS) {
     );
   });
 
-  Deno.test(`[${ref.label}] Ascendant degree ≈ ${ref.expected.ascDeg.toFixed(2)}°`, () => {
+  Deno.test(`[${ref.label}] Ascendant degree ≈ ${ref.expected.ascDeg.toFixed(2)}°`, async () => {
     assertAlmostEquals(chart.ascendant.signDegree, ref.expected.ascDeg, ASC_TOLERANCE_DEG);
   });
 
@@ -630,7 +630,7 @@ for (const ref of REFERENCE_CHARTS) {
   for (const [pName, exp] of Object.entries(ref.expected.planets)) {
     const actual = d1.planets.find(p => p.planet === pName);
 
-    Deno.test(`[${ref.label}] ${pName} sign = ${signName(exp.sign)}`, () => {
+    Deno.test(`[${ref.label}] ${pName} sign = ${signName(exp.sign)}`, async () => {
       assertEquals(
         actual?.signNumber,
         exp.sign,
@@ -639,19 +639,19 @@ for (const ref of REFERENCE_CHARTS) {
     });
 
     const tol = pName === "moon" ? MOON_TOLERANCE_DEG : POS_TOLERANCE_DEG;
-    Deno.test(`[${ref.label}] ${pName} degree ≈ ${exp.deg.toFixed(2)}° (±${tol}°)`, () => {
+    Deno.test(`[${ref.label}] ${pName} degree ≈ ${exp.deg.toFixed(2)}° (±${tol}°)`, async () => {
       assertAlmostEquals(actual!.signDegree, exp.deg, tol);
     });
 
     if (exp.retro !== undefined) {
-      Deno.test(`[${ref.label}] ${pName} retrograde = ${exp.retro}`, () => {
+      Deno.test(`[${ref.label}] ${pName} retrograde = ${exp.retro}`, async () => {
         assertEquals(actual?.isRetrograde, exp.retro);
       });
     }
   }
 
   // ── Chara Karakas (exact match) ─────────────────────────────────────────
-  Deno.test(`[${ref.label}] Chara Karakas — ranking matches SwissEph`, () => {
+  Deno.test(`[${ref.label}] Chara Karakas — ranking matches SwissEph`, async () => {
     const karakas = chart.jaimini!.charaKarakas;
     for (const exp of ref.expected.charaKarakas) {
       const actual = karakas.find(k => k.karaka === exp.karaka);
@@ -665,7 +665,7 @@ for (const ref of REFERENCE_CHARTS) {
 
   // ── Chara Dasha (when implemented — sign + duration exact) ─────────────
   if (ref.expected.charaDasha) {
-    Deno.test(`[${ref.label}] Chara Dasha timeline (if implemented)`, () => {
+    Deno.test(`[${ref.label}] Chara Dasha timeline (if implemented)`, async () => {
       const timeline = chart.jaimini?.charaDasha?.timeline;
       if (!timeline) {
         // Stubbed — skip but note it. This is expected before Workstream 3.
@@ -692,7 +692,7 @@ for (const ref of REFERENCE_CHARTS) {
 
   // ── Chara Dasha antardasha (first Maha's 12 sub-periods) ───────────────
   if (ref.expected.charaDashaAntar) {
-    Deno.test(`[${ref.label}] Chara Dasha first-Maha antardasha sequence`, () => {
+    Deno.test(`[${ref.label}] Chara Dasha first-Maha antardasha sequence`, async () => {
       const timeline = chart.jaimini?.charaDasha?.timeline;
       if (!timeline) {
         console.log(`  ⊘ Chara Dasha not yet implemented — skipping`);
@@ -718,7 +718,7 @@ for (const ref of REFERENCE_CHARTS) {
       }
     });
 
-    Deno.test(`[${ref.label}] Chara Dasha all Mahas have 12 antardashas`, () => {
+    Deno.test(`[${ref.label}] Chara Dasha all Mahas have 12 antardashas`, async () => {
       const timeline = chart.jaimini?.charaDasha?.timeline;
       if (!timeline) return;
       for (const maha of timeline) {
@@ -733,7 +733,7 @@ for (const ref of REFERENCE_CHARTS) {
 
   // ── Placidus cusps (when implemented — sign exact, degree within tolerance)
   if (ref.expected.placidusCusps) {
-    Deno.test(`[${ref.label}] Placidus cusps (if implemented)`, () => {
+    Deno.test(`[${ref.label}] Placidus cusps (if implemented)`, async () => {
       // cuspalSubLords is an optional field added by Workstream 2
       const kpData = chart.kp as Record<string, unknown> | undefined;
       const cusps = kpData?.cuspalSubLords as Array<{
@@ -758,7 +758,7 @@ for (const ref of REFERENCE_CHARTS) {
   }
 
   // ── Arudha Padas (existence and valid range) ───────────────────────────
-  Deno.test(`[${ref.label}] Arudha Padas are computed and in range`, () => {
+  Deno.test(`[${ref.label}] Arudha Padas are computed and in range`, async () => {
     const padas = chart.jaimini!.arudhaPadas;
     assertEquals(padas.length, 4);
     for (const ap of padas) {
@@ -767,7 +767,7 @@ for (const ref of REFERENCE_CHARTS) {
   });
 
   // ── KP sub-lords (existence check — 9 planets) ────────────────────────
-  Deno.test(`[${ref.label}] KP planet sub-lords computed for 9 planets`, () => {
+  Deno.test(`[${ref.label}] KP planet sub-lords computed for 9 planets`, async () => {
     const kp = chart.kp!;
     assertEquals(kp.planetSubLords.length, 9);
     for (const k of kp.planetSubLords) {
@@ -778,7 +778,7 @@ for (const ref of REFERENCE_CHARTS) {
   });
 
   // ── Snapshot version ──────────────────────────────────────────────────
-  Deno.test(`[${ref.label}] Snapshot version is set`, () => {
+  Deno.test(`[${ref.label}] Snapshot version is set`, async () => {
     assertEquals(typeof chart.snapshotVersion, "number");
     assertEquals(chart.snapshotVersion! >= 2, true, "Snapshot version should be ≥ 2");
   });
@@ -804,7 +804,7 @@ for (const ref of REFERENCE_CHARTS) {
   const ashtakRef = ASHTAK_REF[ref.label];
 
   if (ashtakRef) {
-    Deno.test(`[${ref.label}] Ashtakavarga bhinna byte-identical after attribution refactor`, () => {
+    Deno.test(`[${ref.label}] Ashtakavarga bhinna byte-identical after attribution refactor`, async () => {
       for (const p of ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"]) {
         assertEquals(
           chart.ashtakavarga.bhinna[p],
@@ -814,12 +814,12 @@ for (const ref of REFERENCE_CHARTS) {
       }
     });
 
-    Deno.test(`[${ref.label}] Ashtakavarga sarva byte-identical after attribution refactor`, () => {
+    Deno.test(`[${ref.label}] Ashtakavarga sarva byte-identical after attribution refactor`, async () => {
       assertEquals(chart.ashtakavarga.sarva, ashtakRef.sarva, "sarva mismatch");
     });
   }
 
-  Deno.test(`[${ref.label}] Ashtakavarga attribution present and structurally valid`, () => {
+  Deno.test(`[${ref.label}] Ashtakavarga attribution present and structurally valid`, async () => {
     const a = chart.ashtakavarga;
     assertEquals(!!a.attribution, true, "attribution should exist");
     const planets = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"];
@@ -848,7 +848,7 @@ for (const ref of REFERENCE_CHARTS) {
   });
 
   // ── Shadbala (six-source, Parashari/BPHS) ─────────────────────────────
-  Deno.test(`[${ref.label}] Shadbala is computed for 7 grahas`, () => {
+  Deno.test(`[${ref.label}] Shadbala is computed for 7 grahas`, async () => {
     const sb = chart.shadbala as { planets: Record<string, { totalRupas: number; sthanaBala: number; digBala: number; kalaBala: number; cheshtaBala: number; naisargikaBala: number; drikBala: number; required: number; ratio: number }>; rank: string[] };
     assertEquals(typeof sb, "object", "shadbala should be an object");
     assertEquals(typeof sb.planets, "object", "shadbala.planets should be an object");
@@ -864,7 +864,7 @@ for (const ref of REFERENCE_CHARTS) {
   });
 
   if (ref.expected.shadbalaRank) {
-    Deno.test(`[${ref.label}] Shadbala rank matches JHora`, () => {
+    Deno.test(`[${ref.label}] Shadbala rank matches JHora`, async () => {
       const sb = chart.shadbala as { planets: Record<string, { totalRupas: number }>; rank: string[] };
       const expectedRank = ref.expected.shadbalaRank!;
       for (let i = 0; i < expectedRank.length; i++) {
@@ -880,7 +880,7 @@ for (const ref of REFERENCE_CHARTS) {
   // ── Shadbala Rupas parity with JHora (±0.5 Rupa tolerance) ────────────
   if (ref.expected.shadbalaRupas) {
     const SHADBALA_TOLERANCE_RUPAS = 0.5;
-    Deno.test(`[${ref.label}] Shadbala Rupas within ±${SHADBALA_TOLERANCE_RUPAS}R of JHora`, () => {
+    Deno.test(`[${ref.label}] Shadbala Rupas within ±${SHADBALA_TOLERANCE_RUPAS}R of JHora`, async () => {
       const sb = chart.shadbala as { planets: Record<string, { totalRupas: number }> };
       for (const [planet, jhoraRupas] of Object.entries(ref.expected.shadbalaRupas!)) {
         assertAlmostEquals(
@@ -894,7 +894,7 @@ for (const ref of REFERENCE_CHARTS) {
   }
 
   // ── Shadbala sub-bala sums must equal top-level bala totals ──────────
-  Deno.test(`[${ref.label}] Shadbala sub-bala sums match top-level totals`, () => {
+  Deno.test(`[${ref.label}] Shadbala sub-bala sums match top-level totals`, async () => {
     const sb = chart.shadbala as {
       planets: Record<string, {
         sthanaBala: number; digBala: number; kalaBala: number;
@@ -954,7 +954,7 @@ for (const ref of REFERENCE_CHARTS) {
 
   // ── Shadbala byte-identical: top-level bala values on reference charts ──
   if (ref.expected.shadbalaRupas) {
-    Deno.test(`[${ref.label}] Shadbala top-level values byte-identical across runs`, () => {
+    Deno.test(`[${ref.label}] Shadbala top-level values byte-identical across runs`, async () => {
       const sb = chart.shadbala as { planets: Record<string, {
         sthanaBala: number; digBala: number; kalaBala: number;
         cheshtaBala: number; naisargikaBala: number; drikBala: number;
@@ -999,7 +999,7 @@ for (const ref of REFERENCE_CHARTS) {
   // ── Ishta/Kashta Phala parity (BPHS Ch 27, ±1.0 virupa tolerance) ──
   if (ref.expected.ishtaPhala && ref.expected.kashtaPhala) {
     const IK_TOLERANCE = 1.0;
-    Deno.test(`[${ref.label}] Ishta Phala within ±${IK_TOLERANCE} virupa of PyJHora`, () => {
+    Deno.test(`[${ref.label}] Ishta Phala within ±${IK_TOLERANCE} virupa of PyJHora`, async () => {
       const sb = chart.shadbala as { planets: Record<string, { ishtaPhala: number }> };
       for (const [planet, expected] of Object.entries(ref.expected.ishtaPhala!)) {
         assertAlmostEquals(
@@ -1010,7 +1010,7 @@ for (const ref of REFERENCE_CHARTS) {
         );
       }
     });
-    Deno.test(`[${ref.label}] Kashta Phala within ±${IK_TOLERANCE} virupa of PyJHora`, () => {
+    Deno.test(`[${ref.label}] Kashta Phala within ±${IK_TOLERANCE} virupa of PyJHora`, async () => {
       const sb = chart.shadbala as { planets: Record<string, { kashtaPhala: number }> };
       for (const [planet, expected] of Object.entries(ref.expected.kashtaPhala!)) {
         assertAlmostEquals(
@@ -1031,7 +1031,7 @@ for (const ref of REFERENCE_CHARTS) {
   // on planetary strength in each varga chart.
   if (ref.expected.vimsopakaBala) {
     const VIMSOPAKA_TOLERANCE = 2.0;
-    Deno.test(`[${ref.label}] Vimsopaka score within ±${VIMSOPAKA_TOLERANCE} of PyJHora`, () => {
+    Deno.test(`[${ref.label}] Vimsopaka score within ±${VIMSOPAKA_TOLERANCE} of PyJHora`, async () => {
       const vb = chart.vimsopakaBala as { planets: Record<string, { score: number; count: number }> };
       assertEquals(typeof vb, "object", "vimsopakaBala should be an object");
       for (const [planet, expected] of Object.entries(ref.expected.vimsopakaBala!)) {
@@ -1044,7 +1044,7 @@ for (const ref of REFERENCE_CHARTS) {
         );
       }
     });
-    Deno.test(`[${ref.label}] Vimsopaka count matches PyJHora`, () => {
+    Deno.test(`[${ref.label}] Vimsopaka count matches PyJHora`, async () => {
       const vb = chart.vimsopakaBala as { planets: Record<string, { score: number; count: number }> };
       for (const [planet, expected] of Object.entries(ref.expected.vimsopakaBala!)) {
         const got = vb.planets[planet];
@@ -1058,7 +1058,7 @@ for (const ref of REFERENCE_CHARTS) {
   }
 
   // ── Bhava Bala (house strength) ─────────────────────────────────────
-  Deno.test(`[${ref.label}] Bhava Bala is computed for 12 houses`, () => {
+  Deno.test(`[${ref.label}] Bhava Bala is computed for 12 houses`, async () => {
     const bb = chart.bhavaBala as { houses: Array<{ house: number; totalRupas: number }>; rank: number[] };
     assertEquals(typeof bb, "object", "bhavaBala should be an object");
     assertEquals(bb.houses.length, 12, `Expected 12 houses, got ${bb.houses.length}`);
@@ -1073,7 +1073,7 @@ for (const ref of REFERENCE_CHARTS) {
   // ── Bhava Bala Rupas parity with JHora (±0.5 Rupa tolerance) ──────
   if (ref.expected.bhavaBalaRupas) {
     const BHAVA_BALA_TOLERANCE_RUPAS = 0.5;
-    Deno.test(`[${ref.label}] Bhava Bala Rupas within ±${BHAVA_BALA_TOLERANCE_RUPAS}R of JHora`, () => {
+    Deno.test(`[${ref.label}] Bhava Bala Rupas within ±${BHAVA_BALA_TOLERANCE_RUPAS}R of JHora`, async () => {
       const bb = chart.bhavaBala as { houses: Array<{ house: number; totalRupas: number }> };
       for (const [houseStr, jhoraRupas] of Object.entries(ref.expected.bhavaBalaRupas!)) {
         const houseNum = Number(houseStr);
@@ -1090,7 +1090,7 @@ for (const ref of REFERENCE_CHARTS) {
 
   if (ref.expected.bhavaBalaRank) {
     const BB_RANK_TOLERANCE_RUPAS = 0.5;
-    Deno.test(`[${ref.label}] Bhava Bala rank matches JHora`, () => {
+    Deno.test(`[${ref.label}] Bhava Bala rank matches JHora`, async () => {
       const bb = chart.bhavaBala as { houses: Array<{ house: number; totalRupas: number }>; rank: number[] };
       const expectedRank = ref.expected.bhavaBalaRank!;
       const rupasOf = (h: number) => bb.houses.find(x => x.house === h)!.totalRupas;
@@ -1111,7 +1111,7 @@ for (const ref of REFERENCE_CHARTS) {
 
   // ── Yogini Dasha parity (PyJHora v4.8.5, Lahiri) ─────────────────────
   if (ref.expected.yoginiDasha) {
-    Deno.test(`[${ref.label}] Yogini Dasha — first 3 Maha lords + durations`, () => {
+    Deno.test(`[${ref.label}] Yogini Dasha — first 3 Maha lords + durations`, async () => {
       const yogini = chart.dashas.find((d: { system: string }) => d.system === "yogini");
       assertEquals(!!yogini, true, "Yogini dasha system not found");
       const timeline = yogini!.timeline;
@@ -1130,7 +1130,7 @@ for (const ref of REFERENCE_CHARTS) {
       }
     });
 
-    Deno.test(`[${ref.label}] Yogini Dasha — current Maha lord`, () => {
+    Deno.test(`[${ref.label}] Yogini Dasha — current Maha lord`, async () => {
       const yogini = chart.dashas.find((d: { system: string }) => d.system === "yogini");
       assertEquals(
         yogini!.currentMahaDasha.planet,
@@ -1142,7 +1142,7 @@ for (const ref of REFERENCE_CHARTS) {
 
   // ── Ashtottari Dasha parity (PyJHora v4.8.5, Lahiri) ─────────────────
   if (ref.expected.ashtottariDasha) {
-    Deno.test(`[${ref.label}] Ashtottari Dasha — first 3 Maha lords + durations`, () => {
+    Deno.test(`[${ref.label}] Ashtottari Dasha — first 3 Maha lords + durations`, async () => {
       const ashto = chart.dashas.find((d: { system: string }) => d.system === "ashtottari");
       assertEquals(!!ashto, true, "Ashtottari dasha system not found");
       const timeline = ashto!.timeline;
@@ -1161,7 +1161,7 @@ for (const ref of REFERENCE_CHARTS) {
       }
     });
 
-    Deno.test(`[${ref.label}] Ashtottari Dasha — current Maha lord`, () => {
+    Deno.test(`[${ref.label}] Ashtottari Dasha — current Maha lord`, async () => {
       const ashto = chart.dashas.find((d: { system: string }) => d.system === "ashtottari");
       assertEquals(
         ashto!.currentMahaDasha.planet,
@@ -1173,7 +1173,7 @@ for (const ref of REFERENCE_CHARTS) {
 
   // ── Kalachakra Dasha parity (PVR method, validated against PyJHora v4.8.5) ──
   if (ref.expected.kalachakraDasha) {
-    Deno.test(`[${ref.label}] Kalachakra Dasha — first 9 Maha signs + durations`, () => {
+    Deno.test(`[${ref.label}] Kalachakra Dasha — first 9 Maha signs + durations`, async () => {
       const kcd = chart.dashas.find((d: { system: string }) => d.system === "kalachakra");
       assertEquals(!!kcd, true, "Kalachakra dasha system not found");
       const timeline = kcd!.timeline;
@@ -1207,12 +1207,12 @@ for (const ref of REFERENCE_CHARTS) {
     for (const exp of ref.expected.specialLagnas) {
       const actual = sl.find((l: { name: string }) => l.name === exp.name);
 
-      Deno.test(`[${ref.label}] ${exp.name} sign = ${signName(exp.sign)}`, () => {
+      Deno.test(`[${ref.label}] ${exp.name} sign = ${signName(exp.sign)}`, async () => {
         assertEquals(actual?.sign, exp.sign,
           `${exp.name}: expected ${signName(exp.sign)}, got ${signName(actual?.sign ?? 0)}`);
       });
 
-      Deno.test(`[${ref.label}] ${exp.name} degree ≈ ${exp.deg.toFixed(2)}° (±${SPECIAL_LAGNA_TOL}°)`, () => {
+      Deno.test(`[${ref.label}] ${exp.name} degree ≈ ${exp.deg.toFixed(2)}° (±${SPECIAL_LAGNA_TOL}°)`, async () => {
         assertAlmostEquals(actual!.degree, exp.deg, SPECIAL_LAGNA_TOL);
       });
     }
@@ -1229,7 +1229,7 @@ for (const ref of REFERENCE_CHARTS) {
 
       for (let i = 0; i < 4; i++) {
         const argalaLabel = ["2nd", "4th", "5th", "11th"][i];
-        Deno.test(`[${ref.label}] Argala H${exp.house} ${argalaLabel}`, () => {
+        Deno.test(`[${ref.label}] Argala H${exp.house} ${argalaLabel}`, async () => {
           assertEquals(
             actual.argala[offsets[i]].slice().sort(),
             exp.argala[i].slice().sort(),
@@ -1240,7 +1240,7 @@ for (const ref of REFERENCE_CHARTS) {
 
       for (let i = 0; i < 4; i++) {
         const virodhaLabel = ["12th", "10th", "9th", "3rd"][i];
-        Deno.test(`[${ref.label}] Virodha H${exp.house} ${virodhaLabel}`, () => {
+        Deno.test(`[${ref.label}] Virodha H${exp.house} ${virodhaLabel}`, async () => {
           assertEquals(
             actual.virodha[vOffsets[i]].slice().sort(),
             exp.virodha[i].slice().sort(),
@@ -1254,7 +1254,7 @@ for (const ref of REFERENCE_CHARTS) {
   // ── Vargeeya Bala (divisional-chart strength) ─────────────────────────
   if (ref.expected.panchaVargeeya) {
     const PVB_TOLERANCE = 0.01;
-    Deno.test(`[${ref.label}] Pancha-vargeeya Bala within ±${PVB_TOLERANCE}`, () => {
+    Deno.test(`[${ref.label}] Pancha-vargeeya Bala within ±${PVB_TOLERANCE}`, async () => {
       const vb = chart.vargeeyaBala!;
       for (const [planet, expected] of Object.entries(ref.expected.panchaVargeeya!)) {
         assertAlmostEquals(
@@ -1268,7 +1268,7 @@ for (const ref of REFERENCE_CHARTS) {
   }
 
   if (ref.expected.dwadasaVargeeya) {
-    Deno.test(`[${ref.label}] Dwadasa-vargeeya Bala matches exactly`, () => {
+    Deno.test(`[${ref.label}] Dwadasa-vargeeya Bala matches exactly`, async () => {
       const vb = chart.vargeeyaBala!;
       for (const [planet, expected] of Object.entries(ref.expected.dwadasaVargeeya!)) {
         assertEquals(
@@ -1380,12 +1380,12 @@ const VP_NODE_TOLERANCE = 1.0;  // Rahu/Ketu: mean node divergence up to ~1°
 for (const ref of VARSHPHAL_REFS) {
   const vp = computeVarshphal(ref.birthDetails, ref.years);
 
-  Deno.test(`[${ref.label}] Varshphal — annual ascendant sign`, () => {
+  Deno.test(`[${ref.label}] Varshphal — annual ascendant sign`, async () => {
     assertEquals(vp.annualAscSign, ref.expected.annualAscSign,
       `Annual Asc sign: expected ${ref.expected.annualAscSign}, got ${vp.annualAscSign}`);
   });
 
-  Deno.test(`[${ref.label}] Varshphal — annual ascendant degree (±${VP_DEG_TOLERANCE}°)`, () => {
+  Deno.test(`[${ref.label}] Varshphal — annual ascendant degree (±${VP_DEG_TOLERANCE}°)`, async () => {
     assertAlmostEquals(vp.annualAscDeg, ref.expected.annualAscDeg, VP_DEG_TOLERANCE,
       `Annual Asc deg: expected ${ref.expected.annualAscDeg}, got ${vp.annualAscDeg}`);
   });
@@ -1394,28 +1394,28 @@ for (const ref of VARSHPHAL_REFS) {
     const actual = vp.planets.find(p => p.planet === ep.planet);
     const tol = (ep.planet === "rahu" || ep.planet === "ketu") ? VP_NODE_TOLERANCE : VP_DEG_TOLERANCE;
 
-    Deno.test(`[${ref.label}] Varshphal — ${ep.planet} sign`, () => {
+    Deno.test(`[${ref.label}] Varshphal — ${ep.planet} sign`, async () => {
       assertEquals(actual!.signNumber, ep.sign,
         `${ep.planet} sign: expected ${ep.sign}, got ${actual!.signNumber}`);
     });
 
-    Deno.test(`[${ref.label}] Varshphal — ${ep.planet} degree (±${tol}°)`, () => {
+    Deno.test(`[${ref.label}] Varshphal — ${ep.planet} degree (±${tol}°)`, async () => {
       assertAlmostEquals(actual!.signDegree, ep.deg, tol,
         `${ep.planet} deg: expected ${ep.deg}, got ${actual!.signDegree}`);
     });
   }
 
-  Deno.test(`[${ref.label}] Varshphal — Muntha sign`, () => {
+  Deno.test(`[${ref.label}] Varshphal — Muntha sign`, async () => {
     assertEquals(vp.munthaSign, ref.expected.munthaSign,
       `Muntha sign: expected ${ref.expected.munthaSign}, got ${vp.munthaSign}`);
   });
 
-  Deno.test(`[${ref.label}] Varshphal — Muntha house`, () => {
+  Deno.test(`[${ref.label}] Varshphal — Muntha house`, async () => {
     assertEquals(vp.munthaHouse, ref.expected.munthaHouse,
       `Muntha house: expected ${ref.expected.munthaHouse}, got ${vp.munthaHouse}`);
   });
 
-  Deno.test(`[${ref.label}] Varshphal — Year Lord`, () => {
+  Deno.test(`[${ref.label}] Varshphal — Year Lord`, async () => {
     assertEquals(vp.yearLord, ref.expected.yearLord,
       `Year Lord: expected ${ref.expected.yearLord}, got ${vp.yearLord}`);
   });
@@ -1515,24 +1515,24 @@ for (const ref of TAJIK_YOGA_REFS) {
   const vp = computeVarshphal(ref.birthDetails, ref.years);
   const tajik = detectTajikYogas(vp.planets, vp.annualAscSign);
 
-  Deno.test(`[${ref.label}] Tajik — Ishkavala`, () => {
+  Deno.test(`[${ref.label}] Tajik — Ishkavala`, async () => {
     assertEquals(tajik.ishkavala, ref.expected.ishkavala,
       `Ishkavala: expected ${ref.expected.ishkavala}, got ${tajik.ishkavala}`);
   });
 
-  Deno.test(`[${ref.label}] Tajik — Induvara`, () => {
+  Deno.test(`[${ref.label}] Tajik — Induvara`, async () => {
     assertEquals(tajik.induvara, ref.expected.induvara,
       `Induvara: expected ${ref.expected.induvara}, got ${tajik.induvara}`);
   });
 
-  Deno.test(`[${ref.label}] Tajik — Ithasala pairs match PyJHora`, () => {
+  Deno.test(`[${ref.label}] Tajik — Ithasala pairs match PyJHora`, async () => {
     const actual = tajik.ithasala.map(y => `${y.planet1}-${y.planet2}`).sort();
     const expected = ref.expected.ithasala.map(y => `${y.planet1}-${y.planet2}`).sort();
     assertEquals(actual, expected,
       `Ithasala pairs: expected [${expected}], got [${actual}]`);
   });
 
-  Deno.test(`[${ref.label}] Tajik — Ithasala types match PyJHora`, () => {
+  Deno.test(`[${ref.label}] Tajik — Ithasala types match PyJHora`, async () => {
     for (const exp of ref.expected.ithasala) {
       const act = tajik.ithasala.find(
         y => y.planet1 === exp.planet1 && y.planet2 === exp.planet2,
@@ -1542,21 +1542,21 @@ for (const ref of TAJIK_YOGA_REFS) {
     }
   });
 
-  Deno.test(`[${ref.label}] Tajik — Eesarpha pairs match PyJHora`, () => {
+  Deno.test(`[${ref.label}] Tajik — Eesarpha pairs match PyJHora`, async () => {
     const actual = tajik.eesarpha.map(y => `${y.planet1}-${y.planet2}`).sort();
     const expected = ref.expected.eesarpha.map(y => `${y.planet1}-${y.planet2}`).sort();
     assertEquals(actual, expected,
       `Eesarpha pairs: expected [${expected}], got [${actual}]`);
   });
 
-  Deno.test(`[${ref.label}] Tajik — Nakta triples match PyJHora`, () => {
+  Deno.test(`[${ref.label}] Tajik — Nakta triples match PyJHora`, async () => {
     const actual = tajik.nakta.map(y => `${y.mediator}:${y.planet1}-${y.planet2}`).sort();
     const expected = ref.expected.nakta.map(y => `${y.mediator}:${y.planet1}-${y.planet2}`).sort();
     assertEquals(actual, expected,
       `Nakta triples: expected [${expected}], got [${actual}]`);
   });
 
-  Deno.test(`[${ref.label}] Tajik — Yamaya triples match PyJHora`, () => {
+  Deno.test(`[${ref.label}] Tajik — Yamaya triples match PyJHora`, async () => {
     const actual = tajik.yamaya.map(y => `${y.mediator}:${y.planet1}-${y.planet2}`).sort();
     const expected = ref.expected.yamaya.map(y => `${y.mediator}:${y.planet1}-${y.planet2}`).sort();
     assertEquals(actual, expected,

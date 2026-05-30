@@ -50,6 +50,7 @@ export default function ResearchLab() {
           onSetDepth={setDepth}
           showCrossNav
           currentVarga="D1"
+          autoInsights={data.autoInsights}
         />
       </div>
     </div>

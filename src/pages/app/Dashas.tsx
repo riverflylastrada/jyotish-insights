@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, MessageSquare } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { DashaTimeline, type SelectedPeriodInfo } from '@/components/dashas/DashaTimeline';
 import { DashaFocusPanel } from '@/components/dashas/DashaFocusPanel';
@@ -345,6 +345,27 @@ export default function Dashas() {
                 dashaLabel={selectedPeriod.label}
                 depth={depth}
               />
+              {/* Auto-insight reading for the selected dasha period */}
+              {(() => {
+                const match = data.autoInsights?.dashas?.find(
+                  (e) => e.lord.toLowerCase() === resolvedLord && e.period === selectedPeriod.label
+                ) ?? data.autoInsights?.dashas?.find(
+                  (e) => e.lord.toLowerCase() === resolvedLord
+                );
+                if (match) return (
+                  <div className="mt-3 rounded-sm border border-brand-gold/20 bg-brand-gold/5 p-3">
+                    <div className="flex items-center gap-1.5 text-xs text-brand-gold font-medium mb-1">
+                      <Sparkles className="h-3.5 w-3.5" /> Guru Insight
+                    </div>
+                    <p className="text-sm text-text-secondary">{match.reading}</p>
+                  </div>
+                );
+                return (
+                  <Link to={`/app/chart/${id}/debate`} className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                    <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
+                  </Link>
+                );
+              })()}
             </div>
           </aside>
         ) : (

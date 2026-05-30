@@ -327,7 +327,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 17;
+export const CURRENT_SNAPSHOT_VERSION = 18;
 
 export interface KundliData {
   id: string;
@@ -359,6 +359,15 @@ export interface KundliData {
   jaimini?: JaiminiData;
   varshphal?: VarshphalData;
   vargeeyaBala?: VargeeyaBalaData;
+  autoInsights?: {
+    generatedAt: string;
+    model: string;
+    planets: Record<PlanetName, { brief: string; full: string }>;
+    dashas: Array<{ system: string; level: 'maha' | 'antar'; lord: string; period: string; reading: string }>;
+    yogas: Record<string, string>;
+    doshas: Record<string, string>;
+    houses: Record<1|2|3|4|5|6|7|8|9|10|11|12, string>;
+  };
   raw: unknown;
 }
 

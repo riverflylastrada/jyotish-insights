@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MessageSquare } from 'lucide-react';
+import { ArrowRight, MessageSquare, Sparkles } from 'lucide-react';
 import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type PlanetName, type VargaCode } from '@/lib/astro/types';
 import { VARGA_META, VARGA_CODES } from './vargaData';
 import { PLANET_IN_HOUSE, type HouseNumber } from '@/lib/astro/planetInHouse';
@@ -66,6 +66,8 @@ interface InteractiveVargaViewProps {
   showCrossNav?: boolean;
   /** Current varga code (for cross-nav link generation). */
   currentVarga?: VargaCode;
+  /** Cached auto-insights planet readings (optional). */
+  autoInsights?: { planets?: Record<string, { brief: string; full: string }> };
 }
 
 export function InteractiveVargaView({
@@ -77,6 +79,7 @@ export function InteractiveVargaView({
   onSetDepth,
   showCrossNav = false,
   currentVarga,
+  autoInsights,
 }: InteractiveVargaViewProps) {
   const ascSign = chart.ascendantSign;
 
@@ -209,6 +212,20 @@ export function InteractiveVargaView({
               <span className="font-display text-h3 capitalize text-text-primary">{PLANET_LABELS[selected].full}</span>
               <span className="font-deva text-sm text-text-tertiary">{PLANET_LABELS[selected].deva}</span>
             </div>
+
+            {/* Auto-insight brief */}
+            {selected && autoInsights?.planets?.[selected] ? (
+              <div className="rounded-sm border border-brand-gold/20 bg-brand-gold/5 p-3">
+                <div className="flex items-center gap-1.5 text-xs text-brand-gold font-medium mb-1">
+                  <Sparkles className="h-3.5 w-3.5" /> Guru Insight
+                </div>
+                <p className="text-sm text-text-secondary">{autoInsights.planets[selected].brief}</p>
+              </div>
+            ) : selected ? (
+              <Link to={`/app/chart/${chartId}/debate`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
+              </Link>
+            ) : null}
 
             {/* Explain layer */}
             {depth !== 'visual' && sel && (

@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildChartDossier } from "./dossier.ts";
 import { calculateTransits } from "../calculate-kundli/engine.ts";
+import { validateAutoInsightsJson } from "./validate_auto_insights.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +63,43 @@ const PRASHNA_VERDICT_PROMPT = "You are the Acharya, presiding over a horary (Pr
 
 const GROUNDING_INSTRUCTION = `IMPORTANT: Reason ONLY from the CHART DOSSIER and CURRENT TRANSITS provided below. Never invent or assume planetary positions, the current date, dasha periods, or divisional placements. Today's date is provided in the dossier; use the provided CURRENT TRANSITS section for all gochara/Sade Sati/timing reasoning. When the dossier provides a SADE SATI / SATURN TRANSIT STATUS, state that exact phase number and trend (intensifying vs. waning) — do NOT recompute, renumber, or relabel the phase, and do not contradict whether it is weakening or peaking. NEVER invent, estimate, or guess a transit, sign-change, or Sade Sati end date: cite ONLY the dasha dates and the ephemeris-computed end dates given in the dossier. Vedic timing is gradual and probabilistic — phrase relief/onset as "easing around <month/year>", not as an exact calendar day. Distinguish the SIZE of relief: a sub-period change (e.g. a new Pratyantardasha) brings only gradual, partial easing — rank it explicitly BELOW the major turning point of a larger cycle ending (e.g. Sade Sati completing), and say which is the minor vs. the decisive shift. When you cite Ashtakavarga, reference BOTH the strongest and the weakest houses given (do not cherry-pick only the weak one). If your method requires data that is not provided (e.g. KP cuspal sub-lords, Jaimini Arudha padas), state briefly that it is unavailable rather than fabricating it.`;
 
+const AUTO_INSIGHTS_SYSTEM_PROMPT = `You are a master Vedic astrologer producing a structured JSON dossier of mini-readings for a birth chart.
+
+${GROUNDING_INSTRUCTION}
+
+Return a SINGLE JSON object (no markdown fences, no commentary) with EXACTLY this shape:
+
+{
+  "planets": {
+    "sun": { "brief": "<1-2 sentence headline>", "full": "<3-5 sentence reading>" },
+    "moon": { "brief": "...", "full": "..." },
+    "mars": { "brief": "...", "full": "..." },
+    "mercury": { "brief": "...", "full": "..." },
+    "jupiter": { "brief": "...", "full": "..." },
+    "venus": { "brief": "...", "full": "..." },
+    "saturn": { "brief": "...", "full": "..." },
+    "rahu": { "brief": "...", "full": "..." },
+    "ketu": { "brief": "...", "full": "..." }
+  },
+  "dashas": [
+    { "system": "<system name>", "level": "maha" or "antar", "lord": "<planet>", "period": "<start - end>", "reading": "<2-3 sentence reading>" }
+  ],
+  "yogas": { "<yoga name>": "<1-2 sentence reading>" },
+  "doshas": { "<dosha name>": "<1-2 sentence reading>" },
+  "houses": { "1": "<theme summary>", "2": "...", "12": "..." }
+}
+
+Rules:
+- "planets": all 9 grahas (sun through ketu). "brief" is a punchy 1-2 sentence summary; "full" is a richer 3-5 sentence interpretation.
+- "dashas": include the current maha-dasha and the next 3 maha-dashas from the dossier, plus the current antar-dasha (if available). Each entry needs system, level, lord, period, and reading.
+- "yogas": one key per DETECTED yoga (isPresent=true) in the dossier. Skip absent yogas. Value is a 1-2 sentence reading.
+- "doshas": one key per DETECTED dosha (isPresent=true). Value is a 1-2 sentence reading.
+- "houses": keys "1" through "12". Each value is a 2-3 sentence theme summary for that house, grounded in the planets placed there and the house lord.
+- Ground EVERY claim in the chart dossier. Do NOT invent placements.
+- Output valid JSON only. No markdown, no explanation, no wrapping.`;
+
+
+
 function genderPronoun(chart: any): string {
   const g = chart?.birthDetails?.gender;
   if (g === 'male') return 'he/him/his';
@@ -75,7 +113,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const { guru, question, chart, mode, chatHistory, prashnaMode } = body as {
-      guru?: string; question: string; chart?: any; mode: "guru" | "verdict";
+      guru?: string; question: string; chart?: any; mode: "guru" | "verdict" | "auto-insights";
       chatHistory?: Array<{ role: "user" | "assistant"; content: string }>;
       prashnaMode?: boolean;
     };
@@ -103,6 +141,63 @@ Deno.serve(async (req) => {
     const endpoint = dbConfig?.endpoint || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
     const model = dbConfig?.model || "gemini-2.5-flash";
     if (!apiKey) throw new Error("No AI API key configured. Set it in Admin → API Keys or via: supabase secrets set GOOGLE_AI_KEY=<key>");
+
+    // ─── AUTO-INSIGHTS mode: non-streaming JSON ───────────────────────────────────
+    if (mode === "auto-insights") {
+      const aiMessages = [
+        { role: "system", content: AUTO_INSIGHTS_SYSTEM_PROMPT },
+        { role: "user", content: `Produce the auto-insights JSON for this chart.\n\n${dossier}` },
+      ];
+
+      const doCall = async (): Promise<unknown> => {
+        const r = await fetch(endpoint, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            stream: false,
+            max_tokens: 8000,
+            messages: aiMessages,
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (!r.ok) throw new Error(`LLM ${r.status}`);
+        const json = await r.json();
+        const text: string = json?.choices?.[0]?.message?.content ?? "";
+        const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+        return JSON.parse(cleaned);
+      };
+
+      let parsed: unknown;
+      try {
+        parsed = await doCall();
+        if (!validateAutoInsightsJson(parsed)) {
+          console.warn("auto-insights: schema mismatch on first attempt, retrying");
+          parsed = await doCall();
+        }
+      } catch (e) {
+        console.error("auto-insights LLM call failed:", e);
+        return new Response(JSON.stringify({ error: "auto-insights generation failed" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!validateAutoInsightsJson(parsed)) {
+        return new Response(JSON.stringify({ error: "auto-insights schema validation failed" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        generatedAt: new Date().toISOString(),
+        model,
+        ...parsed,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ─── Existing guru / verdict modes ─────────────────────────────────────────
     if (!question || typeof question !== "string") {
       return new Response(JSON.stringify({ error: "question is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

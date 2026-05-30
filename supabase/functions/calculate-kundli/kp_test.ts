@@ -20,17 +20,17 @@ Deno.test("kpLords: 0° Aries → sign-lord Mars, star-lord Ketu", () => {
   assertEquals(result.starLord, "Ketu");
 });
 
-Deno.test("kpLords: 13.333° (start of Bharani) → star-lord Venus", () => {
+Deno.test("kpLords: 13.333° (start of Bharani) → star-lord Venus", async () => {
   const result = kpLords(13.3334);
   assertEquals(result.starLord, "Venus");
 });
 
-Deno.test("kpLords: 26.667° (start of Krittika) → star-lord Sun", () => {
+Deno.test("kpLords: 26.667° (start of Krittika) → star-lord Sun", async () => {
   const result = kpLords(26.6668);
   assertEquals(result.starLord, "Sun");
 });
 
-Deno.test("kpLords: sub-lord is always one of the 9 Vimshottari planets", () => {
+Deno.test("kpLords: sub-lord is always one of the 9 Vimshottari planets", async () => {
   const vimPlanets = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury'];
   // Test a range of longitudes
   for (let lon = 0; lon < 360; lon += 5) {
@@ -44,21 +44,21 @@ Deno.test("kpLords: sub-lord is always one of the 9 Vimshottari planets", () => 
   }
 });
 
-Deno.test("kpLords: sign-lord changes at 30° boundary", () => {
+Deno.test("kpLords: sign-lord changes at 30° boundary", async () => {
   const aries = kpLords(29.9);
   const taurus = kpLords(30.1);
   assertEquals(aries.signLord, "Mars");
   assertEquals(taurus.signLord, "Venus");
 });
 
-Deno.test("kpLords: Ashwini sub-lords start with Ketu (first sub in Ketu star)", () => {
+Deno.test("kpLords: Ashwini sub-lords start with Ketu (first sub in Ketu star)", async () => {
   // At 0° Aries (Ashwini), star lord = Ketu, and the first sub-lord should be Ketu
   const result = kpLords(0.01);
   assertEquals(result.starLord, "Ketu");
   assertEquals(result.subLord, "Ketu");
 });
 
-Deno.test("kpLords: handles longitude > 360 (normalization)", () => {
+Deno.test("kpLords: handles longitude > 360 (normalization)", async () => {
   const a = kpLords(45);
   const b = kpLords(405); // 45 + 360
   assertEquals(a.signLord, b.signLord);
@@ -66,7 +66,7 @@ Deno.test("kpLords: handles longitude > 360 (normalization)", () => {
   assertEquals(a.subLord, b.subLord);
 });
 
-Deno.test("kpLords: handles negative longitude (normalization)", () => {
+Deno.test("kpLords: handles negative longitude (normalization)", async () => {
   const a = kpLords(350);
   const b = kpLords(-10); // 360 - 10 = 350
   assertEquals(a.signLord, b.signLord);
@@ -76,7 +76,7 @@ Deno.test("kpLords: handles negative longitude (normalization)", () => {
 
 // ─── computeKpPlanetSubLords ────────────────────────────────────────────────
 
-Deno.test("computeKpPlanetSubLords: returns 9 entries (excludes ascendant)", () => {
+Deno.test("computeKpPlanetSubLords: returns 9 entries (excludes ascendant)", async () => {
   const mockPlanets = [
     { planet: 'ascendant', longitude: 100, signNumber: 4, signName: 'Karka', signDegree: 10, nakshatra: 'Pushya', nakshatraPada: 1 as const, houseNumber: 1, isRetrograde: false, isCombust: false },
     { planet: 'sun', longitude: 120, signNumber: 5, signName: 'Simha', signDegree: 0, nakshatra: 'Magha', nakshatraPada: 1 as const, houseNumber: 2, isRetrograde: false, isCombust: false },
@@ -96,7 +96,7 @@ Deno.test("computeKpPlanetSubLords: returns 9 entries (excludes ascendant)", () 
 
 // ─── computeRulingPlanets ───────────────────────────────────────────────────
 
-Deno.test("computeRulingPlanets: returns 5 valid fields", () => {
+Deno.test("computeRulingPlanets: returns 5 valid fields", async () => {
   const now = new Date('2026-05-22T12:00:00Z'); // Friday = Venus
   const result = computeRulingPlanets(100, 45, now);
   assertExists(result.ascSignLord);
@@ -106,7 +106,7 @@ Deno.test("computeRulingPlanets: returns 5 valid fields", () => {
   assertEquals(result.dayLord, "Venus"); // Friday
 });
 
-Deno.test("computeRulingPlanets: Sunday → Sun as day lord", () => {
+Deno.test("computeRulingPlanets: Sunday → Sun as day lord", async () => {
   const sunday = new Date('2026-05-24T12:00:00Z'); // Sunday
   const result = computeRulingPlanets(0, 0, sunday);
   assertEquals(result.dayLord, "Sun");
@@ -133,7 +133,7 @@ function mkPlanet(planet: string, lon: number, signNumber: number, ascSign: numb
   };
 }
 
-Deno.test("significators: returns 12 houses", () => {
+Deno.test("significators: returns 12 houses", async () => {
   const asc = 1;
   const planets = [
     mkPlanet('ascendant', 0, 1, asc),
@@ -153,7 +153,7 @@ Deno.test("significators: returns 12 houses", () => {
   assertEquals(result[11].house, 12);
 });
 
-Deno.test("significators: Level B — occupant is listed", () => {
+Deno.test("significators: Level B — occupant is listed", async () => {
   // Sun in House 1 (sign 1, asc = 1) → Sun should be Level B for house 1
   const asc = 1;
   const planets = [
@@ -173,7 +173,7 @@ Deno.test("significators: Level B — occupant is listed", () => {
   assertEquals(h1.levelB.includes('sun'), true, 'Sun should be Level B of H1');
 });
 
-Deno.test("significators: Level A — planet in star of occupant", () => {
+Deno.test("significators: Level A — planet in star of occupant", async () => {
   // Aries asc. Sun at 5° Aries → star-lord = Ketu (Ashwini).
   // If another planet's star-lord is Sun (e.g. Mercury at ~27° Aries → Krittika, star-lord Sun),
   // then Mercury is in the star of Sun. Sun occupies H1 → Mercury should be Level A of H1.
@@ -200,7 +200,7 @@ Deno.test("significators: Level A — planet in star of occupant", () => {
   assertEquals(h1.levelA.includes('mercury'), true, 'Mercury (in star of Sun, occupant of H1) should be Level A');
 });
 
-Deno.test("significators: Level D — house owner", () => {
+Deno.test("significators: Level D — house owner", async () => {
   // Aries asc → H1 sign = Aries → owner = Mars.
   const asc = 1;
   const planets = [
@@ -221,7 +221,7 @@ Deno.test("significators: Level D — house owner", () => {
   assertEquals(result[1].levelD.includes('venus'), true, 'Venus is lord of Taurus = H2');
 });
 
-Deno.test("significators: Level C — planet in star of owner", () => {
+Deno.test("significators: Level C — planet in star of owner", async () => {
   // Aries asc → H1 owner = Mars. Mars star = NAKSHATRA_LORDS for mars longitude.
   // We need a planet whose star-lord = mars (owner of H1).
   // Mars nakshatra lord positions: nakshatras 4(Mrigashira), 13(Chitra), 22(Dhanishtha) → index 4 mod 9 = 4.
@@ -247,7 +247,7 @@ Deno.test("significators: Level C — planet in star of owner", () => {
   assertEquals(result[0].levelC.includes('jupiter'), true, 'Jupiter (in star of Mars, owner of H1) should be Level C');
 });
 
-Deno.test("significators: node agency — Rahu conjoined with a planet", () => {
+Deno.test("significators: node agency — Rahu conjoined with a planet", async () => {
   // Aries asc. Rahu and Sun both in sign 5 (Simha, H5).
   // Sun occupies H5 → Sun is Level B of H5.
   // Rahu is conjoined with Sun → Rahu's agency includes Sun.
@@ -270,7 +270,7 @@ Deno.test("significators: node agency — Rahu conjoined with a planet", () => {
   assertEquals(h5.nodesActingFor.includes('rahu'), true, 'Rahu conjoined Sun in H5 should act for H5');
 });
 
-Deno.test("significators: node agency — dispositor route", () => {
+Deno.test("significators: node agency — dispositor route", async () => {
   // Aries asc. Rahu in sign 2 (Taurus). Dispositor = Venus (lord of Taurus).
   // Venus owns H2 (Taurus) and H7 (Libra). So Rahu should act for H2 and H7.
   // Also Venus occupies wherever it is placed — let's put Venus in H3 (Gemini, sign 3).
@@ -299,7 +299,7 @@ Deno.test("significators: node agency — dispositor route", () => {
   assertEquals(rahuActsFor.has(7), true, 'Rahu acts for H7 (Venus owns Libra)');
 });
 
-Deno.test("significators: ordered is de-duplicated A→B→C→D", () => {
+Deno.test("significators: ordered is de-duplicated A→B→C→D", async () => {
   // If a planet appears in both Level A and Level B for the same house,
   // it should appear only once in ordered (at the A position).
   const asc = 1;
@@ -331,7 +331,7 @@ Deno.test("significators: ordered is de-duplicated A→B→C→D", () => {
   assertEquals(mercCount, 1, 'Mercury appears exactly once in ordered');
 });
 
-Deno.test("significators: empty house has no occupant-based levels", () => {
+Deno.test("significators: empty house has no occupant-based levels", async () => {
   // Aries asc. No planets in H12 (Pisces, sign 12).
   const asc = 1;
   const planets = [
@@ -364,8 +364,8 @@ Deno.test("significators: empty house has no occupant-based levels", () => {
  * the computeHouseSignificators output.
  */
 function crossCheckSignificators(label: string, details: BirthDetails) {
-  Deno.test(`significators cross-check: ${label}`, () => {
-    const kundli = calculateKundli(details);
+  Deno.test(`significators cross-check: ${label}`, async () => {
+    const kundli = await calculateKundli(details);
     const d1 = kundli.divisionalCharts.find(c => c.varga === 'D1')!;
     const planets = d1.planets;
     const ascSign = kundli.ascendant.signNumber;
