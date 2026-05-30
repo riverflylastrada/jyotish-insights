@@ -91,12 +91,13 @@ API is required.
 > the Guru Debate dossier, and surfaced in dedicated front-end views — the
 > **Strengths** (Shadbala / Bhava Bala / Vargeeya Bala), **KP**, **Jaimini**,
 > **Varshphal**, and multi-system **Dashas** pages all ship. The **Interactive
-> Research Lab** (`/app/chart/:id/lab`) is underway — Phases 1–3 have shipped
-> (Interactive D1, Yogas, Doshas, Dasha, and Divisional Charts with cross-chart
-> navigation), alongside all four **Specialized Kundli types** — Prashna
-> (`/app/prashna`), Twins (`/app/twins/new`), Business (`/app/business/new`),
-> and **public** Mundane (`/mundane`). Next: Phase 4 (Interactive Ashtakavarga
-> / Shadbala / KP / Transits). See
+> Research Lab** (`/app/chart/:id/lab`) is underway — Phases 1–4 have shipped
+> (Interactive D1, Yogas, Doshas, Dasha, Divisional with cross-chart navigation,
+> Ashtakavarga, Shadbala, KP, and Transits — each with Visual / Explain / Math
+> Proof depth layers and classical citations), alongside all four **Specialized
+> Kundli types** — Prashna (`/app/prashna`), Twins (`/app/twins/new`),
+> Business (`/app/business/new`), and **public** Mundane (`/mundane`). Next:
+> Phase 5 (template insight database) and monetization. See
 > [ROADMAP.md](ROADMAP.md#immediate--interactive-research-lab).
 
 ### Interpretation & analysis
@@ -425,10 +426,11 @@ automated — follow.
 
 See [ROADMAP.md](ROADMAP.md) for planned work. Recently shipped: all four
 **Specialized Kundli types** (Prashna, Twins, Business, public Mundane) and
-Research Lab Phases 1–3 (Interactive D1, Yogas, Doshas, Dasha, and Divisional
-with cross-chart navigation). Up next: **Research Lab Phase 4** (Interactive
-Ashtakavarga / Shadbala / KP / Transits), a **pan-India multi-language launch**,
-billing/subscriptions, and additional dasha systems.
+Research Lab Phases 1–4 (Interactive D1, Yogas, Doshas, Dasha, Divisional with
+cross-chart navigation, Ashtakavarga, Shadbala, KP, and Transits). Up next:
+**Research Lab Phase 5** (template insight database), **Razorpay billing +
+plan gating**, a **pan-India multi-language launch**, and additional dasha
+systems.
 
 ---
 

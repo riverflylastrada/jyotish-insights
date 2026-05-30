@@ -46,12 +46,12 @@ each PR.
 **Engine vs. UI:** the **core engine is feature-complete**, and the **initial UI
 surfacing phase has shipped** — Strengths, KP, Jaimini, and Varshphal pages, plus
 a multi-system Dashas page (Vimshottari / Yogini / Ashtottari / Chara /
-Kalachakra). The **Interactive Research Lab** is underway — Phases 1–3 complete
+Kalachakra). The **Interactive Research Lab** is underway — Phases 1–4 complete
 (Interactive D1, Unknown Birth Time, interactive Yogas + Doshas, Interactive
-Dasha + Divisional), plus all four **Specialized Kundli types** (Prashna, Twins,
-Business, public Mundane). Next focus: Phase 4 (Interactive
-Ashtakavarga / Shadbala / KP / Transits). Product gaps: transit alerts,
-monetization.
+Dasha + Divisional, Interactive Ashtakavarga + Shadbala + KP + Transits), plus
+all four **Specialized Kundli types** (Prashna, Twins, Business, public
+Mundane). Next focus: **Phase 5** (template insight database) and **monetization**
+(Razorpay billing). Product gaps: transit alerts, monetization.
 
 ---
 
@@ -174,15 +174,33 @@ monetization.
   via `?planet=` URL param (planet selection preserved across vargas). The Phase
   1 Interactive D1 was refactored to share this same component so the interaction
   model can't drift.
+- ✅ **Research Lab — Phase 4a: Interactive Ashtakavarga + Shadbala**
+  ([Ashtakavarga.tsx](src/pages/app/Ashtakavarga.tsx),
+  [Strengths.tsx](src/pages/app/Strengths.tsx)) — tappable house/column cells
+  in Ashtakavarga show a 7-planet contribution focus panel (BPHS Ch. 48 +
+  Sarvachintamani Ch. 6 cited); the Shadbala flat table becomes stacked
+  horizontal bars with tappable segments showing each bala's formula
+  (BPHS Ch. 27), Virupas/Rupas, and required vs ratio. Engine extensions
+  (per-bindu attribution; sub-bala breakdown) are documented as follow-ups.
+- ✅ **Research Lab — Phase 4b: Interactive KP + Transits**
+  ([Kp.tsx](src/pages/app/Kp.tsx), [Transits.tsx](src/pages/app/Transits.tsx)) —
+  tappable KP sub-lord chain (sign-lord → star-lord → sub-lord), 4-fold
+  significator derivation panel with Rahu/Ketu's `nodesActingFor` agency, KP
+  citations to Krishnamurti KP Reader I–VI; transit focus panel shows the
+  natal house, Bhinnashtakavarga bindu count, and aspect arrows to natal
+  planets (reusing `aspectOffsets`/`ASPECT_LABEL` from `dashaUtils.ts` — no
+  duplication of Vedic aspect logic).
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
 > engine is feature-complete**, the **initial UI surfacing phase has shipped**,
-> and the **Interactive Research Lab is underway** — Phases 1–3 have shipped
+> and the **Interactive Research Lab is underway** — Phases 1–4 have shipped
 > (Interactive D1, Unknown Birth Time, interactive Yogas, interactive Doshas,
-> Interactive Dasha, Interactive Divisional), plus all four **Specialized Kundli
-> types** (Prashna, Twins, Business, Mundane). Next focus: Phase 4 (Advanced
-> research tools — Interactive Ashtakavarga / Shadbala / KP / Transits).
+> Interactive Dasha, Interactive Divisional, Interactive Ashtakavarga, Shadbala,
+> KP, Transits), plus all four **Specialized Kundli types** (Prashna, Twins,
+> Business, Mundane). Next focus: **Phase 5** (Template insight database +
+> pre-computed Guru snapshots) and **monetization** (Razorpay billing + plan
+> gating).
 
 ---
 
@@ -214,10 +232,11 @@ monetization.
 > afterward is born interactive from day one. The Research Lab is the product
 > identity — not a feature.
 
-> **Status:** Phases 1–3 have shipped — Interactive D1, Unknown Birth Time,
-> interactive Yogas + Doshas, Interactive Dasha + Divisional (see Recently
-> shipped). **Phase 4 (Advanced research tools — Interactive Ashtakavarga /
-> Shadbala / KP / Transits) is the next item.**
+> **Status:** Phases 1–4 have shipped — Interactive D1, Unknown Birth Time,
+> interactive Yogas + Doshas, Interactive Dasha + Divisional, Interactive
+> Ashtakavarga + Shadbala + KP + Transits (see Recently shipped). **Phase 5
+> (Template insight database + pre-computed Guru snapshots) and monetization
+> (Razorpay billing) are next.**
 
 ### Design principles
 1. **Show the Rule, Not Just the Result** — every statement traces to a
@@ -268,17 +287,20 @@ monetization.
   on Math Proof. Cross-chart navigation preserves the selected planet via
   `?planet=` URL param. Shares the same component as Interactive D1.
 
-### Phase 4: Advanced research tools
-- ⬜ **Interactive Ashtakavarga** — tap house → 7-planet contribution matrix
-  (✓/✗ per planet). Each row tappable to see the bindu contribution rule.
-- ⬜ **Interactive Shadbala** — 6-component stacked bar per planet. Tap any
-  segment → see exact sub-component formula and computation. Validated figure
-  shown alongside JHora reference.
-- ⬜ **Interactive KP** — sub-lord chain diagram (sign-lord → star-lord →
-  sub-lord) with tappable nodes. 4-fold significator table with derivation.
-- ⬜ **Interactive Transits** — tap transit planet on bi-wheel → natal house
-  transited + Ashtakavarga bindu count for that house + aspect arrows to natal
-  planets.
+### Phase 4: Advanced research tools ✅
+- ✅ **Interactive Ashtakavarga** — tappable house/column cells; 7-planet
+  contribution focus panel; BPHS Ch. 48 + Sarvachintamani Ch. 6 cited.
+- ✅ **Interactive Shadbala** — stacked horizontal bars; tap any segment to see
+  that bala's formula, Virupas/Rupas, and required vs ratio. BPHS Ch. 27 cited.
+- ✅ **Interactive KP** — tappable sub-lord chain (sign → star → sub); 4-fold
+  significator derivation with Rahu/Ketu agency; Krishnamurti KP Reader cited.
+- ✅ **Interactive Transits** — tap a transit planet → natal house +
+  Bhinnashtakavarga bindu + aspect arrows to natal planets (reuses
+  `aspectOffsets` from `dashaUtils.ts`).
+- Engine-extension follow-ups (frontend-only items above are honest about these):
+  per-bindu attribution in Ashtakavarga, sub-bala breakdown for Shadbala
+  (e.g., Sthana → Uchcha + Saptavargeeya + Ojhayugma + Kendra + Drekkana),
+  structured `conditions[]`/`cancellations[]` for Doshas (Phase 2 follow-up).
 
 ### Phase 5: Template insight database
 - ⬜ **108 planet-in-house interpretations** for D1 (9 planets × 12 houses)
@@ -447,8 +469,8 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 | 4  | ✅ Interactive Doshas (condition cards)  | 3–4 days | Destroys fear-based astrology      |
 | 5  | ✅ Interactive Dasha (tap → chart highlight) | 3–4 days | Core Research Lab complete       |
 | 6  | ✅ Interactive Divisionals (cross-chart nav) | 4–5 days | 16 vargas become explorable      |
-| 7  | Interactive Ashtakavarga/Shadbala/KP ⬅ next | 5–6 days | Advanced research tools complete |
-| 8  | Razorpay billing + plan gating           | 2–3 wks  | Revenue starts                     |
+| 7  | ✅ Interactive Ashtakavarga/Shadbala/KP/Transits | 5–6 days | Advanced research tools complete |
+| 8  | Razorpay billing + plan gating ⬅ next    | 2–3 wks  | Revenue starts                     |
 | 9  | Hindi + Marathi + Tamil + Telugu + Bengali| 3–4 wks  | 75% of India covered               |
 | 10 | Daily Panchang page + WhatsApp share     | 3–4 days | Top-of-funnel growth engine        |
 | 11 | Narayana + Lagna Kendradi + Sudasa Dasha | 1–2 wks  | 8+ dasha systems, pro credibility  |
