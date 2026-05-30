@@ -190,6 +190,29 @@ Mundane). Next focus: **Phase 5** (template insight database) and **monetization
   natal house, Bhinnashtakavarga bindu count, and aspect arrows to natal
   planets (reusing `aspectOffsets`/`ASPECT_LABEL` from `dashaUtils.ts` — no
   duplication of Vedic aspect logic).
+- ✅ **Engine extension — Shadbala sub-bala breakdown**
+  ([shadbala.ts](supabase/functions/calculate-kundli/shadbala.ts)) — per-planet
+  `subBalas` exposes the internal sub-components for each of the six source balas
+  (Sthana → Uchcha + Saptavargeeya + Ojhayugma + Kendra + Drekkana; Kala →
+  Nathonnatha + Paksha + Tribhaga + Varsha/Masa/Vara/Hora/Ayana + Yuddha; etc.),
+  each in Virupas with BPHS Ch. 27 citations. Additive schema; top-level balas,
+  total, ratio, and rank byte-identical on reference charts; JHora parity still
+  ±0.03 Rupa. (PR #56.)
+- ✅ **Engine extension — Ashtakavarga per-bindu attribution**
+  ([ashtakavarga.ts](supabase/functions/calculate-kundli/ashtakavarga.ts)) —
+  optional `attribution` field surfaces, for each (planet, house) cell, the set
+  of contributing positions that generated each bindu, each cited to its BPHS
+  Ch. 48 rule. Aggregate `bhinna` + `sarva` totals byte-identical pre/post on
+  reference charts. (PR #57.)
+- ✅ **Engine extension — Doshas structured conditions & cancellations**
+  ([doshas.ts](supabase/functions/calculate-kundli/doshas.ts),
+  [doshas_test.ts](supabase/functions/calculate-kundli/doshas_test.ts)) — each
+  Dosha now exposes optional `conditions[]` and `cancellations[]` with rule,
+  isMet, evidence, and classical citation. Each detector refactored to build
+  conditions first and derive `isPresent`/`severity` from them — verdict
+  byte-identical to the pre-refactor output. Doshas page renders a true
+  ✓/✗-per-rule checklist with arrows from cancelling rows to the condition they
+  cancel. (PR #58.) Snapshot version bumped to 17.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
@@ -273,10 +296,10 @@ Mundane). Next focus: **Phase 5** (template insight database) and **monetization
   checklist (✓/✗ per step). User walks through and proves/disproves each yoga
   themselves. Cancellation rules equally prominent. Classical source cited per
   yoga (BPHS chapter, Phaladeepika shloka, etc.).
-- ✅ **Interactive Doshas** — condition-card pattern shipped (filterable cards
-  with classical-source citations, three-state status, anti-fear banner).
-  Follow-up: extend the engine to expose structured `conditions[]` /
-  `cancellations[]` for a true ✓/✗-per-rule checklist with cancellation arrows.
+- ✅ **Interactive Doshas** — full ✓/✗-per-rule checklist with cancellation
+  arrows now ships (engine extension landed in #58). Filterable cards,
+  three-state status, classical-source citations, anti-fear banner — and each
+  condition / cancellation is its own row tied to BPHS / Phaladeepika.
 
 ### Phase 3: Dasha & Divisional chart interaction ✅
 - ✅ **Interactive Dasha timeline** — tap any period → mini-D1 highlights the
@@ -297,10 +320,13 @@ Mundane). Next focus: **Phase 5** (template insight database) and **monetization
 - ✅ **Interactive Transits** — tap a transit planet → natal house +
   Bhinnashtakavarga bindu + aspect arrows to natal planets (reuses
   `aspectOffsets` from `dashaUtils.ts`).
-- Engine-extension follow-ups (frontend-only items above are honest about these):
-  per-bindu attribution in Ashtakavarga, sub-bala breakdown for Shadbala
-  (e.g., Sthana → Uchcha + Saptavargeeya + Ojhayugma + Kendra + Drekkana),
-  structured `conditions[]`/`cancellations[]` for Doshas (Phase 2 follow-up).
+- ✅ **Engine-extension follow-ups** — all three landed (snapshot version
+  bumped to 17): per-bindu attribution for Ashtakavarga with BPHS Ch. 48
+  citations (#57), sub-bala breakdown for Shadbala with per-sub-component
+  Virupas (#56), and structured `conditions[]` / `cancellations[]` for Doshas
+  (#58). All preserve parity — aggregate bindu totals, top-level bala values,
+  and dosha verdicts are byte-identical to pre-refactor output on the
+  reference charts.
 
 ### Phase 5: Template insight database
 - ⬜ **108 planet-in-house interpretations** for D1 (9 planets × 12 houses)
