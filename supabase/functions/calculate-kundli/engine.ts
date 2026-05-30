@@ -348,18 +348,18 @@ export async function calculateKundli(details: BirthDetails) {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-    // Check feature flag
+    // Check feature flag via PostgREST (no supabase-js import needed)
     let autoInsightsEnabled = true;
     if (supabaseUrl && serviceRoleKey) {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-      const admin = createClient(supabaseUrl, serviceRoleKey);
-      const { data: flagRow } = await admin
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'auto_insights_enabled')
-        .maybeSingle();
-      if (flagRow?.value === 'false' || flagRow?.value === false) {
-        autoInsightsEnabled = false;
+      const flagResp = await fetch(
+        `${supabaseUrl}/rest/v1/app_settings?key=eq.auto_insights_enabled&select=value`,
+        { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } },
+      );
+      if (flagResp.ok) {
+        const rows = await flagResp.json();
+        if (rows?.[0]?.value === 'false' || rows?.[0]?.value === false) {
+          autoInsightsEnabled = false;
+        }
       }
     }
 
@@ -380,7 +380,7 @@ export async function calculateKundli(details: BirthDetails) {
       if (resp.ok) {
         const insights = await resp.json();
         if (insights && !insights.error) {
-          (result as Record<string, unknown>).autoInsights = insights;
+          result.autoInsights = insights;
         }
       }
     }

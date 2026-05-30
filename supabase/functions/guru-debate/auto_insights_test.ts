@@ -7,7 +7,7 @@
 import {
   assertEquals,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { validateAutoInsightsJson } from "./index.ts";
+import { validateAutoInsightsJson } from "./validate_auto_insights.ts";
 
 // ─── Fixtures ──────────────────────────────────────────────────────────────
 
