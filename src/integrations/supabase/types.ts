@@ -96,6 +96,8 @@ export type Database = {
           house_system: string
           id: string
           role: string
+          transit_alerts_enabled: boolean
+          transit_alerts_categories: string[]
           updated_at: string
           user_id: string
         }
@@ -111,6 +113,8 @@ export type Database = {
           house_system?: string
           id?: string
           role?: string
+          transit_alerts_enabled?: boolean
+          transit_alerts_categories?: string[]
           updated_at?: string
           user_id: string
         }
@@ -126,8 +130,61 @@ export type Database = {
           house_system?: string
           id?: string
           role?: string
+          transit_alerts_enabled?: boolean
+          transit_alerts_categories?: string[]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      transit_alerts: {
+        Row: {
+          id: string
+          chart_id: string
+          user_id: string
+          event_key: string
+          type: string
+          severity: string
+          starts: string
+          ends: string | null
+          title: string
+          description: string
+          citation: string | null
+          affected_houses: number[] | null
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          chart_id: string
+          user_id: string
+          event_key: string
+          type: string
+          severity: string
+          starts: string
+          ends?: string | null
+          title: string
+          description: string
+          citation?: string | null
+          affected_houses?: number[] | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          chart_id?: string
+          user_id?: string
+          event_key?: string
+          type?: string
+          severity?: string
+          starts?: string
+          ends?: string | null
+          title?: string
+          description?: string
+          citation?: string | null
+          affected_houses?: number[] | null
+          read_at?: string | null
+          created_at?: string
         }
         Relationships: []
       }

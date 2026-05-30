@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, Save, MapPin, X } from 'lucide-react';
+import { Loader2, Save, MapPin, X, Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { useSession } from '@/hooks/useSession';
+import { usePlanGate } from '@/hooks/usePlanGate';
 
 type Prefs = {
   display_name: string;
@@ -13,6 +14,8 @@ type Prefs = {
   current_lat: number | null;
   current_lon: number | null;
   current_timezone: string | null;
+  transit_alerts_enabled: boolean;
+  transit_alerts_categories: string[];
 };
 
 const DEFAULTS: Prefs = {
@@ -24,10 +27,23 @@ const DEFAULTS: Prefs = {
   current_lat: null,
   current_lon: null,
   current_timezone: null,
+  transit_alerts_enabled: true,
+  transit_alerts_categories: ['all'],
 };
+
+const EVENT_CATEGORIES = [
+  { key: 'sade_sati', label: 'Sade Sati' },
+  { key: 'ashtama_shani', label: 'Ashtama Shani' },
+  { key: 'sign_ingress', label: 'Planet sign changes' },
+  { key: 'guru_bala', label: 'Guru Bala (Jupiter transits)' },
+  { key: 'retrograde', label: 'Retrograde stations' },
+  { key: 'eclipse', label: 'Eclipse activations' },
+  { key: 'dasha_transition', label: 'Dasha transitions' },
+] as const;
 
 export default function Settings() {
   const { user } = useSession();
+  const alertsGated = usePlanGate('transit_alerts');
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -44,7 +60,7 @@ export default function Settings() {
     (async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name,ayanamsa,chart_style,house_system,current_place_name,current_lat,current_lon,current_timezone')
+        .select('display_name,ayanamsa,chart_style,house_system,current_place_name,current_lat,current_lon,current_timezone,transit_alerts_enabled,transit_alerts_categories')
         .eq('user_id', user.id)
         .maybeSingle();
       if (error) { toast.error(error.message); setPrefs(DEFAULTS); return; }
@@ -301,6 +317,56 @@ export default function Settings() {
             </div>
           )}
         </div>
+
+        {/* Notifications section */}
+        {alertsGated && (
+          <div className="border-t border-hairline-subtle pt-5">
+            <div className="flex items-center gap-2 text-eyebrow mb-3 text-text-tertiary">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </div>
+            <p className="mb-3 text-xs text-text-tertiary">
+              Receive in-app alerts when significant transits or dasha changes are approaching for your saved charts.
+            </p>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={prefs.transit_alerts_enabled}
+                onChange={(e) => setPrefs({ ...prefs, transit_alerts_enabled: e.target.checked })}
+                className="h-4 w-4 rounded border-hairline-subtle accent-brand-saffron" />
+              <span className="text-sm text-text-primary">Enable transit alerts</span>
+            </label>
+            {prefs.transit_alerts_enabled && (
+              <div className="mt-3 ml-7 space-y-2">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox"
+                    checked={prefs.transit_alerts_categories.includes('all')}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setPrefs({ ...prefs, transit_alerts_categories: ['all'] });
+                      } else {
+                        setPrefs({ ...prefs, transit_alerts_categories: EVENT_CATEGORIES.map(c => c.key) });
+                      }
+                    }}
+                    className="h-3.5 w-3.5 rounded border-hairline-subtle accent-brand-saffron" />
+                  <span className="text-xs text-text-secondary">All categories</span>
+                </label>
+                {!prefs.transit_alerts_categories.includes('all') && EVENT_CATEGORIES.map(cat => (
+                  <label key={cat.key} className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox"
+                      checked={prefs.transit_alerts_categories.includes(cat.key)}
+                      onChange={(e) => {
+                        const cats = e.target.checked
+                          ? [...prefs.transit_alerts_categories, cat.key]
+                          : prefs.transit_alerts_categories.filter(c => c !== cat.key);
+                        setPrefs({ ...prefs, transit_alerts_categories: cats.length === 0 ? ['all'] : cats });
+                      }}
+                      className="h-3.5 w-3.5 rounded border-hairline-subtle accent-brand-saffron" />
+                    <span className="text-xs text-text-secondary">{cat.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end pt-2">
           <button onClick={save} disabled={saving}

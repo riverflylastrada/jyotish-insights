@@ -1,9 +1,11 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, HelpCircle, Building2, GitCompareArrows } from 'lucide-react';
+import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, HelpCircle, Building2, GitCompareArrows, Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
 import { useAdmin } from '@/hooks/useAdmin';
+import { useTransitAlerts } from '@/hooks/useTransitAlerts';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { toast } from '@/components/ui/sonner';
 import { StaleSnapshotBanner } from '@/components/chart/StaleSnapshotBanner';
 
@@ -22,6 +24,8 @@ export function AppLayout() {
   const nav = useNavigate();
   const { user } = useSession();
   const { isAdmin } = useAdmin();
+  const { unreadCount } = useTransitAlerts();
+  const alertsGated = usePlanGate('transit_alerts');
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) toast.error(error.message);
@@ -54,6 +58,21 @@ export function AppLayout() {
                 )}>
                 <Shield className="h-4 w-4" />
                 <span className="hidden sm:inline">Admin</span>
+              </NavLink>
+            )}
+            {alertsGated && (
+              <NavLink to="/app/notifications"
+                className={({ isActive }) => cn(
+                  'relative inline-flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm transition-colors',
+                  isActive ? 'bg-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary'
+                )}>
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-saffron px-1 text-[10px] font-bold text-white">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+                <span className="hidden sm:inline">Alerts</span>
               </NavLink>
             )}
             {user && (

@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.calculate-kundli]
 verify_jwt = false
+
+[functions.transit-scan]
+verify_jwt = false
+# Schedule: daily at 02:00 UTC via Supabase cron (pg_cron):
+#   select cron.schedule('transit-scan-daily', '0 2 * * *',
+#     $$select net.http_post(
+#       url := '<SUPABASE_URL>/functions/v1/transit-scan',
+#       headers := '{"Authorization": "Bearer <SERVICE_ROLE_KEY>"}'::jsonb
+#     ) $$);

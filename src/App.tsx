@@ -39,6 +39,7 @@ const ResearchLab = lazy(() => import("./pages/app/ResearchLab"));
 const VargaExplorer = lazy(() => import("./pages/app/VargaExplorer"));
 const Prashna = lazy(() => import("./pages/app/Prashna"));
 const BusinessNew = lazy(() => import("./pages/app/BusinessNew"));
+const Notifications = lazy(() => import("./pages/app/Notifications"));
 const TwinsNew = lazy(() => import("./pages/app/TwinsNew"));
 const TwinsCompare = lazy(() => import("./pages/app/TwinsCompare"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -97,6 +98,7 @@ const App = () => (
               <Route path="chart/:id/varshphal" element={<Varshphal />} />
               <Route path="chart/:id/lab" element={<ResearchLab />} />
               <Route path="prashna" element={<Prashna />} />
+              <Route path="notifications" element={<Notifications />} />
               <Route path="business/new" element={<BusinessNew />} />
               <Route path="twins/new" element={<TwinsNew />} />
               <Route path="twins/:idA/:idB" element={<TwinsCompare />} />

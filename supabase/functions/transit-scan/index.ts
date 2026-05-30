@@ -1,0 +1,133 @@
+/**
+ * Supabase Edge Function: transit-scan
+ *
+ * Scheduled daily (02:00 UTC). For every user with transit_alerts_enabled = true,
+ * loads their saved charts, runs detectUpcomingEvents, and upserts results into
+ * transit_alerts (deduplicating via chart_id + event_key).
+ *
+ * Schedule via Supabase cron: daily at 02:00 UTC
+ *   select cron.schedule('transit-scan', '0 2 * * *',
+ *     $$select net.http_post(url := '<SUPABASE_URL>/functions/v1/transit-scan',
+ *       headers := '{"Authorization": "Bearer <SERVICE_ROLE_KEY>"}'::jsonb) $$);
+ *
+ * Can also be invoked manually via POST for testing.
+ */
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { detectUpcomingEvents } from "../calculate-kundli/transit_events.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !serviceRoleKey) {
+    return new Response(
+      JSON.stringify({ error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const sb = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  try {
+    // Fetch users with alerts enabled
+    const { data: profiles, error: profErr } = await sb
+      .from("profiles")
+      .select("user_id, transit_alerts_categories")
+      .eq("transit_alerts_enabled", true);
+    if (profErr) throw profErr;
+    if (!profiles || profiles.length === 0) {
+      return new Response(
+        JSON.stringify({ ok: true, scanned: 0, inserted: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    let totalScanned = 0;
+    let totalInserted = 0;
+    let totalErrors = 0;
+
+    for (const profile of profiles) {
+      const { data: charts, error: chartErr } = await sb
+        .from("charts")
+        .select("id, snapshot, birth_details")
+        .eq("user_id", profile.user_id);
+      if (chartErr) { totalErrors++; continue; }
+      if (!charts || charts.length === 0) continue;
+
+      const categories: string[] = profile.transit_alerts_categories ?? ['all'];
+
+      for (const chart of charts) {
+        if (!chart.snapshot) continue;
+        totalScanned++;
+
+        try {
+          const snapshot = typeof chart.snapshot === 'string'
+            ? JSON.parse(chart.snapshot)
+            : chart.snapshot;
+
+          // Inject chart id if not present
+          snapshot.id = chart.id;
+
+          const events = detectUpcomingEvents(snapshot, 30);
+
+          // Filter by category preferences
+          const filtered = categories.includes('all')
+            ? events
+            : events.filter(e => categories.includes(e.type));
+
+          if (filtered.length === 0) continue;
+
+          // Upsert — ignore conflicts on (chart_id, event_key)
+          const rows = filtered.map(e => ({
+            chart_id: chart.id,
+            user_id: profile.user_id,
+            event_key: e.eventKey,
+            type: e.type,
+            severity: e.severity,
+            starts: e.starts,
+            ends: e.ends ?? null,
+            title: e.title,
+            description: e.description,
+            citation: e.citation,
+            affected_houses: e.affectedHouses ?? null,
+          }));
+
+          const { error: upsertErr } = await sb
+            .from("transit_alerts")
+            .upsert(rows, { onConflict: "chart_id,event_key", ignoreDuplicates: true });
+          if (upsertErr) {
+            console.error(`Upsert error for chart ${chart.id}:`, upsertErr);
+            totalErrors++;
+          } else {
+            totalInserted += rows.length;
+          }
+        } catch (e) {
+          console.error(`Detection error for chart ${chart.id}:`, e);
+          totalErrors++;
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ ok: true, scanned: totalScanned, inserted: totalInserted, errors: totalErrors }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (e) {
+    console.error("transit-scan error:", e);
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+});
