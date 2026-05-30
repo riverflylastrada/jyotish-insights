@@ -31,10 +31,12 @@ Two modes serve two needs:
 ## Where we are today
 
 The platform delivers a **Swiss-Ephemeris-grade** engine: 19 divisional charts
-(including D-81 / D-108 / D-144 high-divisional vargas), 8 dasha systems
+(including D-81 / D-108 / D-144 high-divisional vargas), 12 dasha systems
 (Vimshottari + Yogini + Ashtottari + Kalachakra + Jaimini Chara + Narayana +
-Lagna Kendradi + Sudasa), a
-**44-yoga catalog** (with cancellation rules), doshas, Ashtakavarga, Panchang,
+Lagna Kendradi + Sudasa + Drigdasa + Shoola + Dwisaptati-sama + Shat-trimsa-sama
+— the last two conditional), a
+**153-yoga catalog** (with cancellation rules, including the 32 Nabhasa yogas
+and a full Raja/Dhana/Aristha/Daridra/Sanyasa breakdown), doshas, Ashtakavarga, Panchang,
 **six-source Shadbala** (+ Ishta/Kashta phala, Vimsopaka & Vargeeya bala),
 **Bhava Bala**, **KP (with Placidus cuspal sub-lords)**, full **Jaimini** (Chara
 Karakas, Karakamsa, Arudha, Special Lagnas, Chara Dasha), **Varshphal** (annual
@@ -267,6 +269,31 @@ Product gaps: transit alerts, monetization.
   सुदशा). The Interactive Dasha focus panel from #50 already handles
   sign-based dashas — no refactor needed. Total now 8 dasha systems.
   (PR #67.) Snapshot version bumped to 20.
+- ✅ **Four more dasha systems — Drigdasa, Shoola, Dwisaptati-sama,
+  Shat-trimsa-sama**
+  ([drigdasa.ts](supabase/functions/calculate-kundli/drigdasa.ts),
+  [shoola.ts](supabase/functions/calculate-kundli/shoola.ts),
+  [dwisaptati.ts](supabase/functions/calculate-kundli/dwisaptati.ts),
+  [shat_trimsa.ts](supabase/functions/calculate-kundli/shat_trimsa.ts) +
+  tests) — Drigdasa (aspect-based rasi dasha from Atmakaraka, Jaimini Sutra
+  Pada 4 / Sanjay Rath); Shoola (longevity timing rasi dasha, Phaladeepika
+  Ch. 8 / KN Rao); and the two **conditional Vimshottari variants** cited to
+  BPHS Ch. 47 — Dwisaptati-sama (72-year, fires when Lagna lord is in the
+  7th or 7th lord in Lagna) and Shat-trimsa-sama (36-year, fires when Sun
+  is in Lagna or Sun is Atmakaraka in a kendra). Conditional dashas return
+  null when their applicability rule doesn't fire, and their Dashas-page
+  tabs include a tooltip explaining the condition. **Total now 12 dasha
+  systems.** (PR #70.) Snapshot version bumped to 21.
+- ✅ **Yoga catalog expanded 44 → 153**
+  ([yogas.ts](supabase/functions/calculate-kundli/yogas.ts)) — meets the
+  150+ target. Adds the **32 Nabhasa yogas** (BPHS Ch. 36 — Ashraya, Dala,
+  Akriti, Sankhya groups), a fuller Raja-yoga catalog with Rajabhanga
+  cancellations, expanded Dhana yogas, and new **Aristha / Daridra /
+  Sanyasa** categories. Each new yoga cites its BPHS / Saravali /
+  Phaladeepika / Brihat Jataka source inline. 213 source citations added.
+  Yogas.tsx CATEGORY_LABELS extended for the three new categories. Existing
+  44 yogas' tests still pass on reference charts. (PR #71.) Snapshot
+  version bumped to 21.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
@@ -284,10 +311,10 @@ Product gaps: transit alerts, monetization.
 ## Near-term
 
 ### Optional engine additions (the core engine is otherwise complete)
-- ⬜ **More dasha systems** — Drigdasa, Shoola, and conditional dashas
-  (Vimshottari, Yogini, Ashtottari, Kalachakra, Jaimini Chara, Narayana,
-  Lagna Kendradi, and Sudasa already ship — 8 systems total); see Mid-term
-  for the full target list.
+- ✅ **More dasha systems** — Drigdasa, Shoola, Dwisaptati-sama, and
+  Shat-trimsa-sama all ship (12 systems total including Vimshottari, Yogini,
+  Ashtottari, Kalachakra, Jaimini Chara, Narayana, Lagna Kendradi, and Sudasa).
+  The two conditional systems appear only when their applicability fires.
 
 ### Engine accuracy polish
 - ✅ **Avasthas** — Baladi, Jagradadi, Deeptadi planetary states (BPHS Ch. 45)
@@ -451,21 +478,18 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 ## Mid-term
 
 ### Additional classical systems
-- ⬜ **More dasha systems** (target: 12+) — beyond shipped Vimshottari, Jaimini
-  Chara, Yogini, Ashtottari, Kalachakra, Narayana, Lagna Kendradi, and Sudasa
-  (8 already ship):
-  - Drigdasa (aspect-based ordering)
-  - Shoola (death/health rasi dasha)
-  - 💡 Conditional dashas (Dwisaptati-sama, Shat-trimsa-sama — apply only when
-    specific birth conditions are met)
-- ⬜ **Expanded yoga catalog** (target: 150+) — 44 yogas with cancellation rules
-  already ship; grow toward:
-  - 32 Nabhasa yogas (Ashraya, Dala, Akriti, Sankhya groups)
-  - Raja yoga catalog with Rajabhanga cancellation rules
-  - Dhana yogas (wealth) with gradations
-  - Aristha yogas (health) with longevity implications
-  - Daridra, Sanyasa, Kemadruma yogas + cancellation rules
-  - Each yoga presented as interactive condition checklist (Research Lab style)
+- ✅ **More dasha systems** (target: 12+) — 12 systems now ship: Vimshottari,
+  Yogini, Ashtottari, Kalachakra, Jaimini Chara, Narayana, Lagna Kendradi,
+  Sudasa, Drigdasa, Shoola, plus the conditional Dwisaptati-sama (72-year,
+  applies when Lagna lord ↔ 7th interchange) and Shat-trimsa-sama (36-year,
+  applies when Sun is in Lagna or AK-in-kendra). The two conditional systems
+  return null for charts where the rule doesn't fire.
+- ✅ **Expanded yoga catalog** (target: 150+) — **153 yogas** now ship,
+  organised by category: Raja, Dhana, Pancha Mahapurusha, the **32 Nabhasa
+  yogas** (Ashraya, Dala, Akriti, Sankhya groups — BPHS Ch. 36), Chandra,
+  Surya, **Aristha**, **Daridra**, **Sanyasa**, and Other — with cancellation
+  / Rajabhanga rules and per-yoga BPHS / Saravali / Phaladeepika citations.
+  Each renders as an interactive condition card on the Yogas page.
 - 🟡 **Divisional chart expansion** (target: 23+ vargas) — D-81 (Nava-Navamsa),
   D-108 (Ashtottaramsa), and D-144 (Dwadas-Dwadasamsa) already ship (19 total);
   still planned: D-2 / D-3 / D-4 / D-8 scheme variants (Parashari, Kashinatha,
