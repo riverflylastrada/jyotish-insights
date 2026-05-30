@@ -32,6 +32,9 @@ import { computeVarshphal } from "./varshphal.ts";
 import { detectTajikYogas } from "./tajik_yogas.ts";
 import { computeVargeeyaBala } from "./vargeeya_bala.ts";
 import { buildKalachakraDasha } from "./kalachakra.ts";
+import { buildNarayanaDasha } from "./narayana.ts";
+import { buildLagnaKendradiDasha } from "./lagna_kendradi.ts";
+import { buildSudasaDasha } from "./sudasa.ts";
 import { computeVimsopakaBala } from "./vimsopaka.ts";
 import { kpHoraryLongitude } from "./kp_horary.ts";
 import { computeAvasthas } from "./avasthas.ts";
@@ -183,6 +186,9 @@ export async function calculateKundli(details: BirthDetails) {
     buildYoginiDasha(moonSid, birthDate),
     buildAshtottariDasha(moonSid, birthDate),
     buildKalachakraDasha(moonSid, birthDate),
+    buildNarayanaDasha(d1Planets, ascSign, birthDate),
+    buildLagnaKendradiDasha(d1Planets, ascSign, birthDate),
+    buildSudasaDasha(d1Planets, ascSign, birthDate, divCharts),
   ];
 
   // Yogas & Doshas
@@ -298,7 +304,7 @@ export async function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 19,
+    snapshotVersion: 20,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry

@@ -20,14 +20,17 @@ import {
 /* ------------------------------------------------------------------ */
 
 const SYSTEM_META: Record<DashaSystem['system'], { label: string; cycle: string; tagline: string }> = {
-  vimshottari: { label: 'Vimshottari', cycle: '120 year cycle', tagline: 'Standard nakshatra-based maha-dasha sequence.' },
-  yogini:      { label: 'Yogini',      cycle: '36 year cycle',  tagline: 'Eight yoginis ruling shorter dasha periods.' },
-  ashtottari:  { label: 'Ashtottari',  cycle: '108 year cycle', tagline: 'Ashtottari maha-dasha sequence used in some lineages.' },
-  char:        { label: 'Char',        cycle: '—',              tagline: 'Char dasha.' },
-  kalachakra:  { label: 'Kalachakra',  cycle: 'sign-based cycle', tagline: 'Sign-based dasha using Savya/Apasavya nakshatra-pada groups.' },
+  vimshottari:    { label: 'Vimshottari',                   cycle: '120 year cycle',    tagline: 'Standard nakshatra-based maha-dasha sequence.' },
+  yogini:         { label: 'Yogini',                        cycle: '36 year cycle',     tagline: 'Eight yoginis ruling shorter dasha periods.' },
+  ashtottari:     { label: 'Ashtottari',                    cycle: '108 year cycle',    tagline: 'Ashtottari maha-dasha sequence used in some lineages.' },
+  char:           { label: 'Char',                          cycle: '—',                 tagline: 'Char dasha.' },
+  kalachakra:     { label: 'Kalachakra',                    cycle: 'sign-based cycle',  tagline: 'Sign-based dasha using Savya/Apasavya nakshatra-pada groups.' },
+  narayana:       { label: 'Narayana (नारायण)',               cycle: 'rasi-based cycle',  tagline: 'Padakrama rasi dasha — zodiacal for odd signs, anti-zodiacal for even (Sanjay Rath / Jaimini Sutra 2.3).' },
+  lagna_kendradi: { label: 'Lagna Kendradi (लग्न केन्द्रादि)', cycle: 'rasi-based cycle',  tagline: 'Strength-ordered rasi dasha — kendras first, then panaphara, then apoklima (KN Rao / Jaimini Sutra).' },
+  sudasa:         { label: 'Sudasa (सुदशा)',                  cycle: 'rasi-based cycle',  tagline: 'Wealth dasha from the D-2 (Hora) chart — times prosperity periods (Jaimini Sutra Pada 4).' },
 };
 
-const SYSTEM_ORDER: DashaSystem['system'][] = ['vimshottari', 'yogini', 'ashtottari', 'char', 'kalachakra'];
+const SYSTEM_ORDER: DashaSystem['system'][] = ['vimshottari', 'yogini', 'ashtottari', 'char', 'kalachakra', 'narayana', 'lagna_kendradi', 'sudasa'];
 
 type Depth = 'visual' | 'explain' | 'math';
 
@@ -311,6 +314,41 @@ export default function Dashas() {
                 is determined by the distance of the sign lord from that sign (odd signs count
                 forward, even signs count backward). Duration = distance in signs − 1 years
                 (with exceptions per KN Rao&apos;s method).
+              </p>
+            </div>
+          )}
+          {current.system === 'narayana' && (
+            <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
+              <div className="text-eyebrow text-brand-saffron">Math Proof — Narayana (Padakrama) Dasha</div>
+              <p className="mt-2 text-sm text-text-secondary">
+                Rasi-based maha-dasha starting from Lagna. <strong>Odd signs → zodiacal</strong>,
+                <strong>even signs → anti-zodiacal</strong> (per Maharishi Jaimini). Each rasi&apos;s duration
+                = distance (in signs) from that rasi to its lord&apos;s placement, counted in the rasi&apos;s
+                natural direction. Lord-in-own-sign → 12 years. Cite: Sanjay Rath, &ldquo;Jaimini
+                Maharishi&apos;s Upadesa Sutras&rdquo; + Jaimini Sutra 2.3.
+              </p>
+            </div>
+          )}
+          {current.system === 'lagna_kendradi' && (
+            <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
+              <div className="text-eyebrow text-brand-saffron">Math Proof — Lagna Kendradi Dasha</div>
+              <p className="mt-2 text-sm text-text-secondary">
+                Strength-ordered rasi dasha. Lagna&apos;s sign first, then kendras (4th/7th/10th from
+                Lagna) ranked by Padakrama strength, then panaphara (2/5/8/11), then apoklima
+                (3/6/9/12). Duration = same signs-to-lord formula as Narayana. Cite: Jaimini
+                Sutra + KN Rao &ldquo;Predicting Through Jaimini&apos;s Chara Dasha.&rdquo;
+              </p>
+            </div>
+          )}
+          {current.system === 'sudasa' && (
+            <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
+              <div className="text-eyebrow text-brand-saffron">Math Proof — Sudasa (Wealth Dasha)</div>
+              <p className="mt-2 text-sm text-text-secondary">
+                Computed from the <strong>D-2 (Hora)</strong> chart. Identifies the Hora-ascendant;
+                signs are ordered by strength (kendras → panaphara → apoklima from Hora-Lagna).
+                Duration = distance from dasha rasi to its Hora-chart lord. Used to time wealth
+                and prosperity periods. Cite: Jaimini Sutra Pada 4 + KN Rao &ldquo;Astrology of
+                Wealth Sudasa.&rdquo;
               </p>
             </div>
           )}

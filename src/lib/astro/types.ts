@@ -72,7 +72,7 @@ export interface DashaPeriod {
 }
 
 export interface DashaSystem {
-  system: 'vimshottari' | 'yogini' | 'char' | 'ashtottari' | 'kalachakra';
+  system: 'vimshottari' | 'yogini' | 'char' | 'ashtottari' | 'kalachakra' | 'narayana' | 'lagna_kendradi' | 'sudasa';
   currentMahaDasha: DashaPeriod;
   timeline: DashaPeriod[];
 }
@@ -341,7 +341,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 19;
+export const CURRENT_SNAPSHOT_VERSION = 20;
 
 export interface KundliData {
   id: string;
