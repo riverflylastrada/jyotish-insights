@@ -1,11 +1,12 @@
 import { Fragment, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import type { DashaPeriod, DashaSystem } from '@/lib/astro/types';
-
-const PLANET_KEY: Record<string, string> = {
-  Sun: 'sun', Moon: 'moon', Mars: 'mars', Mercury: 'mercury', Jupiter: 'jupiter',
-  Venus: 'venus', Saturn: 'saturn', Rahu: 'rahu', Ketu: 'ketu',
-};
+import {
+  type Graha, type FunctionalStatus,
+  resolveDashaLord, functionalStatus,
+  FUNCTIONAL_STATUS_BORDER, FUNCTIONAL_STATUS_LABEL,
+  PLANET_KEY,
+} from '@/lib/astro/dashaUtils';
 
 function planetColor(name: string) {
   const k = PLANET_KEY[name] ?? 'saturn';
@@ -39,13 +40,36 @@ function buildVimsPratyantar(parent: DashaPeriod): DashaPeriod[] {
   });
 }
 
-interface Props {
-  system: DashaSystem;
-  /** Show synthetic pratyantar fallback when a Maha has no children (Vimshottari only). */
-  syntheticPratyantar?: boolean;
+export interface SelectedPeriodInfo {
+  planet: string;
+  label: string;
+  level: string;
 }
 
-export function DashaTimeline({ system, syntheticPratyantar = false }: Props) {
+interface Props {
+  system: DashaSystem;
+  syntheticPratyantar?: boolean;
+  ascSign?: number;
+  onPeriodSelect?: (info: SelectedPeriodInfo | null) => void;
+  selectedLabel?: string;
+}
+
+function statusBorder(planet: string, ascSign: number | undefined): string | undefined {
+  if (ascSign == null) return undefined;
+  const graha = resolveDashaLord(planet);
+  if (!graha) return undefined;
+  const status: FunctionalStatus = functionalStatus(graha, ascSign);
+  return FUNCTIONAL_STATUS_BORDER[status];
+}
+
+function statusTip(planet: string, ascSign: number | undefined): string {
+  if (ascSign == null) return '';
+  const graha = resolveDashaLord(planet);
+  if (!graha) return '';
+  return FUNCTIONAL_STATUS_LABEL[functionalStatus(graha, ascSign)];
+}
+
+export function DashaTimeline({ system, syntheticPratyantar = false, ascSign, onPeriodSelect, selectedLabel }: Props) {
   const [openMaha, setOpenMaha] = useState<string | null>(null);
   const [openAntar, setOpenAntar] = useState<string | null>(null);
   const now = Date.now();
@@ -70,6 +94,15 @@ export function DashaTimeline({ system, syntheticPratyantar = false }: Props) {
   const span = range.end - range.start;
   const nowPct = ((now - range.start) / span) * 100;
   const inRange = nowPct >= 0 && nowPct <= 100;
+
+  const handleSelect = (planet: string, label: string, level: string) => {
+    if (!onPeriodSelect) return;
+    if (selectedLabel === label) {
+      onPeriodSelect(null);
+    } else {
+      onPeriodSelect({ planet, label, level });
+    }
+  };
 
   return (
     <>
@@ -111,6 +144,18 @@ export function DashaTimeline({ system, syntheticPratyantar = false }: Props) {
           <span>{dayjs(range.start).format('YYYY')}</span>
           <span>{dayjs(range.end).format('YYYY')}</span>
         </div>
+
+        {/* Functional status legend */}
+        {ascSign != null && (
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-text-tertiary">
+            {(['yogakaraka', 'benefic', 'neutral', 'malefic'] as FunctionalStatus[]).map((st) => (
+              <span key={st} className="inline-flex items-center gap-1">
+                <span className="h-2.5 w-0.5 rounded-full" style={{ background: FUNCTIONAL_STATUS_BORDER[st] }} />
+                {FUNCTIONAL_STATUS_LABEL[st]}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-8 overflow-hidden rounded-md border border-hairline-subtle bg-surface shadow-sm">
@@ -133,14 +178,20 @@ export function DashaTimeline({ system, syntheticPratyantar = false }: Props) {
               const key = p.planet + p.startDate;
               const isOpen = openMaha === key;
               const antars = p.children ?? (syntheticPratyantar ? buildVimsPratyantar(p) : []);
+              const mahaLabel = p.planet;
+              const isSel = selectedLabel === mahaLabel;
+              const border = statusBorder(p.planet, ascSign);
               return (
                 <Fragment key={key}>
                   <tr
                     onClick={() => {
                       setOpenMaha(isOpen ? null : key);
                       setOpenAntar(null);
+                      handleSelect(p.planet, mahaLabel, 'maha');
                     }}
-                    className={`cursor-pointer hover:bg-elevated/60 ${active ? 'bg-brand-saffron/5' : ''}`}
+                    title={statusTip(p.planet, ascSign)}
+                    className={`cursor-pointer transition-colors hover:bg-elevated/60 ${active ? 'bg-brand-saffron/5' : ''} ${isSel ? 'ring-1 ring-inset ring-brand-saffron/40' : ''}`}
+                    style={border ? { borderLeft: `3px solid ${border}` } : undefined}
                   >
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-2">
@@ -164,14 +215,20 @@ export function DashaTimeline({ system, syntheticPratyantar = false }: Props) {
                     const aKey = key + a.planet + a.startDate;
                     const aOpen = openAntar === aKey;
                     const prats = a.children ?? (syntheticPratyantar ? buildVimsPratyantar(a) : []);
+                    const antarLabel = `${p.planet} → ${a.planet}`;
+                    const aIsSel = selectedLabel === antarLabel;
+                    const aBorder = statusBorder(a.planet, ascSign);
                     return (
                       <Fragment key={aKey}>
                         <tr
                           onClick={(ev) => {
                             ev.stopPropagation();
                             setOpenAntar(aOpen ? null : aKey);
+                            handleSelect(a.planet, antarLabel, 'antar');
                           }}
-                          className={`cursor-pointer bg-canvas hover:bg-elevated/40 ${aActive ? 'bg-brand-saffron/5' : ''}`}
+                          title={statusTip(a.planet, ascSign)}
+                          className={`cursor-pointer bg-canvas hover:bg-elevated/40 ${aActive ? 'bg-brand-saffron/5' : ''} ${aIsSel ? 'ring-1 ring-inset ring-brand-saffron/40' : ''}`}
+                          style={aBorder ? { borderLeft: `3px solid ${aBorder}` } : undefined}
                         >
                           <td className="py-2 pl-10 pr-4">
                             <span className="inline-flex items-center gap-2 text-text-secondary">
@@ -190,8 +247,20 @@ export function DashaTimeline({ system, syntheticPratyantar = false }: Props) {
                           const ps = new Date(pr.startDate).getTime();
                           const pe = new Date(pr.endDate).getTime();
                           const prActive = ps <= now && pe > now;
+                          const prLabel = `${p.planet} → ${a.planet} → ${pr.planet}`;
+                          const prIsSel = selectedLabel === prLabel;
+                          const prBorder = statusBorder(pr.planet, ascSign);
                           return (
-                            <tr key={aKey + pr.planet + pr.startDate} className={`bg-canvas/60 ${prActive ? 'bg-brand-saffron/5' : ''}`}>
+                            <tr
+                              key={aKey + pr.planet + pr.startDate}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleSelect(pr.planet, prLabel, 'pratyantar');
+                              }}
+                              title={statusTip(pr.planet, ascSign)}
+                              className={`cursor-pointer bg-canvas/60 hover:bg-elevated/30 ${prActive ? 'bg-brand-saffron/5' : ''} ${prIsSel ? 'ring-1 ring-inset ring-brand-saffron/40' : ''}`}
+                              style={prBorder ? { borderLeft: `3px solid ${prBorder}` } : undefined}
+                            >
                               <td className="py-1.5 pl-16 pr-4 text-xs text-text-tertiary">{p.planet} → {a.planet} → {pr.planet}</td>
                               <td className="px-4 py-1.5 font-mono text-xs text-text-tertiary">{dayjs(ps).format('DD MMM YYYY')}</td>
                               <td className="px-4 py-1.5 font-mono text-xs text-text-tertiary">{dayjs(pe).format('DD MMM YYYY')}</td>
