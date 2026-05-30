@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Microscope } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { useChartStore } from '@/stores/useChartStore';
 import { KundliChart, KundliFrame } from '@/components/kundli/KundliChart';
@@ -36,6 +36,7 @@ export default function DivisionalCharts() {
           <h1 className="mt-1 font-display text-h1 text-text-primary">Divisional Charts</h1>
           <p className="mt-2 max-w-2xl text-body text-text-secondary">
             Each varga is a magnification of a specific area of life — a refraction of the natal Rasi through a different harmonic lens.
+            Tap <Microscope className="inline h-3.5 w-3.5 text-brand-maroon" /> to explore any varga interactively.
           </p>
         </div>
         <div className="flex rounded-sm border border-hairline-subtle p-0.5 text-xs">
@@ -49,10 +50,22 @@ export default function DivisionalCharts() {
       <div className="grid gap-6 lg:grid-cols-2">
         <KundliFrame title={`${focusedChart.varga} · ${focusedChart.vargaName}`} subtitle={focusedChart.significance}>
           <KundliChart chart={focusedChart} style={chartStyle} size={420} />
+          <Link
+            to={`/app/chart/${id}/charts/${focusedChart.varga}`}
+            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-sm border border-brand-maroon/30 bg-surface px-3 py-1.5 text-sm text-brand-maroon hover:bg-elevated transition-colors"
+          >
+            <Microscope className="h-4 w-4" /> Explore {focusedChart.varga} interactively
+          </Link>
         </KundliFrame>
         {compareChart ? (
           <KundliFrame title={`${compareChart.varga} · ${compareChart.vargaName}`} subtitle={compareChart.significance}>
             <KundliChart chart={compareChart} style={chartStyle} size={420} />
+            <Link
+              to={`/app/chart/${id}/charts/${compareChart.varga}`}
+              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-sm border border-brand-maroon/30 bg-surface px-3 py-1.5 text-sm text-brand-maroon hover:bg-elevated transition-colors"
+            >
+              <Microscope className="h-4 w-4" /> Explore {compareChart.varga} interactively
+            </Link>
           </KundliFrame>
         ) : (
           <div className="flex items-center justify-center rounded-md border border-dashed border-hairline-subtle bg-surface p-8 text-sm text-text-tertiary">
@@ -73,17 +86,26 @@ export default function DivisionalCharts() {
                 <button onClick={() => setFocused(c.varga)} className="block w-full">
                   <KundliChart chart={c} style={chartStyle} size={200} />
                 </button>
-                <div className="mt-3 flex items-baseline justify-between">
-                  <div>
+                <div className="mt-3 flex items-baseline justify-between gap-1">
+                  <div className="min-w-0 flex-1">
                     <div className="font-mono text-xs text-text-tertiary">{c.varga}</div>
                     <div className="font-display text-sm text-text-primary">{c.vargaName}</div>
                   </div>
-                  <button
-                    onClick={() => setCompare(compare === c.varga ? null : c.varga)}
-                    className={`rounded-sm border px-2 py-0.5 text-eyebrow ${isCompare ? 'border-brand-saffron bg-brand-saffron/10 text-brand-saffron' : 'border-hairline-subtle text-text-tertiary hover:text-text-primary'}`}
-                  >
-                    {isCompare ? 'Comparing' : 'Compare'}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <Link
+                      to={`/app/chart/${id}/charts/${c.varga}`}
+                      className="rounded-sm border border-hairline-subtle p-1 text-text-tertiary hover:border-brand-maroon/40 hover:text-brand-maroon transition-colors"
+                      title={`Explore ${c.varga} interactively`}
+                    >
+                      <Microscope className="h-3.5 w-3.5" />
+                    </Link>
+                    <button
+                      onClick={() => setCompare(compare === c.varga ? null : c.varga)}
+                      className={`rounded-sm border px-2 py-0.5 text-eyebrow ${isCompare ? 'border-brand-saffron bg-brand-saffron/10 text-brand-saffron' : 'border-hairline-subtle text-text-tertiary hover:text-text-primary'}`}
+                    >
+                      {isCompare ? 'Comparing' : 'Compare'}
+                    </button>
+                  </div>
                 </div>
                 <p className="mt-2 line-clamp-2 text-xs text-text-tertiary">{c.significance}</p>
               </div>
