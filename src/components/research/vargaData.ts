@@ -161,10 +161,38 @@ export const VARGA_META: Record<VargaCode, VargaMeta> = {
     formula: 'Each sign divided into 60 equal arcs of 0°30′. Each arc carries a named deity (Ghora, Rakshasa, Deva, Kubera, etc.) determining benefic/malefic nature.',
     cite: 'BPHS Ch. 7.30–33 — "Shashtiamsa is the ultimate test of planetary dignity."',
   },
+  D81: {
+    code: 'D81',
+    name: 'Nava-Navamsa',
+    purpose: 'Navamsa-of-navamsa — the finest marriage/dharma lens, refining D-9 analysis.',
+    factor: 81,
+    arcDeg: '0°22′13.33″',
+    formula: 'Each sign divided into 81 sub-segments (9 × 9). Compute the D-9 sign, then apply the D-9 mapping again within that navamsa arc. Fire → Aries, Earth → Capricorn, Air → Libra, Water → Cancer start.',
+    cite: 'BPHS Ch. 7 + Sanjay Rath "Vargas" treatise — navamsa-of-navamsa variant.',
+  },
+  D108: {
+    code: 'D108',
+    name: 'Ashtottaramsa',
+    purpose: 'Deep karmic sub-layer used in Ashtottari-dasha contexts.',
+    factor: 108,
+    arcDeg: '0°16′40″',
+    formula: 'Each sign divided into 108 sub-segments (9 × 12). Compute the D-12 sign (dwadasamsa), then apply the D-9 (navamsa) mapping within that dwadasamsa arc.',
+    cite: 'BPHS Ch. 7 — Ashtottaramsa.',
+  },
+  D144: {
+    code: 'D144',
+    name: 'Dwadas-Dwadasamsa',
+    purpose: 'Dwadasamsa-of-dwadasamsa — ancestral micro-lens for parental lineage.',
+    factor: 144,
+    arcDeg: '0°12′30″',
+    formula: 'Each sign divided into 144 sub-segments (12 × 12). Compute the D-12 sign, then apply the D-12 mapping again within that dwadasamsa arc.',
+    cite: 'BPHS Ch. 7 — Dwadas-Dwadasamsa.',
+  },
 };
 
 /** All varga codes in standard order. */
 export const VARGA_CODES: VargaCode[] = [
   'D1', 'D2', 'D3', 'D4', 'D7', 'D9', 'D10', 'D12',
   'D16', 'D20', 'D24', 'D27', 'D30', 'D40', 'D45', 'D60',
+  'D81', 'D108', 'D144',
 ];

@@ -46,8 +46,9 @@ API is required.
 - **Unknown Birth Time support** — cast a chart without a known birth time via
   a Solar (Sun-as-Lagna), Moon (Moon-as-Lagna), or **KP Horary (1–249)** chart
   basis.
-- **16 divisional charts (Vargas)** — D1 (Rasi) through D60 (Shashtiamsa) with
-  per-varga significance and interpretation.
+- **19 divisional charts (Vargas)** — D1 (Rasi) through D144 (Dwadas-Dwadasamsa)
+  with per-varga significance and interpretation, including three high-divisional
+  vargas: D81 (Nava-Navamsa), D108 (Ashtottaramsa), and D144 (Dwadas-Dwadasamsa).
 - **Dasha systems** — **Vimshottari** (120-yr, five sub-period levels Maha →
   Antar → Pratyantar → Sookshma → Prana, live "now" marker), plus **Yogini**
   (36-yr), **Ashtottari** (108-yr), **Kalachakra**, and **Jaimini Chara**

@@ -732,7 +732,7 @@ export default function Panchang() {
         <div className="mt-12 rounded-md border border-brand-maroon/20 bg-elevated p-8 text-center">
           <h2 className="font-display text-h2 text-text-primary">Want a full birth chart analysis?</h2>
           <p className="mt-2 text-sm text-text-secondary">
-            Sign up for a free account — generate your Kundli, run multi-guru debates, explore 16 vargas and dashas.
+            Sign up for a free account — generate your Kundli, run multi-guru debates, explore 19 vargas and dashas.
           </p>
           <Link
             to="/app/new"
