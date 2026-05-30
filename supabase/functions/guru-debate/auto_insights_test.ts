@@ -117,8 +117,8 @@ Deno.test("auto-insights: rejects incomplete houses (missing house 12)", () => {
 
 Deno.test("auto-insights: accepts empty yogas/doshas", () => {
   const p = makeValidPayload();
-  p.yogas = {};
-  p.doshas = {};
+  (p as Record<string, unknown>).yogas = {};
+  (p as Record<string, unknown>).doshas = {};
   assertEquals(validateAutoInsightsJson(p), true);
 });
 
