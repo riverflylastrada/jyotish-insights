@@ -46,12 +46,14 @@ each PR.
 **Engine vs. UI:** the **core engine is feature-complete**, and the **initial UI
 surfacing phase has shipped** — Strengths, KP, Jaimini, and Varshphal pages, plus
 a multi-system Dashas page (Vimshottari / Yogini / Ashtottari / Chara /
-Kalachakra). The **Interactive Research Lab** is underway — Phases 1–4 complete
-(Interactive D1, Unknown Birth Time, interactive Yogas + Doshas, Interactive
-Dasha + Divisional, Interactive Ashtakavarga + Shadbala + KP + Transits), plus
-all four **Specialized Kundli types** (Prashna, Twins, Business, public
-Mundane). Next focus: **Phase 5** (template insight database) and **monetization**
-(Razorpay billing). Product gaps: transit alerts, monetization.
+Kalachakra). The **Interactive Research Lab is feature-complete** — all five
+phases shipped (Interactive D1, Unknown Birth Time, interactive Yogas + Doshas
+with structured conditions/cancellations, Interactive Dasha + Divisional,
+Interactive Ashtakavarga + Shadbala + KP + Transits, 108-entry classical
+planet-in-house templates, and pre-computed Guru snapshots cached per chart) —
+plus all four **Specialized Kundli types** (Prashna, Twins, Business, public
+Mundane). Next focus: **monetization** (Razorpay billing + plan gating).
+Product gaps: transit alerts, monetization.
 
 ---
 
@@ -213,17 +215,32 @@ Mundane). Next focus: **Phase 5** (template insight database) and **monetization
   byte-identical to the pre-refactor output. Doshas page renders a true
   ✓/✗-per-rule checklist with arrows from cancelling rows to the condition they
   cancel. (PR #58.) Snapshot version bumped to 17.
+- ✅ **Research Lab — Phase 5a: 108 D1 planet-in-house templates**
+  ([planetInHouse.ts](src/lib/astro/planetInHouse.ts)) — exactly 9 × 12
+  classical interpretation entries (brief + full + citation + keywords) drawn
+  from BPHS Ch. 24 with Saravali / Phaladeepika fallbacks for the nodes.
+  Surfaced on the Research Lab Explain depth layer when a planet is selected
+  on D1. Pure frontend; zero LLM cost; deterministic.
+- ✅ **Research Lab — Phase 5b: Pre-computed Guru snapshots**
+  ([guru-debate/index.ts](supabase/functions/guru-debate/index.ts),
+  [validate_auto_insights.ts](supabase/functions/guru-debate/validate_auto_insights.ts)) —
+  new `auto-insights` mode generates per-planet / per-dasha / per-yoga /
+  per-dosha / per-house mini-readings in a single LLM call at chart creation
+  and caches them in the snapshot. Surfaced on tap in ResearchLab / Yogas /
+  Doshas / Dashas / ChartDetail. Feature flag `app_settings.auto_insights_enabled`;
+  failure non-fatal; server-side JSON schema validation; `calculateKundli`
+  becomes async to await the LLM call. (PR #61.) Snapshot version bumped to 18.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
 > engine is feature-complete**, the **initial UI surfacing phase has shipped**,
-> and the **Interactive Research Lab is underway** — Phases 1–4 have shipped
-> (Interactive D1, Unknown Birth Time, interactive Yogas, interactive Doshas,
-> Interactive Dasha, Interactive Divisional, Interactive Ashtakavarga, Shadbala,
-> KP, Transits), plus all four **Specialized Kundli types** (Prashna, Twins,
-> Business, Mundane). Next focus: **Phase 5** (Template insight database +
-> pre-computed Guru snapshots) and **monetization** (Razorpay billing + plan
-> gating).
+> and the **Interactive Research Lab is now feature-complete** — all five phases
+> shipped (Interactive D1, Unknown Birth Time, interactive Yogas + Doshas with
+> structured conditions/cancellations, Interactive Dasha + Divisional,
+> Interactive Ashtakavarga + Shadbala + KP + Transits, 108 classical
+> planet-in-house templates, and pre-computed Guru snapshots per chart), plus
+> all four **Specialized Kundli types** (Prashna, Twins, Business, Mundane).
+> Next focus: **monetization** (Razorpay billing + plan gating).
 
 ---
 
@@ -255,11 +272,13 @@ Mundane). Next focus: **Phase 5** (template insight database) and **monetization
 > afterward is born interactive from day one. The Research Lab is the product
 > identity — not a feature.
 
-> **Status:** Phases 1–4 have shipped — Interactive D1, Unknown Birth Time,
-> interactive Yogas + Doshas, Interactive Dasha + Divisional, Interactive
-> Ashtakavarga + Shadbala + KP + Transits (see Recently shipped). **Phase 5
-> (Template insight database + pre-computed Guru snapshots) and monetization
-> (Razorpay billing) are next.**
+> **Status:** All five phases have shipped — Interactive D1, Unknown Birth
+> Time, interactive Yogas + Doshas (with structured conditions/cancellations),
+> Interactive Dasha + Divisional, Interactive Ashtakavarga + Shadbala + KP +
+> Transits, and the Phase 5 template insight database + pre-computed Guru
+> snapshots (see Recently shipped). **The Research Lab is feature-complete.**
+> Next focus: **monetization** (Razorpay billing + plan gating) and the small
+> remaining engine items (Avasthas, more dasha systems, the 150+ yoga target).
 
 ### Design principles
 1. **Show the Rule, Not Just the Result** — every statement traces to a
@@ -328,13 +347,20 @@ Mundane). Next focus: **Phase 5** (template insight database) and **monetization
   and dosha verdicts are byte-identical to pre-refactor output on the
   reference charts.
 
-### Phase 5: Template insight database
-- ⬜ **108 planet-in-house interpretations** for D1 (9 planets × 12 houses)
-  derived from BPHS Ch.24 and Saravali Ch.15–38. Deterministic, no AI needed.
-- ⬜ **Pre-computed Guru snapshots** — `auto-insights` mode in guru-debate edge
-  function: one LLM call at chart creation generates ~92 mini-readings (per
-  planet, per dasha, per yoga/dosha). Cached in snapshot for instant display on
-  tap. Cost: one additional LLM call per chart, cached forever.
+### Phase 5: Template insight database ✅
+- ✅ **108 planet-in-house interpretations** for D1 — full 9 × 12 table drawn
+  from BPHS Ch. 24 (with Saravali / Phaladeepika fallbacks for the nodes), each
+  entry with brief + full text + classical citation + thematic keywords; surfaced
+  on the Research Lab's Explain depth layer when a planet is tapped. Deterministic;
+  no LLM cost.
+- ✅ **Pre-computed Guru snapshots** — `auto-insights` mode in the guru-debate
+  edge function: ONE LLM call at chart creation generates the structured
+  mini-readings (per planet, per current+upcoming dashas, per detected yoga and
+  dosha, per house) and caches them in the snapshot. Surfaced on tap in
+  ResearchLab / Yogas / Doshas / Dashas / ChartDetail. Feature-flagged via
+  `app_settings.auto_insights_enabled`; failure non-fatal (chart still saves
+  without insights). Server-side JSON validation; cached forever until the
+  engine snapshot version bumps.
 
 ---
 
