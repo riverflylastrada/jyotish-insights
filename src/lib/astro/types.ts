@@ -105,7 +105,7 @@ export interface Dosha {
 
 export interface Yoga {
   name: string;
-  category: 'raja' | 'dhana' | 'pancha_mahapurusha' | 'nabhasa' | 'chandra' | 'sun' | 'other';
+  category: 'raja' | 'dhana' | 'pancha_mahapurusha' | 'nabhasa' | 'chandra' | 'sun' | 'aristha' | 'daridra' | 'sanyasa' | 'other';
   isPresent: boolean;
   strength: 'weak' | 'moderate' | 'strong';
   formedBy: string[];
@@ -342,7 +342,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 20;
+export const CURRENT_SNAPSHOT_VERSION = 21;
 
 export interface KundliData {
   id: string;
