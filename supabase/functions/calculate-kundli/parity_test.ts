@@ -783,6 +783,70 @@ for (const ref of REFERENCE_CHARTS) {
     assertEquals(chart.snapshotVersion! >= 2, true, "Snapshot version should be ≥ 2");
   });
 
+  // ── Ashtakavarga bhinna/sarva byte-identical + attribution ────────────
+
+  /** Frozen reference bhinna+sarva values (captured before attribution refactor). */
+  const ASHTAK_REF: Record<string, { bhinna: Record<string, number[]>; sarva: number[] }> = {
+    "Dev Chart (Dhanu Lagna)": {
+      bhinna: {"sun":[5,5,3,6,4,3,3,5,1,4,5,4],"moon":[4,5,4,2,4,4,4,5,5,2,6,4],"mars":[4,4,3,5,3,2,5,1,3,5,3,1],"mercury":[5,5,5,6,4,5,5,4,4,5,2,4],"jupiter":[4,6,6,2,5,6,5,2,6,5,5,4],"venus":[3,5,6,5,4,4,3,2,5,4,5,6],"saturn":[4,4,4,3,3,4,2,2,4,1,4,4]},
+      sarva: [29,34,31,29,27,28,27,21,28,26,30,27],
+    },
+    "Rajiv Gandhi (Simha Lagna)": {
+      bhinna: {"sun":[5,5,7,5,1,3,4,2,4,6,3,3],"moon":[2,7,7,2,4,0,7,5,2,4,6,3],"mars":[2,3,8,3,1,2,5,0,4,7,1,3],"mercury":[5,4,8,5,3,5,3,3,5,6,1,6],"jupiter":[6,6,7,1,5,7,4,5,5,3,4,3],"venus":[7,3,5,3,5,4,5,4,6,2,2,6],"saturn":[2,3,7,4,4,1,3,4,1,6,2,2]},
+      sarva: [29,31,49,23,23,22,31,23,27,34,19,26],
+    },
+    "Amitabh Bachchan (Kumbha Lagna)": {
+      bhinna: {"sun":[3,6,4,5,4,2,2,4,6,3,3,6],"moon":[5,3,5,8,1,2,4,5,4,4,3,5],"mars":[4,2,3,5,3,1,1,4,5,3,5,3],"mercury":[2,8,4,6,4,4,2,5,5,5,5,4],"jupiter":[5,5,6,7,3,5,7,3,4,3,5,3],"venus":[5,6,3,5,4,4,3,5,4,4,6,3],"saturn":[3,3,4,6,4,2,2,3,4,1,4,3]},
+      sarva: [27,33,29,42,23,20,21,29,32,23,31,27],
+    },
+  };
+
+  const ashtakRef = ASHTAK_REF[ref.label];
+
+  if (ashtakRef) {
+    Deno.test(`[${ref.label}] Ashtakavarga bhinna byte-identical after attribution refactor`, () => {
+      for (const p of ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"]) {
+        assertEquals(
+          chart.ashtakavarga.bhinna[p],
+          ashtakRef.bhinna[p],
+          `${p} bhinna mismatch`,
+        );
+      }
+    });
+
+    Deno.test(`[${ref.label}] Ashtakavarga sarva byte-identical after attribution refactor`, () => {
+      assertEquals(chart.ashtakavarga.sarva, ashtakRef.sarva, "sarva mismatch");
+    });
+  }
+
+  Deno.test(`[${ref.label}] Ashtakavarga attribution present and structurally valid`, () => {
+    const a = chart.ashtakavarga;
+    assertEquals(!!a.attribution, true, "attribution should exist");
+    const planets = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"];
+    for (const p of planets) {
+      const houseAttrs = a.attribution![p];
+      assertEquals(houseAttrs.length, 12, `${p}: should have 12 house entries`);
+      for (let i = 0; i < 12; i++) {
+        assertEquals(houseAttrs[i].house, i + 1, `${p}: house index ${i} should be ${i + 1}`);
+        // bindu count === contributingPositions.length
+        assertEquals(
+          a.bhinna[p][i],
+          houseAttrs[i].contributingPositions.length,
+          `${p} sign ${i}: bindu ${a.bhinna[p][i]} !== attribution count ${houseAttrs[i].contributingPositions.length}`,
+        );
+        // Each contributing position has required fields
+        for (const cp of houseAttrs[i].contributingPositions) {
+          assertEquals(typeof cp.fromReference, "string", "fromReference should be string");
+          assertEquals(cp.relativeSign >= 1 && cp.relativeSign <= 12, true,
+            `relativeSign ${cp.relativeSign} out of range`);
+          assertEquals(cp.rule.length > 0, true, "rule should be non-empty");
+          assertEquals(cp.citation.startsWith("BPHS Ch. 48"), true,
+            `citation should start with "BPHS Ch. 48", got "${cp.citation}"`);
+        }
+      }
+    }
+  });
+
   // ── Shadbala (six-source, Parashari/BPHS) ─────────────────────────────
   Deno.test(`[${ref.label}] Shadbala is computed for 7 grahas`, () => {
     const sb = chart.shadbala as { planets: Record<string, { totalRupas: number; sthanaBala: number; digBala: number; kalaBala: number; cheshtaBala: number; naisargikaBala: number; drikBala: number; required: number; ratio: number }>; rank: string[] };

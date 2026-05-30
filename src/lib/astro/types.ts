@@ -89,9 +89,24 @@ export interface Yoga {
   effects: string[];
 }
 
+export type ContribRef = 'lagna' | 'sun' | 'moon' | 'mars' | 'mercury' | 'jupiter' | 'venus' | 'saturn';
+
+export interface ContributingPosition {
+  fromReference: ContribRef;
+  relativeSign: number; // 1..12
+  rule: string;
+  citation: string;
+}
+
+export interface HouseAttribution {
+  house: number; // 1..12
+  contributingPositions: ContributingPosition[];
+}
+
 export interface AshtakavargaData {
   bhinna: Record<string, number[]>;
   sarva: number[];
+  attribution?: Record<string, HouseAttribution[]>;
 }
 
 export interface KpHouseSignificatorData {
@@ -293,7 +308,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 16;
+export const CURRENT_SNAPSHOT_VERSION = 17;
 
 export interface KundliData {
   id: string;
