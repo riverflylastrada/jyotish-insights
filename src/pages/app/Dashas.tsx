@@ -19,7 +19,7 @@ import {
 /*  System metadata                                                    */
 /* ------------------------------------------------------------------ */
 
-const SYSTEM_META: Record<DashaSystem['system'], { label: string; cycle: string; tagline: string }> = {
+const SYSTEM_META: Record<DashaSystem['system'], { label: string; cycle: string; tagline: string; tooltip?: string }> = {
   vimshottari:    { label: 'Vimshottari',                   cycle: '120 year cycle',    tagline: 'Standard nakshatra-based maha-dasha sequence.' },
   yogini:         { label: 'Yogini',                        cycle: '36 year cycle',     tagline: 'Eight yoginis ruling shorter dasha periods.' },
   ashtottari:     { label: 'Ashtottari',                    cycle: '108 year cycle',    tagline: 'Ashtottari maha-dasha sequence used in some lineages.' },
@@ -28,9 +28,13 @@ const SYSTEM_META: Record<DashaSystem['system'], { label: string; cycle: string;
   narayana:       { label: 'Narayana (नारायण)',               cycle: 'rasi-based cycle',  tagline: 'Padakrama rasi dasha — zodiacal for odd signs, anti-zodiacal for even (Sanjay Rath / Jaimini Sutra 2.3).' },
   lagna_kendradi: { label: 'Lagna Kendradi (लग्न केन्द्रादि)', cycle: 'rasi-based cycle',  tagline: 'Strength-ordered rasi dasha — kendras first, then panaphara, then apoklima (KN Rao / Jaimini Sutra).' },
   sudasa:         { label: 'Sudasa (सुदशा)',                  cycle: 'rasi-based cycle',  tagline: 'Wealth dasha from the D-2 (Hora) chart — times prosperity periods (Jaimini Sutra Pada 4).' },
+  drigdasa:       { label: 'Drigdasa (दृग्दशा)',              cycle: 'rasi-based cycle',  tagline: 'Aspect-based rasi dasha — sequence from Atmakaraka sign via rasi drishtis (Jaimini Sutra Pada 4 / Sanjay Rath).' },
+  shoola:         { label: 'Shoola (शूल)',                    cycle: 'rasi-based cycle',  tagline: 'Death/health timing rasi dasha — starts 7th from Atmakaraka for longevity analysis (Phaladeepika Ch. 8 / KN Rao).' },
+  dwisaptati:     { label: 'Dwisaptati-sama (द्विसप्तति-सम)',    cycle: '72 year cycle',     tagline: '72-year conditional dasha — 8 lords × 9 years each (BPHS Ch. 47).', tooltip: 'Applicable when Lagna lord is in the 7th house or 7th lord is in Lagna.' },
+  shat_trimsa:    { label: 'Shat-trimsa-sama (षट्त्रिंश-सम)',   cycle: '36 year cycle',     tagline: '36-year conditional dasha — 7 lords × ~5.14 years each (BPHS Ch. 47).', tooltip: 'Applicable when Sun is in Lagna, or Sun is AK and in a kendra (1/4/7/10).' },
 };
 
-const SYSTEM_ORDER: DashaSystem['system'][] = ['vimshottari', 'yogini', 'ashtottari', 'char', 'kalachakra', 'narayana', 'lagna_kendradi', 'sudasa'];
+const SYSTEM_ORDER: DashaSystem['system'][] = ['vimshottari', 'yogini', 'ashtottari', 'char', 'kalachakra', 'narayana', 'lagna_kendradi', 'sudasa', 'drigdasa', 'shoola', 'dwisaptati', 'shat_trimsa'];
 
 type Depth = 'visual' | 'explain' | 'math';
 
@@ -273,6 +277,11 @@ export default function Dashas() {
                 >
                   {SYSTEM_META[s.system].label}
                   {isActive && <span className="absolute inset-x-2 -bottom-px h-0.5 bg-brand-saffron" />}
+                  {SYSTEM_META[s.system].tooltip && (
+                    <span className="ml-1 inline-block align-middle text-text-tertiary" title={SYSTEM_META[s.system].tooltip}>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="inline h-3.5 w-3.5"><path fillRule="evenodd" d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z" clipRule="evenodd" /></svg>
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -349,6 +358,51 @@ export default function Dashas() {
                 Duration = distance from dasha rasi to its Hora-chart lord. Used to time wealth
                 and prosperity periods. Cite: Jaimini Sutra Pada 4 + KN Rao &ldquo;Astrology of
                 Wealth Sudasa.&rdquo;
+              </p>
+            </div>
+          )}
+          {current.system === 'drigdasa' && (
+            <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
+              <div className="text-eyebrow text-brand-saffron">Math Proof — Drigdasa (Aspect Dasha)</div>
+              <p className="mt-2 text-sm text-text-secondary">
+                Aspect-based rasi dasha. The sequence starts from the <strong>Atmakaraka&apos;s sign</strong>,
+                then signs that aspect (rasi drishti) the AK&apos;s sign come next, ordered by
+                zodiacal proximity. Duration = Padakrama formula (distance from dasha rasi to its
+                lord). Cite: Jaimini Sutra Pada 4 + Sanjay Rath, &ldquo;Jaimini Maharishi&apos;s
+                Upadesa Sutras.&rdquo;
+              </p>
+            </div>
+          )}
+          {current.system === 'shoola' && (
+            <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
+              <div className="text-eyebrow text-brand-saffron">Math Proof — Shoola Dasha</div>
+              <p className="mt-2 text-sm text-text-secondary">
+                Death/health timing rasi dasha. Starts from the <strong>7th house from Atmakaraka&apos;s
+                sign</strong>, then proceeds zodiacally (odd starting sign) or anti-zodiacally
+                (even starting sign). Duration = Padakrama formula. Used in longevity (ayurdaya)
+                analysis. Cite: Phaladeepika Ch. 8 + KN Rao, &ldquo;Predicting Longevity.&rdquo;
+              </p>
+            </div>
+          )}
+          {current.system === 'dwisaptati' && (
+            <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
+              <div className="text-eyebrow text-brand-saffron">Math Proof — Dwisaptati-sama Dasha</div>
+              <p className="mt-2 text-sm text-text-secondary">
+                Conditional 72-year dasha (BPHS Ch. 47). <strong>Applicability:</strong> Lagna lord
+                is in the 7th house OR 7th lord is in Lagna. 8 mahadasha lords × 9 years each.
+                Order: Sun → Moon → Mars → Mercury → Jupiter → Venus → Saturn → Rahu. Balance
+                computed from Moon&apos;s nakshatra position like standard Vimshottari.
+              </p>
+            </div>
+          )}
+          {current.system === 'shat_trimsa' && (
+            <div className="rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm">
+              <div className="text-eyebrow text-brand-saffron">Math Proof — Shat-trimsa-sama Dasha</div>
+              <p className="mt-2 text-sm text-text-secondary">
+                Conditional 36-year dasha (BPHS Ch. 47). <strong>Applicability:</strong> Sun is in
+                Lagna, or Sun is the Atmakaraka and occupies a kendra (1/4/7/10) from Lagna.
+                7 mahadasha lords × ~5.14 years each. Order: Sun → Moon → Mars → Mercury →
+                Jupiter → Venus → Saturn. Balance computed from Moon&apos;s nakshatra position.
               </p>
             </div>
           )}
