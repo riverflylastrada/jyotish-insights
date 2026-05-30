@@ -22,6 +22,22 @@ import type { DivChart } from "./divisional.ts";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+/** Sub-bala breakdown for each of the 6 top-level balas (all in Virupas). */
+export interface SubBalas {
+  /** BPHS Ch. 27 shlokas 2–12: Positional strength sub-components. */
+  sthana?: { uchcha: number; saptavargeeya: number; ojhayugma: number; kendra: number; drekkana: number };
+  /** BPHS Ch. 27 shlokas 13–17: Directional strength. */
+  dig?: { fromCardinal: number; idealDirection: 'east' | 'south' | 'west' | 'north'; offset: number };
+  /** BPHS Ch. 27 shlokas 18–36: Temporal strength sub-components. */
+  kala?: { nathonnatha: number; paksha: number; tribhaga: number; varsha: number; masa: number; vara: number; hora: number; ayana: number; yuddha: number };
+  /** BPHS Ch. 27 shlokas 37–40: Motional strength. */
+  cheshta?: { motionFactor: number };
+  /** BPHS Ch. 27 shloka 41: Natural (inherent) strength. */
+  naisargika?: { source: string };
+  /** BPHS Ch. 27 shlokas 42–45: Aspectual strength per-aspecting-planet contribution. */
+  drik?: { fromPlanet: Record<string, number> };
+}
+
 export interface PlanetShadbala {
   sthanaBala: number;   // virupas
   digBala: number;      // virupas
@@ -35,6 +51,7 @@ export interface PlanetShadbala {
   ratio: number;        // totalRupas / required
   ishtaPhala: number;   // virupas — sqrt(uchchaBala × cheshtaBala)
   kashtaPhala: number;  // virupas — sqrt((60-uchcha) × (60-cheshta))
+  subBalas?: SubBalas;
 }
 
 export interface ShadbalaResult {
@@ -276,34 +293,46 @@ function drekkanaBala(planet: Graha, degInSign: number): number {
   return 0;
 }
 
+interface SthanaSubBalas { uchcha: number; saptavargeeya: number; ojhayugma: number; kendra: number; drekkana: number }
+
 function computeSthanaBala(
   planet: Graha,
   sidLon: number,
   d1Planets: PlanetPos[],
   divCharts: DivChart[],
   ascSign: number,
-): number {
+): { total: number; sub: SthanaSubBalas } {
   const pp = d1Planets.find(p => p.planet === planet);
-  if (!pp) return 0;
+  if (!pp) return { total: 0, sub: { uchcha: 0, saptavargeeya: 0, ojhayugma: 0, kendra: 0, drekkana: 0 } };
 
   const d9 = divCharts.find(c => c.varga === 'D9');
   const d9Planet = d9?.planets.find(p => p.planet === planet);
   const d9Sign = d9Planet?.signNumber ?? pp.signNumber;
 
   const uchcha = uchchaBala(planet, sidLon);
-  const sapta = saptavargajaBala(planet, d1Planets, divCharts);
-  const ojha = ojhayugmaBala(planet, pp.signNumber, d9Sign);
+  const saptavargeeya = saptavargajaBala(planet, d1Planets, divCharts);
+  const ojhayugma = ojhayugmaBala(planet, pp.signNumber, d9Sign);
 
   const wholeSignHouse = ((pp.signNumber - ascSign + 12) % 12) + 1;
   const kendra = kendradiBala(wholeSignHouse);
-  const drekk = drekkanaBala(planet, pp.signDegree);
+  const drekkana = drekkanaBala(planet, pp.signDegree);
 
-  return uchcha + sapta + ojha + kendra + drekk;
+  const total = uchcha + saptavargeeya + ojhayugma + kendra + drekkana;
+  return { total, sub: { uchcha, saptavargeeya, ojhayugma, kendra, drekkana } };
 }
 
 // ─── 2. Dig Bala ────────────────────────────────────────────────────────────
 
-function computeDigBala(planet: Graha, planetLon: number, cusps: number[]): number {
+const DIG_IDEAL_DIR: Record<Graha, 'east' | 'south' | 'west' | 'north'> = {
+  sun: 'south', mars: 'south',
+  moon: 'north', venus: 'north',
+  mercury: 'east', jupiter: 'east',
+  saturn: 'west',
+};
+
+interface DigSubBalas { fromCardinal: number; idealDirection: 'east' | 'south' | 'west' | 'north'; offset: number }
+
+function computeDigBala(planet: Graha, planetLon: number, cusps: number[]): { total: number; sub: DigSubBalas } {
   // JHora: abs(weakpoint_longitude - planet_longitude) / 3
   // Weakpoints use Placidus cusp longitudes (no wrapping to 0-180).
   const weakCuspIdx: Record<Graha, number> = {
@@ -314,7 +343,9 @@ function computeDigBala(planet: Graha, planetLon: number, cusps: number[]): numb
   };
 
   const weakLon = cusps[weakCuspIdx[planet]];
-  return Math.abs(weakLon - planetLon) / 3;
+  const offset = Math.abs(weakLon - planetLon);
+  const total = offset / 3;
+  return { total, sub: { fromCardinal: total, idealDirection: DIG_IDEAL_DIR[planet], offset } };
 }
 
 // ─── 3. Kala Bala ───────────────────────────────────────────────────────────
@@ -602,6 +633,8 @@ function yuddhaBala(_planet: Graha, _d1Planets: PlanetPos[]): number {
   return 0;
 }
 
+interface KalaSubBalas { nathonnatha: number; paksha: number; tribhaga: number; varsha: number; masa: number; vara: number; hora: number; ayana: number; yuddha: number }
+
 function computeKalaBala(
   d1Planets: PlanetPos[],
   jd: number,
@@ -610,7 +643,7 @@ function computeKalaBala(
   tz: number,
   ayanamsaDeg: number,
   moonSunAngleSid: number,
-): Record<Graha, number> {
+): { totals: Record<Graha, number>; subs: Record<Graha, KalaSubBalas> } {
   const { sunrise: srH, sunset: ssH } = sunriseSunsetHours(jd, lat, lon, tz);
   const { hours: birthTimeH } = jdToGregorian(jd);
   const localBirthH = birthTimeH + tz;
@@ -621,7 +654,8 @@ function computeKalaBala(
   const varaBala = vaaradhipathiBala(jd, localBirthH, srH);
   const hrBala = horaBala(jd, tz, localBirthH, srH);
 
-  const result = {} as Record<Graha, number>;
+  const totals = {} as Record<Graha, number>;
+  const subs = {} as Record<Graha, KalaSubBalas>;
   for (const planet of GRAHA_KEYS) {
     const pp = d1Planets.find(p => p.planet === planet);
     const sidLon = pp?.longitude ?? 0;
@@ -630,13 +664,15 @@ function computeKalaBala(
     const trib = tribhagaBala(planet, localBirthH, srH, ssH);
     const ayana = ayanaBala(planet, sidLon, ayanamsaDeg);
     const yuddha = yuddhaBala(planet, d1Planets);
+    const varsha = abdaBala[planet] ?? 0;
+    const masa = masaBala[planet] ?? 0;
+    const vara = varaBala[planet] ?? 0;
+    const hora = hrBala[planet] ?? 0;
 
-    result[planet] = nath + pb[planet] + trib +
-      (abdaBala[planet] ?? 0) + (masaBala[planet] ?? 0) +
-      (varaBala[planet] ?? 0) + (hrBala[planet] ?? 0) +
-      ayana + yuddha;
+    totals[planet] = nath + pb[planet] + trib + varsha + masa + vara + hora + ayana + yuddha;
+    subs[planet] = { nathonnatha: nath, paksha: pb[planet], tribhaga: trib, varsha, masa, vara, hora, ayana, yuddha };
   }
-  return result;
+  return { totals, subs };
 }
 
 // ─── 4. Cheshta Bala ────────────────────────────────────────────────────────
@@ -662,13 +698,15 @@ function getMeanLongitude(jd: number, placeLon: number, planetIdx: number): numb
   return ((MEAN_POS_AT_EPOCH[planetIdx] + daysFromEpoch * SPEED_AT_EPOCH[planetIdx]) + correction) % 360;
 }
 
+interface CheshtaSubBalas { motionFactor: number }
+
 function computeCheshtaBala(
   planet: Graha,
   jd: number,
   placeLon: number,
   trueLon: number,
-): number {
-  if (planet === 'sun' || planet === 'moon') return 0;
+): { total: number; sub: CheshtaSubBalas } {
+  if (planet === 'sun' || planet === 'moon') return { total: 0, sub: { motionFactor: 0 } };
 
   const pIdx = GRAHA_INDEX[planet];
   const sunMeanLong = getMeanLongitude(jd, placeLon, 0);
@@ -686,7 +724,8 @@ function computeCheshtaBala(
 
   const aveLong = (trueLon + meanLong) / 2;
   const reducedCheshtaKendra = Math.abs(seegrocha - aveLong);
-  return reducedCheshtaKendra / 3;
+  const total = reducedCheshtaKendra / 3;
+  return { total, sub: { motionFactor: total } };
 }
 
 // ─── 6. Drik Bala ───────────────────────────────────────────────────────────
@@ -724,7 +763,7 @@ function drikBalaAspect(angleDeg: number, aspectingPlanet: Graha): number {
 function computeDrikBala(
   d1Planets: PlanetPos[],
   moonSunAngleSid: number,
-): Record<Graha, number> {
+): { totals: Record<Graha, number>; perPlanet: Record<Graha, Record<string, number>> } {
   const grahaLons: Record<Graha, number> = {} as Record<Graha, number>;
   for (const g of GRAHA_KEYS) {
     const pp = d1Planets.find(p => p.planet === g);
@@ -761,23 +800,37 @@ function computeDrikBala(
   const dkm = Array(7).fill(0);
   const dkFinal = Array(7).fill(0);
 
+  // Per-aspecting-planet contribution: for each aspected planet (col),
+  // track how much each aspecting planet (row) adds/subtracts
+  const perPlanetContrib: number[][] = Array.from({ length: 7 }, () => Array(7).fill(0));
+
   for (const row of Array.from({ length: 7 }, (_, i) => i)) {
     for (let col = 0; col < 7; col++) {
+      let contrib = 0;
       if (benefics.has(row)) {
         dkp[col] += dkT[row][col];
+        contrib += dkT[row][col];
       }
       if (malefics.has(row)) {
         dkm[col] += dkT[row][col];
+        contrib -= dkT[row][col];
       }
+      perPlanetContrib[col][row] = contrib / 4;
       dkFinal[col] = (dkp[col] - dkm[col]) / 4;
     }
   }
 
-  const result = {} as Record<Graha, number>;
+  const totals = {} as Record<Graha, number>;
+  const perPlanet = {} as Record<Graha, Record<string, number>>;
   for (let i = 0; i < 7; i++) {
-    result[GRAHA_KEYS[i]] = Math.round(dkFinal[i] * 100) / 100;
+    totals[GRAHA_KEYS[i]] = Math.round(dkFinal[i] * 100) / 100;
+    const contribs: Record<string, number> = {};
+    for (let j = 0; j < 7; j++) {
+      contribs[GRAHA_KEYS[j]] = Math.round(perPlanetContrib[i][j] * 100) / 100;
+    }
+    perPlanet[GRAHA_KEYS[i]] = contribs;
   }
-  return result;
+  return { totals, perPlanet };
 }
 
 // ─── Main computation ───────────────────────────────────────────────────────
@@ -793,6 +846,17 @@ export interface ShadbalaInput {
   siderealCusps: number[];
   ascSign: number;
 }
+
+/** Source label for Naisargika Bala (fixed, from BPHS). */
+const NAISARGIKA_SOURCE: Record<Graha, string> = {
+  sun: 'Luminosity order (BPHS Ch.27 ś41): brightest = 60V',
+  moon: 'Luminosity order (BPHS Ch.27 ś41): 51.43V',
+  mars: 'Luminosity order (BPHS Ch.27 ś41): 17.14V',
+  mercury: 'Luminosity order (BPHS Ch.27 ś41): 25.71V',
+  jupiter: 'Luminosity order (BPHS Ch.27 ś41): 34.29V',
+  venus: 'Luminosity order (BPHS Ch.27 ś41): 42.86V',
+  saturn: 'Luminosity order (BPHS Ch.27 ś41): dimmest = 8.57V',
+};
 
 export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
   const {
@@ -818,12 +882,16 @@ export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
     if (!pp) continue;
 
     const ub = uchchaBala(planet, pp.longitude);
-    const sthanaBala = computeSthanaBala(planet, pp.longitude, d1Planets, divCharts, ascSign);
-    const digBala = computeDigBala(planet, pp.longitude, siderealCusps);
-    const kalaBala = kalaBalaAll[planet];
-    const cheshtaBala = computeCheshtaBala(planet, jd, lon, pp.longitude);
+    const sthanaResult = computeSthanaBala(planet, pp.longitude, d1Planets, divCharts, ascSign);
+    const digResult = computeDigBala(planet, pp.longitude, siderealCusps);
+    const kalaBala = kalaBalaAll.totals[planet];
+    const cheshtaResult = computeCheshtaBala(planet, jd, lon, pp.longitude);
     const naisargikaBala = NAISARGIKA[planet];
-    const drikBala = drikBalaAll[planet];
+    const drikBala = drikBalaAll.totals[planet];
+
+    const sthanaBala = sthanaResult.total;
+    const digBala = digResult.total;
+    const cheshtaBala = cheshtaResult.total;
 
     const totalVirupas = sthanaBala + digBala + kalaBala + cheshtaBala + naisargikaBala + drikBala;
     const totalRupas = totalVirupas / 60;
@@ -834,19 +902,49 @@ export function computeShadbala(input: ShadbalaInput): ShadbalaResult {
     const ishtaPhala = Math.sqrt(Math.max(0, ub * cheshtaBala));
     const kashtaPhala = Math.sqrt(Math.max(0, (60 - ub) * (60 - cheshtaBala)));
 
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+
     result[planet] = {
-      sthanaBala: Math.round(sthanaBala * 100) / 100,
-      digBala: Math.round(digBala * 100) / 100,
-      kalaBala: Math.round(kalaBala * 100) / 100,
-      cheshtaBala: Math.round(cheshtaBala * 100) / 100,
-      naisargikaBala: Math.round(naisargikaBala * 100) / 100,
-      drikBala: Math.round(drikBala * 100) / 100,
-      totalVirupas: Math.round(totalVirupas * 100) / 100,
-      totalRupas: Math.round(totalRupas * 100) / 100,
+      sthanaBala: r2(sthanaBala),
+      digBala: r2(digBala),
+      kalaBala: r2(kalaBala),
+      cheshtaBala: r2(cheshtaBala),
+      naisargikaBala: r2(naisargikaBala),
+      drikBala: r2(drikBala),
+      totalVirupas: r2(totalVirupas),
+      totalRupas: r2(totalRupas),
       required,
-      ratio: Math.round(ratio * 100) / 100,
-      ishtaPhala: Math.round(ishtaPhala * 100) / 100,
-      kashtaPhala: Math.round(kashtaPhala * 100) / 100,
+      ratio: r2(ratio),
+      ishtaPhala: r2(ishtaPhala),
+      kashtaPhala: r2(kashtaPhala),
+      subBalas: {
+        sthana: {
+          uchcha: r2(sthanaResult.sub.uchcha),
+          saptavargeeya: r2(sthanaResult.sub.saptavargeeya),
+          ojhayugma: r2(sthanaResult.sub.ojhayugma),
+          kendra: r2(sthanaResult.sub.kendra),
+          drekkana: r2(sthanaResult.sub.drekkana),
+        },
+        dig: {
+          fromCardinal: r2(digResult.sub.fromCardinal),
+          idealDirection: digResult.sub.idealDirection,
+          offset: r2(digResult.sub.offset),
+        },
+        kala: {
+          nathonnatha: r2(kalaBalaAll.subs[planet].nathonnatha),
+          paksha: r2(kalaBalaAll.subs[planet].paksha),
+          tribhaga: r2(kalaBalaAll.subs[planet].tribhaga),
+          varsha: r2(kalaBalaAll.subs[planet].varsha),
+          masa: r2(kalaBalaAll.subs[planet].masa),
+          vara: r2(kalaBalaAll.subs[planet].vara),
+          hora: r2(kalaBalaAll.subs[planet].hora),
+          ayana: r2(kalaBalaAll.subs[planet].ayana),
+          yuddha: r2(kalaBalaAll.subs[planet].yuddha),
+        },
+        cheshta: { motionFactor: r2(cheshtaResult.sub.motionFactor) },
+        naisargika: { source: NAISARGIKA_SOURCE[planet] },
+        drik: { fromPlanet: drikBalaAll.perPlanet[planet] },
+      },
     };
   }
 

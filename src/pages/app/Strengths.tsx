@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
-import { PLANET_LABELS, type PlanetName } from '@/lib/astro/types';
+import { PLANET_LABELS, type PlanetName, type SubBalasData } from '@/lib/astro/types';
 
 type Depth = 'visual' | 'explain' | 'math';
 
@@ -49,6 +49,77 @@ const BALA_FORMULAS: Record<BalaKey, { name: string; components: string; formula
 
 const NAISARGIKA_VALUES: Record<string, number> = {
   sun: 60, moon: 51.43, venus: 42.86, jupiter: 34.29, mercury: 25.71, mars: 17.14, saturn: 8.57,
+};
+
+// ── Sub-bala labels, formulas, and BPHS citations ──────────────────────────
+
+interface SubBalaEntry { label: string; formula: string; citation: string }
+
+const SUB_BALA_MAP: Record<BalaKey, { entries: (sb: SubBalasData) => SubBalaEntry[] | null; getter: (sb: SubBalasData) => [string, number][] | null }> = {
+  sthanaBala: {
+    entries: () => [
+      { label: 'Uchcha Bala', formula: 'dist(debilitation) / 3', citation: 'BPHS Ch.27 śl.2–3' },
+      { label: 'Saptavargeeya Bala', formula: 'Dignity in 7 vargas (D1–D30)', citation: 'BPHS Ch.27 śl.4–7' },
+      { label: 'Ojhayugma Bala', formula: 'Odd/even sign–navamsa parity', citation: 'BPHS Ch.27 śl.8' },
+      { label: 'Kendra Bala', formula: 'Angular: 60V, Panapara: 30V, Apoklima: 15V', citation: 'BPHS Ch.27 śl.9' },
+      { label: 'Drekkana Bala', formula: 'Decanate gender match: 15V or 0', citation: 'BPHS Ch.27 śl.10–12' },
+    ],
+    getter: (sb) => sb.sthana ? [
+      ['Uchcha', sb.sthana.uchcha],
+      ['Saptavargeeya', sb.sthana.saptavargeeya],
+      ['Ojhayugma', sb.sthana.ojhayugma],
+      ['Kendra', sb.sthana.kendra],
+      ['Drekkana', sb.sthana.drekkana],
+    ] : null,
+  },
+  digBala: {
+    entries: (sb) => sb.dig ? [
+      { label: 'Directional Strength', formula: `dist(weak point) / 3; ideal = ${sb.dig.idealDirection}`, citation: 'BPHS Ch.27 śl.13–17' },
+    ] : null,
+    getter: (sb) => sb.dig ? [['Directional', sb.dig.fromCardinal]] : null,
+  },
+  kalaBala: {
+    entries: () => [
+      { label: 'Nathonnatha Bala', formula: 'Distance from midnight × 60/12', citation: 'BPHS Ch.27 śl.18–19' },
+      { label: 'Paksha Bala', formula: '|Sun − Moon| / 3; malefics inverted', citation: 'BPHS Ch.27 śl.20–21' },
+      { label: 'Tribhaga Bala', formula: 'Day/night trisection ruler: 60V or 0', citation: 'BPHS Ch.27 śl.22–23' },
+      { label: 'Varsha (Abdadhipathi)', formula: 'Year-lord gets 15V', citation: 'BPHS Ch.27 śl.24' },
+      { label: 'Masa (Masadhipathi)', formula: 'Month-lord gets 30V', citation: 'BPHS Ch.27 śl.25' },
+      { label: 'Vara (Vaaradhipathi)', formula: 'Weekday-lord gets 45V', citation: 'BPHS Ch.27 śl.26' },
+      { label: 'Hora', formula: 'Hora-lord gets 60V', citation: 'BPHS Ch.27 śl.27–28' },
+      { label: 'Ayana Bala', formula: 'Declination via Surya Siddhanta bhuja', citation: 'BPHS Ch.27 śl.29–33' },
+      { label: 'Yuddha Bala', formula: 'Planetary war adjustment (if applicable)', citation: 'BPHS Ch.27 śl.34–36' },
+    ],
+    getter: (sb) => sb.kala ? [
+      ['Nathonnatha', sb.kala.nathonnatha],
+      ['Paksha', sb.kala.paksha],
+      ['Tribhaga', sb.kala.tribhaga],
+      ['Varsha', sb.kala.varsha],
+      ['Masa', sb.kala.masa],
+      ['Vara', sb.kala.vara],
+      ['Hora', sb.kala.hora],
+      ['Ayana', sb.kala.ayana],
+      ['Yuddha', sb.kala.yuddha],
+    ] : null,
+  },
+  cheshtaBala: {
+    entries: () => [
+      { label: 'Motion Factor', formula: 'Cheshta Kendra / 3', citation: 'BPHS Ch.27 śl.37–40' },
+    ],
+    getter: (sb) => sb.cheshta ? [['Motion Factor', sb.cheshta.motionFactor]] : null,
+  },
+  naisargikaBala: {
+    entries: (sb) => sb.naisargika ? [
+      { label: 'Natural Luminosity', formula: sb.naisargika.source, citation: 'BPHS Ch.27 śl.41' },
+    ] : null,
+    getter: (sb) => sb.naisargika ? [['Luminosity', NAISARGIKA_VALUES[Object.keys(NAISARGIKA_VALUES)[0]] ?? 0]] : null,
+  },
+  drikBala: {
+    entries: () => [
+      { label: 'Per-planet aspect contributions', formula: 'Σ(benefic) − Σ(malefic) aspects / 4', citation: 'BPHS Ch.27 śl.42–45' },
+    ],
+    getter: (sb) => sb.drik ? Object.entries(sb.drik.fromPlanet).map(([p, v]) => [p, v]) : null,
+  },
 };
 
 function toRupas(v: number) {
@@ -297,6 +368,67 @@ function ShadbalaSection({ data }: { data: NonNullable<ReturnType<typeof useKund
                   );
                 })}
               </div>
+
+              {/* Sub-bala breakdown (drill-down into the focused bala's internal sub-components) */}
+              {(() => {
+                const sb = focusRow.subBalas;
+                if (!sb) return null;
+                const map = SUB_BALA_MAP[focus.bala];
+                const entries = map.entries(sb);
+                const values = map.getter(sb);
+                if (!entries || !values) return null;
+
+                const isDrik = focus.bala === 'drikBala';
+                const isNaisargika = focus.bala === 'naisargikaBala';
+
+                return (
+                  <div className="space-y-1.5 border-t border-hairline-subtle pt-3">
+                    <div className="text-eyebrow text-text-tertiary">
+                      Sub-bala breakdown — {BALA_LABELS[focus.bala]}
+                    </div>
+                    {isDrik && sb.drik ? (
+                      <div className="space-y-1">
+                        <div className="text-[10px] text-text-tertiary italic">{entries[0].citation}: {entries[0].formula}</div>
+                        {Object.entries(sb.drik.fromPlanet).map(([p, v]) => (
+                          <div key={p} className="flex items-center gap-2 rounded-sm px-2 py-1 text-xs">
+                            <span className="h-2 w-2 rounded-full" style={{ background: `hsl(var(--planet-${p}))` }} />
+                            <span className="flex-1 capitalize text-text-secondary">{PLANET_LABELS[p as PlanetName]?.full ?? p}</span>
+                            <span className={`font-mono ${v >= 0 ? 'text-semantic-positive' : 'text-semantic-negative'}`}>
+                              {v >= 0 ? '+' : ''}{v.toFixed(2)} V
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : isNaisargika && sb.naisargika ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 rounded-sm px-2 py-1 text-xs">
+                          <span className="flex-1 text-text-secondary">{entries[0].label}</span>
+                          <span className="font-mono text-text-primary">{focusRow.naisargikaBala.toFixed(2)} V</span>
+                        </div>
+                        <div className="text-[10px] text-text-tertiary italic px-2">{sb.naisargika.source}</div>
+                        <div className="text-[10px] text-text-muted px-2">{entries[0].citation}</div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {entries.map((e, i) => {
+                          const val = values[i]?.[1] ?? 0;
+                          return (
+                            <div key={e.label} className="rounded-sm px-2 py-1.5 text-xs hover:bg-elevated/50">
+                              <div className="flex items-center justify-between">
+                                <span className="text-text-secondary">{e.label}</span>
+                                <span className="font-mono text-text-primary">{val.toFixed(2)} V</span>
+                              </div>
+                              <div className="text-[10px] text-text-tertiary mt-0.5">
+                                {e.formula} <span className="text-text-muted">— {e.citation}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Explain layer */}
               {depth !== 'visual' && (
