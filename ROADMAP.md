@@ -46,11 +46,12 @@ each PR.
 **Engine vs. UI:** the **core engine is feature-complete**, and the **initial UI
 surfacing phase has shipped** — Strengths, KP, Jaimini, and Varshphal pages, plus
 a multi-system Dashas page (Vimshottari / Yogini / Ashtottari / Chara /
-Kalachakra). The **Interactive Research Lab** is underway — Phases 1–2 complete
-(Interactive D1, Unknown Birth Time, interactive Yogas + Doshas), plus all four
-**Specialized Kundli types** (Prashna, Twins, Business, public Mundane). Next
-focus: Research Lab Phase 3 (Interactive Dasha + Divisional). Product gaps:
-transit alerts, monetization.
+Kalachakra). The **Interactive Research Lab** is underway — Phases 1–3 complete
+(Interactive D1, Unknown Birth Time, interactive Yogas + Doshas, Interactive
+Dasha + Divisional), plus all four **Specialized Kundli types** (Prashna, Twins,
+Business, public Mundane). Next focus: Phase 4 (Interactive
+Ashtakavarga / Shadbala / KP / Transits). Product gaps: transit alerts,
+monetization.
 
 ---
 
@@ -156,14 +157,32 @@ transit alerts, monetization.
   presets (India 15-Aug-1947), solar ingress, eclipse, and custom event charts
   with mundane house significations (Choudhry/K.N. Rao/B.V. Raman). Public
   (no auth); reuses the validated engine via the provider.
+- ✅ **Research Lab — Phase 3a: Interactive Dasha**
+  ([DashaFocusPanel.tsx](src/components/dashas/DashaFocusPanel.tsx),
+  [dashaUtils.ts](src/lib/astro/dashaUtils.ts)) — every Maha/Antar/Pratyantar row
+  is tappable; sticky focus panel highlights the dasha lord on a mini-D1 with
+  lordship/aspect arrows; rows colour-coded by functional benefic/malefic (PVR
+  Narasimha Rao); Visual / Explain / **Math Proof** depth toggle with Vimshottari
+  balance cited to BPHS Ch. 46. Works across all five systems (sign-based Chara /
+  Kalachakra resolve to sign lord).
+- ✅ **Research Lab — Phase 3b: Interactive Divisional Charts**
+  ([InteractiveVargaView.tsx](src/components/research/InteractiveVargaView.tsx),
+  [VargaExplorer.tsx](src/pages/app/VargaExplorer.tsx), route
+  `/app/chart/:id/charts/:varga`) — each varga tile opens a focused interactive
+  view (tappable planets, lordship/aspect/conjunction arrows, depth layers,
+  division formula on Math Proof cited to BPHS Ch. 7); cross-chart navigation
+  via `?planet=` URL param (planet selection preserved across vargas). The Phase
+  1 Interactive D1 was refactored to share this same component so the interaction
+  model can't drift.
 
 > All engine work above is validated against **Jagannatha Hora (PyJHora)** and
 > surfaced both in the Guru Debate dossier and in dedicated UI. The **core
 > engine is feature-complete**, the **initial UI surfacing phase has shipped**,
-> and the **Interactive Research Lab is underway** — Phases 1–2 (Interactive
-> D1, Unknown Birth Time, interactive Yogas, interactive Doshas) have shipped,
-> plus all four **Specialized Kundli types** (Prashna, Twins, Business,
-> Mundane). Next focus: Research Lab Phase 3 (Interactive Dasha + Divisional).
+> and the **Interactive Research Lab is underway** — Phases 1–3 have shipped
+> (Interactive D1, Unknown Birth Time, interactive Yogas, interactive Doshas,
+> Interactive Dasha, Interactive Divisional), plus all four **Specialized Kundli
+> types** (Prashna, Twins, Business, Mundane). Next focus: Phase 4 (Advanced
+> research tools — Interactive Ashtakavarga / Shadbala / KP / Transits).
 
 ---
 
@@ -195,9 +214,10 @@ transit alerts, monetization.
 > afterward is born interactive from day one. The Research Lab is the product
 > identity — not a feature.
 
-> **Status:** Phases 1 (Interactive D1 chart, Unknown Birth Time) and 2
-> (interactive Yogas + Doshas) have shipped — see Recently shipped. **Phase 3
-> (Interactive Dasha + Divisional) is the next item.**
+> **Status:** Phases 1–3 have shipped — Interactive D1, Unknown Birth Time,
+> interactive Yogas + Doshas, Interactive Dasha + Divisional (see Recently
+> shipped). **Phase 4 (Advanced research tools — Interactive Ashtakavarga /
+> Shadbala / KP / Transits) is the next item.**
 
 ### Design principles
 1. **Show the Rule, Not Just the Result** — every statement traces to a
@@ -239,14 +259,14 @@ transit alerts, monetization.
   Follow-up: extend the engine to expose structured `conditions[]` /
   `cancellations[]` for a true ✓/✗-per-rule checklist with cancellation arrows.
 
-### Phase 3: Dasha & Divisional chart interaction
-- ⬜ **Interactive Dasha timeline** — tap any period → D1 chart highlights that
-  planet's lordship/aspects. Color-coded periods by functional benefic/malefic.
-  Math box showing Vimshottari balance calculation from Moon's nakshatra.
-  Cross-reference: "During Sun Mahadasha, House 9 themes activate because..."
-- ⬜ **Interactive Divisional Charts** — same tap-to-explore across all vargas.
-  Cross-chart navigation: "See this planet in D9 →", "See in D10 →". Each
-  varga opens with one-line purpose. Division formula shown on Math Proof layer.
+### Phase 3: Dasha & Divisional chart interaction ✅
+- ✅ **Interactive Dasha timeline** — tap any period → mini-D1 highlights the
+  dasha lord's placement, ownership, and aspects; rows colour-coded by
+  functional benefic/malefic; Vimshottari balance on the Math Proof layer.
+- ✅ **Interactive Divisional Charts** — each varga has a focused explorer with
+  tappable planets, lordship/aspect arrows, depth layers, and division formula
+  on Math Proof. Cross-chart navigation preserves the selected planet via
+  `?planet=` URL param. Shares the same component as Interactive D1.
 
 ### Phase 4: Advanced research tools
 - ⬜ **Interactive Ashtakavarga** — tap house → 7-planet contribution matrix
@@ -425,9 +445,9 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 | 2  | ✅ Interactive D1 Chart (arrows + depths)| 5–6 days | Research Lab identity              |
 | 3  | ✅ Interactive Yogas (condition checklists)| 3–4 days | Most shareable feature           |
 | 4  | ✅ Interactive Doshas (condition cards)  | 3–4 days | Destroys fear-based astrology      |
-| 5  | Interactive Dasha (tap → chart highlight) ⬅ next | 3–4 days | Core Research Lab complete |
-| 6  | Interactive Divisionals (cross-chart nav) | 4–5 days | 16 vargas become explorable        |
-| 7  | Interactive Ashtakavarga/Shadbala/KP      | 5–6 days | Advanced research tools complete   |
+| 5  | ✅ Interactive Dasha (tap → chart highlight) | 3–4 days | Core Research Lab complete       |
+| 6  | ✅ Interactive Divisionals (cross-chart nav) | 4–5 days | 16 vargas become explorable      |
+| 7  | Interactive Ashtakavarga/Shadbala/KP ⬅ next | 5–6 days | Advanced research tools complete |
 | 8  | Razorpay billing + plan gating           | 2–3 wks  | Revenue starts                     |
 | 9  | Hindi + Marathi + Tamil + Telugu + Bengali| 3–4 wks  | 75% of India covered               |
 | 10 | Daily Panchang page + WhatsApp share     | 3–4 days | Top-of-funnel growth engine        |
