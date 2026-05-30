@@ -46,6 +46,7 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminApiKeys = lazy(() => import("./pages/admin/AdminApiKeys"));
 const AdminLlmConfig = lazy(() => import("./pages/admin/AdminLlmConfig"));
 const Mundane = lazy(() => import("./pages/Mundane"));
+const Panchang = lazy(() => import("./pages/Panchang"));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 60, refetchOnWindowFocus: false } },
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/signup" element={<AuthPage mode="signup" />} />
             <Route path="/mundane" element={<Mundane />} />
+            <Route path="/panchang" element={<Panchang />} />
 
             <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
               <Route index element={<Dashboard />} />
