@@ -8,6 +8,7 @@ import { useTransitAlerts } from '@/hooks/useTransitAlerts';
 import { usePlanGate } from '@/hooks/usePlanGate';
 import { toast } from '@/components/ui/sonner';
 import { StaleSnapshotBanner } from '@/components/chart/StaleSnapshotBanner';
+import { AutoInsightsLoader } from '@/components/chart/AutoInsightsLoader';
 
 const navItems = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -86,6 +87,7 @@ export function AppLayout() {
         </div>
       </header>
       <StaleSnapshotBanner />
+      <AutoInsightsLoader />
       <main>
         <Outlet />
       </main>
