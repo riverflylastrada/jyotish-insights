@@ -23,3 +23,16 @@ dev-dist
 *.njsproj
 *.sln
 *.sw?
+
+# Capacitor native build artifacts (source committed; build output ignored)
+ios/App/Pods
+ios/DerivedData
+ios/App/App/public
+android/.gradle
+android/app/build
+android/build
+android/app/src/main/assets/public
+android/capacitor-cordova-android-plugins/build
+
+# Capacitor asset generation working directory (source SVGs in resources/)
+icons

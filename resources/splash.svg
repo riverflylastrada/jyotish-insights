@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Full-bleed maroon background: safe for maskable (circle/squircle crop) and "any" icons -->
+  <rect width="512" height="512" fill="#6B1F2A"/>
+  <!-- 12 gold rays, kept within the maskable safe zone (inner 80% ≈ r<205) -->
+  <g stroke="#B98F3C" stroke-width="15" stroke-linecap="round">
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(0 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(30 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(60 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(90 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(120 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(150 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(180 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(210 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(240 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(270 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(300 256 256)"/>
+    <line x1="256" y1="91" x2="256" y2="131" transform="rotate(330 256 256)"/>
+  </g>
+  <!-- Saffron sun core with a gold rim -->
+  <circle cx="256" cy="256" r="58" fill="#C9752C"/>
+  <circle cx="256" cy="256" r="58" fill="none" stroke="#B98F3C" stroke-width="9"/>
+</svg>
