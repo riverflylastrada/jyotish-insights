@@ -138,6 +138,14 @@ API is required.
 - **Email/password auth** via Supabase, with per-user profiles and preferences.
 - **Chart library** — save, open, share, and delete charts.
 - **Public share pages** — share a chart read-only via a secret share token.
+- **Installable PWA (mobile app)** — add Acharya Jyotish to the home screen and
+  run it full-screen. **Offline chart viewing**: opened charts persist to
+  IndexedDB (the React Query cache) and stay readable with no network; only the
+  app shell and your own chart snapshots are cached — Supabase auth and LLM/voice
+  calls stay online-only. A bottom tab bar, safe-area insets, an offline banner,
+  and an install prompt give it a native feel. Updates surface as a "new version"
+  reload toast. See [vite.config.ts](vite.config.ts), [src/pwa.ts](src/pwa.ts),
+  and [src/lib/queryClient.ts](src/lib/queryClient.ts).
 - **Admin panel** — user management, API-key storage, LLM provider/model
   configuration, and usage stats, gated behind an `admin` role.
 
@@ -527,11 +535,12 @@ automated — follow.
 
 See [ROADMAP.md](ROADMAP.md) for planned work. **The Interactive Research Lab
 is feature-complete** — all five phases shipped, alongside all four
-**Specialized Kundli types** (Prashna, Twins, Business, public Mundane) and the
-**Voice AI Guru** (live ElevenLabs conversation grounded on the chart dossier).
-Up next: **Razorpay billing + plan gating**, a **pan-India multi-language
-launch**, the remaining voice personas (Phases 2–3) + tool-calling flow, and the
-remaining engine items (divisional expansion to 23+ vargas).
+**Specialized Kundli types** (Prashna, Twins, Business, public Mundane), the
+**Voice AI Guru** (live ElevenLabs conversation grounded on the chart dossier),
+and an **installable PWA** with offline chart viewing. Up next: **Razorpay
+billing + plan gating**, a **pan-India multi-language launch**, the remaining
+voice personas (Phases 2–3) + tool-calling flow, and the remaining engine items
+(divisional expansion to 23+ vargas).
 
 ---
 

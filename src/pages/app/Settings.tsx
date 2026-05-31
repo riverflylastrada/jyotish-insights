@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { useSession } from '@/hooks/useSession';
 import { usePlanGate } from '@/hooks/usePlanGate';
+import { InstallAppCard } from '@/components/layout/InstallAppCard';
 
 type Prefs = {
   display_name: string;
@@ -376,6 +377,8 @@ export default function Settings() {
           </button>
         </div>
       </div>
+
+      <InstallAppCard />
 
       <div className="mt-6 rounded-md border border-hairline-subtle bg-surface p-5 text-sm text-text-tertiary">
         Signed in as <span className="font-mono text-text-primary">{user?.email}</span>

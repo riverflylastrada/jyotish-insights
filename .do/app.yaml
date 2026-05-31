@@ -1,3 +1,10 @@
+# PWA note: DigitalOcean App Platform static sites do not (yet) expose a
+# per-path Cache-Control override in the app spec. This is acceptable because
+# (a) browsers re-validate the service worker script (`sw.js`) at most every
+# 24h by the SW spec regardless of HTTP caching, and (b) vite-plugin-pwa
+# revisions the precache manifest so hashed `/assets/*` URLs change every build.
+# The Docker/nginx path (see nginx.conf) sets explicit no-cache headers for
+# sw.js / manifest / index.html for self-hosted deploys.
 name: jyotish-insights
 region: blr
 domains:
