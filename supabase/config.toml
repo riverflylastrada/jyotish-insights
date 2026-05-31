@@ -11,6 +11,14 @@ verify_jwt = false
 
 [functions.transit-scan]
 verify_jwt = false
+
+[functions.voice-session]
+verify_jwt = false
+
+[functions.voice-tools]
+# Called by ElevenLabs servers (no Supabase JWT) — secured by the
+# X-Webhook-Secret shared-secret header inside the function instead.
+verify_jwt = false
 # Schedule: daily at 02:00 UTC via Supabase cron (pg_cron):
 #   select cron.schedule('transit-scan-daily', '0 2 * * *',
 #     $$select net.http_post(

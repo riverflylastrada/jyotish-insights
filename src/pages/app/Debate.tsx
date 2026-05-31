@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square, Trash2 } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square, Trash2, Mic } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebateStore, type DebateTurn } from '@/stores/useDebateStore';
 import { useKundli } from '@/hooks/useKundli';
@@ -327,9 +327,14 @@ export default function Debate() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
-        <ArrowLeft className="h-4 w-4" /> Back to chart
-      </Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+          <ArrowLeft className="h-4 w-4" /> Back to chart
+        </Link>
+        <Link to={`/app/voice/${id}`} className="inline-flex items-center gap-1.5 rounded-sm border border-brand-gold/40 px-3 py-1.5 text-sm font-medium text-brand-gold hover:bg-brand-gold/10">
+          <Mic className="h-4 w-4" /> Switch to Voice Mode
+        </Link>
+      </div>
       <div className="mt-3 text-eyebrow text-brand-saffron">Tribunal · Selected voices, one verdict</div>
       <h1 className="mt-1 font-display text-h1 text-text-primary">The Guru Debate</h1>
       <p className="mt-2 max-w-2xl text-body text-text-secondary">

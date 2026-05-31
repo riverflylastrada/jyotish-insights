@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, HelpCircle, Building2, GitCompareArrows, Bell, ChevronDown } from 'lucide-react';
+import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, HelpCircle, Building2, GitCompareArrows, Bell, ChevronDown, Mic } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -9,6 +9,8 @@ import { usePlanGate } from '@/hooks/usePlanGate';
 import { toast } from '@/components/ui/sonner';
 import { StaleSnapshotBanner } from '@/components/chart/StaleSnapshotBanner';
 import { AutoInsightsLoader } from '@/components/chart/AutoInsightsLoader';
+import { VoiceGuru } from '@/components/voice/VoiceGuru';
+import { NavBadge } from '@/components/layout/NavBadge';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -108,6 +110,18 @@ export function AppLayout() {
                 <span className="hidden sm:inline">{label}</span>
               </NavLink>
             ))}
+
+            {/* Voice Guru */}
+            <NavLink to="/app/voice"
+              className={({ isActive }) => cn(
+                'relative inline-flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm transition-colors',
+                isActive ? 'bg-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary'
+              )}>
+              <Mic className="h-4 w-4" />
+              <NavBadge>NEW</NavBadge>
+              <span className="hidden sm:inline">Voice</span>
+            </NavLink>
+
             {isAdmin && (
               <NavLink to="/admin"
                 className={({ isActive }) => cn(
@@ -145,6 +159,7 @@ export function AppLayout() {
       </header>
       <StaleSnapshotBanner />
       <AutoInsightsLoader />
+      <VoiceGuru />
       <main>
         <Outlet />
       </main>

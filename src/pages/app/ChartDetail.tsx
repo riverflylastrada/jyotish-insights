@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/sonner';
+import { VoiceButton } from '@/components/voice/VoiceButton';
 
 export default function ChartDetail() {
   const { id = 'demo' } = useParams();
@@ -148,6 +149,7 @@ export default function ChartDetail() {
             <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-brand-maroon/90">
               <MessageSquare className="h-4 w-4" /> Open Debate
             </Link>
+            <VoiceButton chartId={id} variant="inline" />
           </div>
         </div>
       </div>

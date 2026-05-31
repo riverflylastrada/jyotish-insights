@@ -12,7 +12,8 @@ import {
   Info,
   ShieldCheck,
   Bookmark,
-  MapPin
+  MapPin,
+  Mic
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAstroProvider } from '@/lib/astro/factory';
@@ -445,6 +446,12 @@ export default function Dashboard() {
       <section className="mt-8">
         <h3 className="font-display text-h3 text-text-primary mb-4">Quick Research Shortcuts</h3>
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <Link to={`/app/voice/${activeProfile.id}`} className="group rounded-md border border-brand-gold/40 bg-brand-gold/5 p-5 hover:border-brand-gold hover:shadow-sm transition-all">
+            <Mic className="h-5 w-5 text-brand-gold mb-2.5 group-hover:scale-105 transition-transform" />
+            <div className="font-display text-sm font-semibold text-text-primary">Talk to Guruji</div>
+            <p className="text-xs text-text-tertiary mt-1">Live voice consultation — the Guru already knows this chart.</p>
+          </Link>
+
           <Link to="/app/compatibility" className="group rounded-md border border-hairline-subtle bg-surface p-5 hover:border-brand-saffron/40 hover:shadow-sm transition-all">
             <Users className="h-5 w-5 text-brand-saffron mb-2.5 group-hover:scale-105 transition-transform" />
             <div className="font-display text-sm font-semibold text-text-primary">Kundli Milan</div>
