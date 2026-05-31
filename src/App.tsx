@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { queryClient, persistOptions } from "@/lib/queryClient";
 import { ConversationProvider } from "@elevenlabs/react";
 import { Loader2 } from "lucide-react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -52,10 +53,6 @@ const VoiceGuruPage = lazy(() => import("./pages/app/VoiceGuruPage"));
 const Mundane = lazy(() => import("./pages/Mundane"));
 const Panchang = lazy(() => import("./pages/Panchang"));
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 1000 * 60 * 60, refetchOnWindowFocus: false } },
-});
-
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
     <Loader2 className="h-6 w-6 animate-spin text-brand-saffron" />
@@ -63,7 +60,7 @@ const PageFallback = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
     <TooltipProvider>
       <ConversationProvider>
       <Toaster />
@@ -124,7 +121,7 @@ const App = () => (
       </BrowserRouter>
       </ConversationProvider>
     </TooltipProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;

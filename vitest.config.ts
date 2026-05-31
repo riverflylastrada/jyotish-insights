@@ -11,6 +11,10 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      // vite-plugin-pwa's virtual module isn't provided under vitest.
+      "virtual:pwa-register": path.resolve(__dirname, "./src/test/pwa-register.stub.ts"),
+    },
   },
 });

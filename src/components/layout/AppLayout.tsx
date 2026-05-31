@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, HelpCircle, Building2, GitCompareArrows, Bell, ChevronDown, Mic } from 'lucide-react';
+import { PlusCircle, LayoutDashboard, LogOut, Shield, Bell, ChevronDown, Mic } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -11,6 +11,9 @@ import { StaleSnapshotBanner } from '@/components/chart/StaleSnapshotBanner';
 import { AutoInsightsLoader } from '@/components/chart/AutoInsightsLoader';
 import { VoiceGuru } from '@/components/voice/VoiceGuru';
 import { NavBadge } from '@/components/layout/NavBadge';
+import { MobileTabBar } from '@/components/layout/MobileTabBar';
+import { OfflineBanner } from '@/components/layout/OfflineBanner';
+import { primaryNav, chartTypes, CHART_PREFIXES } from '@/components/layout/navConfig';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -19,24 +22,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-
-// Top-level nav stays lean; every chart-casting flow lives in the "New Chart" menu.
-const primaryNav = [
-  { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/app/library', label: 'Library', icon: Library },
-  { to: '/app/settings', label: 'Settings', icon: Settings },
-];
-
-const chartTypes = [
-  { to: '/app/new', label: 'Birth Chart', desc: 'Standard natal Kundli', icon: PlusCircle },
-  { to: '/app/compatibility', label: 'Compatibility', desc: 'Kundli Milan matching', icon: Users },
-  { to: '/app/prashna', label: 'Prashna', desc: 'Horary (KP) chart', icon: HelpCircle },
-  { to: '/app/business/new', label: 'Business', desc: 'Business / venture chart', icon: Building2 },
-  { to: '/app/twins/new', label: 'Twins', desc: 'Compare two close births', icon: GitCompareArrows },
-];
-
-// Routes that should keep the "New Chart" trigger highlighted as active.
-const CHART_PREFIXES = ['/app/new', '/app/compatibility', '/app/prashna', '/app/business', '/app/twins'];
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -66,6 +51,8 @@ export function AppLayout() {
             <span className="hidden whitespace-nowrap text-xs text-text-muted lg:inline">Vedic Research Terminal</span>
           </Link>
           <nav className="flex shrink-0 items-center gap-1">
+            {/* Desktop primary nav — hidden on mobile, where the bottom tab bar takes over */}
+            <div className="hidden items-center gap-1 md:flex">
             {/* Dashboard */}
             <NavLink to="/app" end className={navLinkClass}>
               <LayoutDashboard className="h-4 w-4" />
@@ -121,6 +108,7 @@ export function AppLayout() {
               <NavBadge>NEW</NavBadge>
               <span className="hidden sm:inline">Voice</span>
             </NavLink>
+            </div>
 
             {isAdmin && (
               <NavLink to="/admin"
@@ -157,12 +145,16 @@ export function AppLayout() {
           </nav>
         </div>
       </header>
+      <OfflineBanner />
       <StaleSnapshotBanner />
       <AutoInsightsLoader />
       <VoiceGuru />
-      <main>
+      {/* Extra bottom padding on mobile so content clears the fixed tab bar
+          (4rem bar + the device safe-area inset). */}
+      <main className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <Outlet />
       </main>
+      <MobileTabBar />
     </div>
   );
 }

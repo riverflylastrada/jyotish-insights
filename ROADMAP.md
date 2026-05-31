@@ -64,6 +64,20 @@ Product gap: monetization.
 
 ## Recently shipped ✅
 
+- ✅ **Progressive Web App (installable mobile app).** Acharya Jyotish now
+  installs to the home screen and runs full-screen offline. Built on
+  [vite-plugin-pwa](vite.config.ts) (Workbox `generateSW`, `registerType:
+  prompt` → a Sonner reload toast in [src/pwa.ts](src/pwa.ts)) with a web
+  manifest + maskable icons. **Offline chart viewing**: the React Query cache
+  persists to IndexedDB ([src/lib/queryClient.ts](src/lib/queryClient.ts),
+  `PersistQueryClientProvider`) so already-opened saved charts survive reload
+  with no network — dehydrating only owned-chart snapshots, `buster`-tied to
+  `CURRENT_SNAPSHOT_VERSION`, `gcTime` raised to outlive `maxAge`, purged on
+  sign-out/account-switch. Supabase auth + edge POSTs stay network-only.
+  **Mobile UX**: a bottom tab bar ([MobileTabBar.tsx](src/components/layout/MobileTabBar.tsx)),
+  safe-area insets, an offline banner, and an install affordance (Android
+  `beforeinstallprompt` + iOS Add-to-Home-Screen hint) in Settings. Additive —
+  no engine change, no snapshot bump. (See Long-term → Mobile / PWA.)
 - ✅ **Voice AI Guru.** Talk to an AI Jyotishi live (Hindi-first) over
   **ElevenLabs Conversational AI**. Two edge functions:
   [voice-session](supabase/functions/voice-session/index.ts) mints a WebRTC
@@ -607,7 +621,22 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
   Today's Tithi, Vara, Nakshatra, Yoga, Karana, Choghadiya, Rahu Kaal. "Share
   on WhatsApp" button. `panchang.ts` already computes all data. "आज का पंचांग"
   = millions of monthly searches — top-of-funnel growth engine.
-- ⬜ **Mobile / PWA** — installable, offline-capable chart viewing.
+- ✅ **Mobile / PWA** — installable, offline-capable chart viewing. Shipped via
+  [vite-plugin-pwa](vite.config.ts) (Workbox `generateSW`, `registerType: prompt`
+  with a Sonner "new version" reload toast in [src/pwa.ts](src/pwa.ts)), a web
+  manifest + maskable icons generated from [icon-source.svg](public/icon-source.svg)
+  by [pwa-assets.config.ts](pwa-assets.config.ts), and Apple/standalone meta in
+  [index.html](index.html). **Offline chart viewing**: the React Query cache is
+  persisted to IndexedDB via `PersistQueryClientProvider`
+  ([src/lib/queryClient.ts](src/lib/queryClient.ts)) — only owned-chart snapshots
+  are dehydrated, the `buster` is tied to `CURRENT_SNAPSHOT_VERSION`, `gcTime`
+  is raised to 7 days to outlive `maxAge`, and the cache is purged on
+  sign-out / account-switch. Supabase auth + edge-function POSTs stay
+  network-only (no `*.supabase.co` runtime cache). **Mobile UX**: a bottom tab
+  bar ([MobileTabBar.tsx](src/components/layout/MobileTabBar.tsx)) under `md`,
+  safe-area insets, an offline banner, and an install affordance
+  (`beforeinstallprompt` on Android + an iOS "Add to Home Screen" hint) in
+  Settings. nginx serves `sw.js` / `index.html` / manifest `no-cache`.
 - ⬜ **Collaboration / consultations** — let a professional astrologer annotate
   and share reports with clients.
 - 💡 **Public API** — expose the calculation engine as a documented API for
@@ -657,7 +686,7 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 | 15 | ✅ Business Kundli                       | 4–5 days | Acharya tier monetization          |
 | 16 | ✅ Mundane Kundli (public page)          | 5–6 days | SEO + thought leadership           |
 | 17 | ✅ Voice AI Guru (ElevenLabs ConvAI)     | ~1 wk    | Flagship — talk to a Guru live     |
-| 18 | PWA + mobile pass                        | 2–3 wks  | Mobile-first India market          |
+| 18 | ✅ PWA + mobile pass                     | 2–3 wks  | Mobile-first India market          |
 | 19 | RAG pipeline + classical text corpus     | 3–4 wks  | Verifiable shloka citations        |
 | 20 | Remaining languages (Phase 3–4)          | 2–3 wks  | 97% of India covered               |
 
