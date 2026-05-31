@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ConversationProvider } from "@elevenlabs/react";
 import { Loader2 } from "lucide-react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -46,6 +47,8 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminApiKeys = lazy(() => import("./pages/admin/AdminApiKeys"));
 const AdminLlmConfig = lazy(() => import("./pages/admin/AdminLlmConfig"));
+const AdminVoice = lazy(() => import("./pages/admin/AdminVoice"));
+const VoiceGuruPage = lazy(() => import("./pages/app/VoiceGuruPage"));
 const Mundane = lazy(() => import("./pages/Mundane"));
 const Panchang = lazy(() => import("./pages/Panchang"));
 
@@ -62,6 +65,7 @@ const PageFallback = () => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <ConversationProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -98,6 +102,8 @@ const App = () => (
               <Route path="chart/:id/varshphal" element={<Varshphal />} />
               <Route path="chart/:id/lab" element={<ResearchLab />} />
               <Route path="prashna" element={<Prashna />} />
+              <Route path="voice" element={<VoiceGuruPage />} />
+              <Route path="voice/:chartId" element={<VoiceGuruPage />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="business/new" element={<BusinessNew />} />
               <Route path="twins/new" element={<TwinsNew />} />
@@ -109,12 +115,14 @@ const App = () => (
               <Route path="users" element={<AdminUsers />} />
               <Route path="api-keys" element={<AdminApiKeys />} />
               <Route path="llm-config" element={<AdminLlmConfig />} />
+              <Route path="voice" element={<AdminVoice />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
+      </ConversationProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
