@@ -42,7 +42,8 @@ and a full Raja/Dhana/Aristha/Daridra/Sanyasa breakdown), doshas, Ashtakavarga, 
 Karakas, Karakamsa, Arudha, Special Lagnas, Chara Dasha), **Varshphal** (annual
 chart, Muntha, Year Lord, Tajik yogas), **Muhurta** (Choghadiya/Hora/Rahu Kaal),
 **selectable house systems** (Placidus/Koch/Sripati/Equal), **exact Lahiri
-ayanamsa**, transits, 36-point compatibility, the multi-Guru debate engine,
+ayanamsa**, transits, 36-point compatibility, the multi-Guru debate engine, a
+**Voice AI Guru** (live ElevenLabs conversation grounded on the same dossier),
 auth, a chart library with public sharing, an admin panel, and PDF report
 export. Every calculation is JHora-validated by a **parity harness** + **CI** on
 each PR.
@@ -63,8 +64,34 @@ Product gap: monetization.
 
 ## Recently shipped ✅
 
+- ✅ **Voice AI Guru.** Talk to an AI Jyotishi live (Hindi-first) over
+  **ElevenLabs Conversational AI**. Two edge functions:
+  [voice-session](supabase/functions/voice-session/index.ts) mints a WebRTC
+  conversation token and builds the per-session `conversation_config_override`
+  (persona prompt + shared [grounding](supabase/functions/guru-debate/grounding.ts)
+  + the same `buildChartDossier` used by the text debate + voice), `log-session`
+  → `voice_sessions`, and a soft `get-usage` cap;
+  [voice-tools](supabase/functions/voice-tools/index.ts) is the agent's
+  shared-secret-gated tool webhook (`compute_kundli`, `get_current_dasha`,
+  `check_transits`, `detect_yogas`, `get_panchang`; compatibility stubbed). **One
+  base agent, many personas** — voice/prompt/greeting/language switch per session
+  ([personas.ts](supabase/functions/voice-session/personas.ts), 8 personas,
+  Phase 1 active: Parashara Muni, Devi Saraswati, KP Master). Frontend uses
+  `@elevenlabs/react` ([useVoiceSession.ts](src/hooks/useVoiceSession.ts),
+  [VoiceGuru.tsx](src/components/voice/VoiceGuru.tsx)) with a global call tray;
+  entry points on ChartDetail (chart-loaded flow), Dashboard (no-chart → asks +
+  computes via tools), the Debate page, and nav. Admin → Voice configures the
+  agent id / per-Guru voice ids / TTS tuning live (no redeploy);
+  `admin_get_voice_stats` powers session analytics. Keys live in `app_settings`
+  (Admin → API Keys). Migration:
+  [20260531_voice_sessions.sql](supabase/migrations/20260531_voice_sessions.sql).
+  Additive — no engine change, no snapshot bump.
+  > **Operational steps to enable in prod:** set `ELEVENLABS_API_KEY` +
+  > `ELEVENLABS_WEBHOOK_SECRET` (Admin → API Keys), the agent id + voice ids
+  > (Admin → Voice), and **enable the agent's Security → Overrides** (System
+  > prompt, First message, Language, Voice + tuning) or the SDK rejects them.
 - ✅ **Grounded Guru Debate.** Replaced the lossy chart context with a modular
-  ~17-section **chart dossier** ([dossier.ts](supabase/functions/guru-debate/dossier.ts)):
+  ~26-section **chart dossier** ([dossier.ts](supabase/functions/guru-debate/dossier.ts)):
   server-computed live transits (houses from Lagna and Moon), authoritative Sade
   Sati phase, multi-level dashas, gender, yogas/doshas, Ashtakavarga, Shadbala,
   divisional summaries, KP and Jaimini sections.
@@ -530,6 +557,13 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
   positions, and Vimshottari dasha transitions. Surfaced via a notification
   bell + `/app/notifications` page + Settings toggles. Email and browser
   push delivery are queued as v2 / v3.
+- 🟡 **Voice AI Guru follow-ups** — core feature ships (see Recently shipped).
+  Remaining: activate **Phase 2–3 personas** (Jaimini, Varahamihira, Mantreshwar,
+  Bhrigu, Lal Kitab) once voices are sourced; register the **6 tools** in the
+  agent for the no-chart Dashboard flow; a real **gun-milan engine** to replace
+  the `check_compatibility` stub; an ElevenLabs **post-call webhook** to populate
+  `credits_consumed` + authoritative transcript; and an optional **server-side
+  conversation-initiation webhook** so the dossier never reaches the browser.
 - 💡 **RAG-backed citations** for the Guru debate — ground readings in the
   actual source texts (BPHS, Saravali, Phaladeepika) for verifiable quotes.
 - 💡 **Birth Time Rectification** — user provides 3–5 major life events;
@@ -622,9 +656,10 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 | 14 | 5 more languages (Phase 2)               | 2–3 wks  | 88% of India covered               |
 | 15 | ✅ Business Kundli                       | 4–5 days | Acharya tier monetization          |
 | 16 | ✅ Mundane Kundli (public page)          | 5–6 days | SEO + thought leadership           |
-| 17 | PWA + mobile pass                        | 2–3 wks  | Mobile-first India market          |
-| 18 | RAG pipeline + classical text corpus     | 3–4 wks  | Verifiable shloka citations        |
-| 19 | Remaining languages (Phase 3–4)          | 2–3 wks  | 97% of India covered               |
+| 17 | ✅ Voice AI Guru (ElevenLabs ConvAI)     | ~1 wk    | Flagship — talk to a Guru live     |
+| 18 | PWA + mobile pass                        | 2–3 wks  | Mobile-first India market          |
+| 19 | RAG pipeline + classical text corpus     | 3–4 wks  | Verifiable shloka citations        |
+| 20 | Remaining languages (Phase 3–4)          | 2–3 wks  | 97% of India covered               |
 
 ---
 
