@@ -1,6 +1,6 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, HelpCircle, Building2, GitCompareArrows, Bell } from 'lucide-react';
+import { Library, Settings, PlusCircle, LayoutDashboard, LogOut, Shield, Users, HelpCircle, Building2, GitCompareArrows, Bell, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -9,24 +9,47 @@ import { usePlanGate } from '@/hooks/usePlanGate';
 import { toast } from '@/components/ui/sonner';
 import { StaleSnapshotBanner } from '@/components/chart/StaleSnapshotBanner';
 import { AutoInsightsLoader } from '@/components/chart/AutoInsightsLoader';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
-const navItems = [
+// Top-level nav stays lean; every chart-casting flow lives in the "New Chart" menu.
+const primaryNav = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/app/new', label: 'New Chart', icon: PlusCircle },
   { to: '/app/library', label: 'Library', icon: Library },
-  { to: '/app/prashna', label: 'Prashna', icon: HelpCircle },
-  { to: '/app/business/new', label: 'Business', icon: Building2 },
-  { to: '/app/compatibility', label: 'Compatibility', icon: Users },
-  { to: '/app/twins/new', label: 'Twins', icon: GitCompareArrows },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 
+const chartTypes = [
+  { to: '/app/new', label: 'Birth Chart', desc: 'Standard natal Kundli', icon: PlusCircle },
+  { to: '/app/compatibility', label: 'Compatibility', desc: 'Kundli Milan matching', icon: Users },
+  { to: '/app/prashna', label: 'Prashna', desc: 'Horary (KP) chart', icon: HelpCircle },
+  { to: '/app/business/new', label: 'Business', desc: 'Business / venture chart', icon: Building2 },
+  { to: '/app/twins/new', label: 'Twins', desc: 'Compare two close births', icon: GitCompareArrows },
+];
+
+// Routes that should keep the "New Chart" trigger highlighted as active.
+const CHART_PREFIXES = ['/app/new', '/app/compatibility', '/app/prashna', '/app/business', '/app/twins'];
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'inline-flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm transition-colors',
+    isActive ? 'bg-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary',
+  );
+
 export function AppLayout() {
   const nav = useNavigate();
+  const { pathname } = useLocation();
   const { user } = useSession();
   const { isAdmin } = useAdmin();
   const { unreadCount } = useTransitAlerts();
   const alertsGated = usePlanGate('transit_alerts');
+  const chartActive = CHART_PREFIXES.some((p) => pathname.startsWith(p));
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) toast.error(error.message);
@@ -41,12 +64,46 @@ export function AppLayout() {
             <span className="hidden whitespace-nowrap text-xs text-text-muted lg:inline">Vedic Research Terminal</span>
           </Link>
           <nav className="flex shrink-0 items-center gap-1">
-            {navItems.map(({ to, label, icon: Icon, end }) => (
-              <NavLink key={to} to={to} end={end}
-                className={({ isActive }) => cn(
-                  'inline-flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm transition-colors',
-                  isActive ? 'bg-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary'
-                )}>
+            {/* Dashboard */}
+            <NavLink to="/app" end className={navLinkClass}>
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </NavLink>
+
+            {/* New Chart — every chart-casting flow collapsed into one menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-sm px-3 py-1.5 text-sm outline-none transition-colors',
+                    chartActive ? 'bg-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary',
+                  )}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">New Chart</span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuLabel className="text-eyebrow text-text-tertiary">Cast a chart</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {chartTypes.map(({ to, label, desc, icon: Icon }) => (
+                  <DropdownMenuItem key={to} asChild className="cursor-pointer">
+                    <Link to={to} className="flex items-start gap-2.5">
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-brand-saffron" />
+                      <span className="flex flex-col">
+                        <span className="text-sm text-text-primary">{label}</span>
+                        <span className="text-xs text-text-tertiary">{desc}</span>
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Library + Settings */}
+            {primaryNav.slice(1).map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={to} className={navLinkClass}>
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{label}</span>
               </NavLink>
