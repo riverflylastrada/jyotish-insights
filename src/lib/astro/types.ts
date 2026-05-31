@@ -64,7 +64,8 @@ export interface DivisionalChart {
 }
 
 export interface DashaPeriod {
-  level: 'maha' | 'antar' | 'pratyantar' | 'sookshma' | 'prana';
+  // Engine computes three levels: Maha → Antar → Pratyantar.
+  level: 'maha' | 'antar' | 'pratyantar';
   planet: string;
   startDate: string;
   endDate: string;

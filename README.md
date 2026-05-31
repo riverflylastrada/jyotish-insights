@@ -1,8 +1,8 @@
-# Jyotish Sage
+# Acharya Jyotish
 
-> **Five Gurus. One Chart. The Truth in Your Stars.**
+> **Eight Gurus. One Chart. The Truth in Your Stars.**
 
-Jyotish Sage (repo: `jyotish-insights`) is a professional-grade Vedic astrology
+Acharya Jyotish (repo: `jyotish-insights`) is a professional-grade Vedic astrology
 platform. It computes a high-precision birth chart (Kundli) entirely from first
 principles, then runs the chart through multiple classical schools of Jyotish
 and synthesizes their readings into a single verdict via a multi-Guru "tribunal"
@@ -13,7 +13,7 @@ Ashtakavarga, Panchang, compatibility — is calculated in-house by a TypeScript
 astronomy engine running on Supabase Edge Functions. No third-party astrology
 API is required.
 
-> **Vision:** Jyotish Sage is an **Interactive Astrology Research Lab**, not a
+> **Vision:** Acharya Jyotish is an **Interactive Astrology Research Lab**, not a
 > prediction engine — every claim shows its math and cites its classical source.
 > Two modes: a deterministic **Research Lab** (explore the chart yourself) and
 > the **Guru Consultation** debate engine. See [ROADMAP.md](ROADMAP.md#vision).
@@ -49,8 +49,8 @@ API is required.
 - **19 divisional charts (Vargas)** — D1 (Rasi) through D144 (Dwadas-Dwadasamsa)
   with per-varga significance and interpretation, including three high-divisional
   vargas: D81 (Nava-Navamsa), D108 (Ashtottaramsa), and D144 (Dwadas-Dwadasamsa).
-- **Dasha systems** — **Vimshottari** (120-yr, five sub-period levels Maha →
-  Antar → Pratyantar → Sookshma → Prana, live "now" marker), plus **Yogini**
+- **Dasha systems** — **Vimshottari** (120-yr, three sub-period levels Maha →
+  Antar → Pratyantar, live "now" marker), plus **Yogini**
   (36-yr), **Ashtottari** (108-yr), **Kalachakra**, **Jaimini Chara**
   (Maha + Antar), **Narayana / नारायण** (Padakrama rasi dasha),
   **Lagna Kendradi / लग्न केन्द्रादि** (strength-ordered rasi dasha), and
@@ -192,7 +192,7 @@ in TypeScript:
 | [elp82.ts](supabase/functions/calculate-kundli/elp82.ts) | ELP-2000/82 Moon, IAU 1980 nutation, true/mean node |
 | [vedic.ts](supabase/functions/calculate-kundli/vedic.ts) | Ayanamsa, sidereal conversion, nakshatra/pada, whole-sign houses, dignity, combustion |
 | [divisional.ts](supabase/functions/calculate-kundli/divisional.ts) | All 16 divisional (Varga) charts |
-| [dashas.ts](supabase/functions/calculate-kundli/dashas.ts) | Vimshottari Dasha to five levels |
+| [dashas.ts](supabase/functions/calculate-kundli/dashas.ts) | Vimshottari Dasha to three levels (Maha → Antar → Pratyantar) |
 | [yogini.ts](supabase/functions/calculate-kundli/yogini.ts) | Yogini Dasha (36-yr), Maha + Antar |
 | [ashtottari.ts](supabase/functions/calculate-kundli/ashtottari.ts) | Ashtottari Dasha (108-yr), Maha + Antar |
 | [kalachakra.ts](supabase/functions/calculate-kundli/kalachakra.ts) | Kalachakra Dasha (nakshatra-pada Savya/Apasavya) |
@@ -386,14 +386,31 @@ Two paths are supported out of the box:
 - **Docker** — multi-stage build (`node:20-alpine` → `nginx:alpine`). See
   [Dockerfile](Dockerfile) and [nginx.conf](nginx.conf):
   ```bash
-  docker build -t jyotish-sage .
-  docker run -p 8080:80 jyotish-sage
+  docker build -t acharya-jyotish .
+  docker run -p 8080:80 acharya-jyotish
   ```
 - **DigitalOcean App Platform** — static-site spec in [.do/app.yaml](.do/app.yaml),
   with `deploy_on_push` from `main`.
 
-The Supabase backend (database + edge functions) is deployed separately via the
-Supabase CLI as shown above.
+The Supabase database (migrations) is deployed via the Supabase CLI as shown
+above. The **edge functions deploy automatically** on every push to `main` via
+the `deploy-functions` job in [ci.yml](.github/workflows/ci.yml) — set these two
+repository secrets to enable it (without them the job skips cleanly):
+
+| Secret | Description |
+|--------|-------------|
+| `SUPABASE_ACCESS_TOKEN` | A personal access token from the Supabase dashboard (Account → Access Tokens) |
+| `SUPABASE_PROJECT_REF` | The project ref (e.g. `bkdfseyhusoxiruhuhbs`) |
+
+> **Why this matters:** the frontend's `CURRENT_SNAPSHOT_VERSION` and the engine's
+> `snapshotVersion` must move together. If the functions aren't redeployed after a
+> version bump, the UI advertises a new version while the deployed engine stamps
+> the old one — and every saved chart gets stuck on a "Recalculate" banner that
+> can never clear. To deploy the functions manually instead:
+>
+> ```bash
+> supabase functions deploy   # all functions, or name one: calculate-kundli
+> ```
 
 ---
 

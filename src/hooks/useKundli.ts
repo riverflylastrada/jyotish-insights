@@ -51,6 +51,17 @@ export function useKundli(chartId: string, details: BirthDetails = DEMO_BIRTH) {
         // No snapshot, or a stale one from an older engine version: regenerate
         // and cache the fresh snapshot back to the DB (best-effort, don't block).
         const fresh = await getAstroProvider().generateKundli((data?.birth_details as unknown as BirthDetails) ?? details);
+        // If the *regenerated* snapshot is still behind the frontend, the deployed
+        // calculate-kundli edge function is out of date — "Recalculate" can never
+        // clear the stale banner until it's redeployed. Surface it instead of
+        // silently writing the same old version back on every retry.
+        if ((fresh.snapshotVersion ?? 0) < CURRENT_SNAPSHOT_VERSION) {
+          console.warn(
+            `[useKundli] Recalculated snapshot is v${fresh.snapshotVersion ?? 0} but the app expects v${CURRENT_SNAPSHOT_VERSION}. ` +
+              `The deployed calculate-kundli edge function is stale — redeploy it (\`supabase functions deploy calculate-kundli\`).`,
+          );
+          return fresh;
+        }
         void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', chartId);
         return fresh;
       }
