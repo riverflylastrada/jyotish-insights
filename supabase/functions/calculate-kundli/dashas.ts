@@ -6,7 +6,9 @@ import { VIMSHOTTARI_SEQUENCE, VIMSHOTTARI_TOTAL } from "./constants.ts";
 import { nakshatraIndex } from "./vedic.ts";
 
 export interface DashaPeriod {
-  level: 'maha' | 'antar' | 'pratyantar' | 'sookshma' | 'prana';
+  // Only three levels are computed today: Maha → Antar → Pratyantar.
+  // (Sookshma/Prana are not produced by buildVimshottari.)
+  level: 'maha' | 'antar' | 'pratyantar';
   planet: string;
   startDate: string;
   endDate: string;

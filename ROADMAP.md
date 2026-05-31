@@ -1,4 +1,4 @@
-# Roadmap — Jyotish Sage
+# Roadmap — Acharya Jyotish
 
 This document tracks the direction of the project. It is grounded in the current
 state of the codebase: what already works, what is stubbed, and where the
@@ -11,7 +11,7 @@ grouped by horizon and theme.
 
 ## Vision
 
-**Jyotish Sage is an Interactive Astrology Research Lab** — not a prediction
+**Acharya Jyotish is an Interactive Astrology Research Lab** — not a prediction
 engine. Every chart teaches itself. Every claim shows its math. Every rule cites
 its classical source. The user doesn't consume predictions; they verify
 mathematical proofs and arrive at understanding themselves.

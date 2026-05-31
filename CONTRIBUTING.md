@@ -1,4 +1,4 @@
-# Contributing — Jyotish Sage
+# Contributing — Acharya Jyotish
 
 Conventions for human and **automated** contributors (Devin, Claude Code, …).
 Engine prompts can simply say *"follow CONTRIBUTING.md"* instead of repeating these.
