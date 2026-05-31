@@ -38,28 +38,36 @@ jobs:
       - name: Deno type-check entrypoints
         run: deno check supabase/functions/calculate-kundli/engine.ts supabase/functions/guru-debate/index.ts
 
-  # Deploy the edge functions on every push to main, so engine version bumps
+  # Deploy the Supabase backend on every push to main, so backend changes
   # actually reach production. The frontend already auto-deploys (DigitalOcean,
-  # deploy_on_push) — without this, a bumped CURRENT_SNAPSHOT_VERSION ships to
-  # the UI while the stamping function stays behind, leaving every saved chart
-  # stuck on a "Recalculate" banner that can never clear.
-  # Requires repo secrets SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF;
-  # skips cleanly if they are not configured.
-  deploy-functions:
+  # deploy_on_push); without this job the backend lags behind, which has caused:
+  #   - engine version bumps shipping to the UI while the deployed function
+  #     kept stamping the old version (stuck "Recalculate" banner), and
+  #   - new tables (e.g. transit_alerts) 404ing because the migration was never
+  #     applied to the production database.
+  # Function deploy needs SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF.
+  # Migration push additionally needs SUPABASE_DB_PASSWORD. Each part skips
+  # cleanly when its secrets are absent.
+  deploy-backend:
     needs: [frontend, edge-functions]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
       - name: Check for deploy credentials
         id: creds
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
-            echo "Supabase deploy secrets not set — skipping function deploy."
+            echo "Supabase deploy secrets not set — skipping function deploy + migrations."
             echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "SUPABASE_DB_PASSWORD not set — skipping migration push."
+            echo "skipdb=true" >> "$GITHUB_OUTPUT"
           fi
       - uses: supabase/setup-cli@v1
         if: steps.creds.outputs.skip != 'true'
@@ -68,3 +76,8 @@ jobs:
       - name: Deploy edge functions
         if: steps.creds.outputs.skip != 'true'
         run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Apply database migrations
+        if: steps.creds.outputs.skip != 'true' && steps.creds.outputs.skipdb != 'true'
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          supabase db push
