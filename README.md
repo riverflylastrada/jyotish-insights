@@ -27,6 +27,7 @@ API is required.
 - [Tech stack](#tech-stack)
 - [The calculation engine](#the-calculation-engine)
 - [The Guru Debate engine](#the-guru-debate-engine)
+- [The Voice AI Guru](#the-voice-ai-guru)
 - [Project structure](#project-structure)
 - [Getting started](#getting-started)
 - [Environment variables](#environment-variables)
@@ -105,6 +106,15 @@ API is required.
 > monetization. See [ROADMAP.md](ROADMAP.md#immediate--interactive-research-lab).
 
 ### Interpretation & analysis
+- **Voice AI Guru** — *talk to* an AI Jyotishi live (Hindi-first) via ElevenLabs
+  Conversational AI. The edge function injects the same authoritative chart
+  dossier into the agent before the call, so the Guru already knows every
+  position, dasha, and yoga and never asks you to repeat birth details. One base
+  agent serves multiple personas — voice, persona prompt, greeting, and dossier
+  switch per session via `conversation_config_override` (Phase 1: Parashara Muni,
+  Devi Saraswati, KP Master). From the Dashboard (no chart loaded) the Guru asks
+  for birth details and computes the chart live via tool calls. See
+  [The Voice AI Guru](#the-voice-ai-guru).
 - **Multi-Guru Debate** — pose a question and stream parallel readings from up
   to eight classical and modern masters (Parashara, Varahamihira, B. V. Raman,
   K. N. Rao, K. S. Krishnamurti, Jaimini, Mantreshwara, Kalyanavarman), then a
@@ -140,7 +150,7 @@ API is required.
 │  React SPA (Vite + TypeScript + Tailwind + shadcn/ui)        │
 │  • Pages: Dashboard, NewChart, ChartDetail, Dashas, Yogas,   │
 │    Doshas, Ashtakavarga, Transits, Compatibility, Debate,    │
-│    Remedies, Report, Library, Settings, Admin/*              │
+│    Voice, Remedies, Report, Library, Settings, Admin/*       │
 │  • State: Zustand stores + TanStack Query                    │
 │  • Astro provider abstraction (mock | vedicrishi | custom)   │
 └───────────────┬─────────────────────────────────────────────┘
@@ -152,13 +162,21 @@ API is required.
 │  • Edge Functions (Deno):                                    │
 │      - calculate-kundli  → in-house Vedic astronomy engine   │
 │      - guru-debate       → streams LLM readings + verdict    │
+│      - voice-session     → ElevenLabs token + dossier override│
+│      - voice-tools       → agent tool webhook (live compute)  │
 │      - render-report     → HTML/PDF report                   │
+└──────────────────────────────────────────────────────────────┘
+        │ signed token + system-prompt override (no API key)
+┌───────▼──────────────────────────────────────────────────────┐
+│  ElevenLabs Conversational AI (one base agent, voice over     │
+│  WebRTC) — @elevenlabs/react in the browser                   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 The frontend never talks to an external astrology API directly. Chart math is
 done server-side in `calculate-kundli`; LLM calls are proxied through
-`guru-debate` so API keys stay on the server.
+`guru-debate`, and ElevenLabs calls through `voice-session`, so API keys stay on
+the server — the browser only ever receives a short-lived conversation token.
 
 ---
 
@@ -171,7 +189,8 @@ done server-side in `calculate-kundli`; LLM calls are proxied through
 | State / data | Zustand, TanStack Query, React Hook Form + Zod |
 | Charts       | Recharts, custom SVG Kundli renderers |
 | Backend      | Supabase (Postgres, Auth, Storage, Edge Functions on Deno) |
-| AI           | OpenAI-compatible chat completions (default Google Gemini `gemini-2.5-flash`), streamed via SSE |
+| AI (text)    | OpenAI-compatible chat completions (default Google Gemini `gemini-2.5-flash`), streamed via SSE |
+| AI (voice)   | ElevenLabs Conversational AI (`@elevenlabs/react`, WebRTC); the conversation LLM runs inside the agent |
 | Tooling      | Vitest + Testing Library, ESLint, Bun/npm |
 | Deploy       | Docker (multi-stage Node build → nginx) and DigitalOcean App Platform |
 
@@ -235,11 +254,13 @@ exposes two modes:
   synthesis, explicitly naming consensus and dissent.
 
 The dossier ([dossier.ts](supabase/functions/guru-debate/dossier.ts)) is a
-modular, ~17-section context builder — today's date, **server-computed live
+modular, ~26-section context builder — today's date, **server-computed live
 transits** (houses from both Lagna and Moon), the **authoritative Sade Sati
 phase**, natal planet table, house lordships, multi-level dashas, yogas/doshas,
 Ashtakavarga, Shadbala, Panchang, divisional summaries, and the **KP** and
-**Jaimini** sections. A grounding guardrail forbids inventing positions or
+**Jaimini** sections. It is reused verbatim by the Voice AI Guru. A grounding
+guardrail ([grounding.ts](supabase/functions/guru-debate/grounding.ts), shared
+with voice) forbids inventing positions or
 dates and tells gurus to state computed values (e.g. the Sade Sati phase)
 verbatim. This fixed a class of bugs where gurus would hallucinate
 contradictory planetary positions on transit-sensitive questions.
@@ -248,6 +269,55 @@ Readings stream over SSE so the UI fills in live and runs the gurus in parallel;
 the client captures `finish_reason` and **retries truncated readings** up to
 twice. The LLM endpoint, model, and API key are read from `app_settings`
 (configurable in the Admin panel) with a `GOOGLE_AI_KEY` environment fallback.
+
+---
+
+## The Voice AI Guru
+
+A live, **Hindi-first** voice conversation with an AI Jyotishi, powered by
+**ElevenLabs Conversational AI**. The conversation LLM runs *inside* the
+ElevenLabs agent; our role is to (a) mint a connection token and (b) build the
+per-session **system-prompt override** — so the Guru is grounded on the same
+authoritative dossier as the text debate and never invents data.
+
+**One base agent, many personas.** Rather than one agent per Guru, a single
+ElevenLabs agent (tools + knowledge base configured once) is re-skinned per
+session via `conversation_config_override`: voice (`tts.voiceId/speed/stability`),
+system prompt, first message, and language all switch based on the selected
+persona. Personas live in
+[voice-session/personas.ts](supabase/functions/voice-session/personas.ts)
+(8 total, phased — Phase 1: Parashara Muni, Devi Saraswati, KP Master) with
+display metadata + availability flags in
+[src/config/guruVoices.ts](src/config/guruVoices.ts).
+
+Two edge functions back it:
+
+- **[voice-session](supabase/functions/voice-session/index.ts)** — `get-signed-url`
+  mints a WebRTC **conversation token** (signed-URL/WebSocket fallback) and
+  assembles `overrides` = persona prompt + shared grounding +
+  `buildChartDossier(...)` + voice; `log-session` records a row in
+  `voice_sessions`; `get-usage` reports a soft monthly-minutes cap. The chart is
+  sent by the client (the same `KundliData` it already holds) so the dossier
+  builds for demo/unsaved/shared charts too.
+- **[voice-tools](supabase/functions/voice-tools/index.ts)** — the webhook the
+  agent calls mid-conversation to compute on demand (`compute_kundli`,
+  `get_current_dasha`, `check_transits`, `detect_yogas`, `get_panchang`;
+  compatibility is an honest stub pending a gun-milan engine). Because ElevenLabs
+  can't present a Supabase JWT, it's secured by a shared-secret `X-Webhook-Secret`
+  header.
+
+The browser uses `@elevenlabs/react`'s `useConversation` and applies the
+server-built `overrides` at `startSession`. Two flows: **chart-loaded** (Ask
+Guruji on ChartDetail — the Guru opens already knowing the chart) and
+**no-chart** (Dashboard "Talk to Guruji" — the Guru asks for birth details and
+computes via tools). The ElevenLabs **API key + webhook secret** are stored in
+`app_settings` (Admin → API Keys), and the **agent id, per-Guru voice ids, and
+voice tuning** in Admin → Voice — all read server-side, no redeploy to change.
+
+> **Security:** the ElevenLabs API key never reaches the browser; the client only
+> gets a short-lived conversation token. The overridden agent fields (System
+> prompt, First message, Language, Voice, and the voice tuning fields) must be
+> enabled in the agent's **Security → Overrides** tab, or the SDK rejects them.
 
 ---
 
@@ -260,22 +330,27 @@ src/
                    #   Dashas, Doshas, Yogas, Ashtakavarga, Transits, Strengths,
                    #   KP, Jaimini, Varshphal, Muhurta, Compatibility, Debate,
                    #   Remedies, Report, Library, Settings
-    admin/         # AdminDashboard, AdminUsers, AdminApiKeys, AdminLlmConfig
+    app/           # ... + VoiceGuruPage (/app/voice, /app/voice/:chartId)
+    admin/         # AdminDashboard, AdminUsers, AdminApiKeys, AdminLlmConfig, AdminVoice
     Index.tsx      # Marketing landing page
   components/
     kundli/        # KundliChart (N/S Indian SVG), KundliBiWheel (transit overlay)
-    layout/        # AppLayout, AdminLayout, SiteFooter
+    voice/         # VoiceGuru tray, VoiceWaveform, GuruSelector, VoiceButton
+    layout/        # AppLayout, AdminLayout, SiteFooter, NavBadge
     auth/          # RequireAuth, RequireAdmin route guards
     ui/            # shadcn/ui primitives
+  config/          # guruVoices.ts (voice persona display registry)
   lib/astro/       # Provider abstraction (factory, types, providers/, normalizers)
-  hooks/           # useKundli, useSession, useAdmin, ...
-  stores/          # useChartStore, useDebateStore, useUserStore (Zustand)
+  hooks/           # useKundli, useSession, useAdmin, useVoiceSession, ...
+  stores/          # useChartStore, useDebateStore, useUserStore, useVoiceStore (Zustand)
   integrations/    # Supabase client + generated types
 supabase/
   functions/
     calculate-kundli/  # Vedic engine (astronomy, vedic, divisional, dashas,
                        #   yogas, doshas, ashtakavarga, panchang, kp, jaimini)
-    guru-debate/       # LLM tribunal: index.ts + dossier.ts (chart dossier builder)
+    guru-debate/       # LLM tribunal: index.ts + dossier.ts + grounding.ts
+    voice-session/     # ElevenLabs token + per-session override (personas.ts)
+    voice-tools/       # ElevenLabs agent tool webhook (live computation)
     render-report/     # HTML → PDF report (via PDFShift)
   migrations/      # Postgres schema + RLS + RPCs
 Dockerfile         # Multi-stage build → nginx
@@ -342,7 +417,9 @@ Edge functions (set as Supabase secrets, **never** in the frontend):
 | Secret | Description |
 |--------|-------------|
 | `GOOGLE_AI_KEY` | Fallback LLM API key for `guru-debate` (or configure via Admin → API Keys) |
-| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Used by `guru-debate` to read LLM config from `app_settings` |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Used by `guru-debate` / `voice-session` to read config from `app_settings` |
+| `ELEVENLABS_API_KEY` | ElevenLabs key for `voice-session` (preferred: set in Admin → API Keys; env is a fallback) |
+| `ELEVENLABS_WEBHOOK_SECRET` | Shared secret `voice-tools` verifies on agent tool calls (preferred: Admin → API Keys; env fallback) |
 
 ---
 
@@ -356,22 +433,25 @@ Core tables (see [supabase/migrations/](supabase/migrations/)):
 - **`charts`** — saved charts: `birth_details` (JSONB), cached `snapshot`
   (JSONB, version-stamped — stale snapshots auto-recalculate on load), and a
   secret `share_token` for public read access.
-- **`app_settings`** — admin-managed key/value config (LLM endpoint, model, API
-  key references), admin-only via RLS.
+- **`app_settings`** — admin-managed key/value config (LLM endpoint/model/API
+  keys, **ElevenLabs key + webhook secret**, **voice** agent id / per-Guru voice
+  ids + tuning), admin-only via RLS.
+- **`voice_sessions`** — one row per completed voice conversation (guru, chart,
+  language, duration, transcript), owner-scoped via RLS.
 
 Row-Level Security restricts every row to its owner; public sharing is served
 through the security-definer RPC `get_chart_by_share_token`. Admin views use the
-`admin_get_users` and `admin_get_stats` RPCs.
+`admin_get_users`, `admin_get_stats`, and `admin_get_voice_stats` RPCs.
 
 Deploy the schema and functions with the Supabase CLI:
 
 ```bash
 supabase link --project-ref <your-ref>
 supabase db push
-supabase functions deploy calculate-kundli
-supabase functions deploy guru-debate
-supabase functions deploy render-report
+supabase functions deploy   # all functions (calculate-kundli, guru-debate,
+                            #   voice-session, voice-tools, render-report, …)
 supabase secrets set GOOGLE_AI_KEY=<your-key>
+# ElevenLabs key + webhook secret are preferably set in Admin → API Keys instead.
 ```
 
 > **First admin user:** set `role = 'admin'` on your profile row in the Supabase
@@ -447,10 +527,11 @@ automated — follow.
 
 See [ROADMAP.md](ROADMAP.md) for planned work. **The Interactive Research Lab
 is feature-complete** — all five phases shipped, alongside all four
-**Specialized Kundli types** (Prashna, Twins, Business, public Mundane).
+**Specialized Kundli types** (Prashna, Twins, Business, public Mundane) and the
+**Voice AI Guru** (live ElevenLabs conversation grounded on the chart dossier).
 Up next: **Razorpay billing + plan gating**, a **pan-India multi-language
-launch**, additional dasha systems, and the remaining engine items (Avasthas,
-150+ yoga catalog target, divisional expansion to 23+ vargas).
+launch**, the remaining voice personas (Phases 2–3) + tool-calling flow, and the
+remaining engine items (divisional expansion to 23+ vargas).
 
 ---
 
