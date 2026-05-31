@@ -392,8 +392,25 @@ Two paths are supported out of the box:
 - **DigitalOcean App Platform** — static-site spec in [.do/app.yaml](.do/app.yaml),
   with `deploy_on_push` from `main`.
 
-The Supabase backend (database + edge functions) is deployed separately via the
-Supabase CLI as shown above.
+The Supabase database (migrations) is deployed via the Supabase CLI as shown
+above. The **edge functions deploy automatically** on every push to `main` via
+the `deploy-functions` job in [ci.yml](.github/workflows/ci.yml) — set these two
+repository secrets to enable it (without them the job skips cleanly):
+
+| Secret | Description |
+|--------|-------------|
+| `SUPABASE_ACCESS_TOKEN` | A personal access token from the Supabase dashboard (Account → Access Tokens) |
+| `SUPABASE_PROJECT_REF` | The project ref (e.g. `bkdfseyhusoxiruhuhbs`) |
+
+> **Why this matters:** the frontend's `CURRENT_SNAPSHOT_VERSION` and the engine's
+> `snapshotVersion` must move together. If the functions aren't redeployed after a
+> version bump, the UI advertises a new version while the deployed engine stamps
+> the old one — and every saved chart gets stuck on a "Recalculate" banner that
+> can never clear. To deploy the functions manually instead:
+>
+> ```bash
+> supabase functions deploy   # all functions, or name one: calculate-kundli
+> ```
 
 ---
 
