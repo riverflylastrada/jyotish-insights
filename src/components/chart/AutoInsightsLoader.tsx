@@ -9,6 +9,15 @@ import { useAutoInsights } from '@/hooks/useAutoInsights';
  */
 export function AutoInsightsLoader() {
   const match = useMatch('/app/chart/:id/*');
-  useAutoInsights(match?.params.id);
+  const chartId = match?.params.id;
+  // Gate BEFORE touching React Query hooks: on non-chart routes (and in tests
+  // that render AppLayout without a QueryClientProvider) we must not call
+  // useQueryClient/useKundli at all.
+  if (!chartId) return null;
+  return <Loader chartId={chartId} />;
+}
+
+function Loader({ chartId }: { chartId: string }) {
+  useAutoInsights(chartId);
   return null;
 }
