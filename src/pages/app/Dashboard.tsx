@@ -308,18 +308,20 @@ export default function Dashboard() {
       {/* Header Profile Selector */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline-subtle pb-6">
         <div>
-          <div className="text-eyebrow text-brand-saffron flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-brand-saffron" /> Premium Vedic Dashboard</div>
-          <h1 className="mt-1 font-display text-h1 text-text-primary">Research Terminal</h1>
+          <div className="text-eyebrow text-brand-saffron flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-brand-saffron" /> Premium Vedic Dashboard</div>
+          <h1 className="mt-2 font-display text-h1 text-text-primary">Research Terminal</h1>
+          <div className="gold-rule mt-3 max-w-[8rem]" />
+          <p className="mt-3 max-w-xl text-sm text-text-tertiary">Your live Vedic research feed — today's transits, the active dasha, and chart insights across your saved profiles.</p>
         </div>
-        
+
         {/* Profile Switcher dropdown */}
-        <div className="flex items-center gap-2 rounded-sm border border-hairline-subtle bg-surface px-3 py-1.5 shadow-sm">
+        <div className="flex items-center gap-2 rounded-sm border border-hairline-subtle bg-surface px-3 py-2 shadow-sm">
           <Bookmark className="h-4 w-4 text-brand-saffron" />
-          <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Active Profile:</span>
+          <span className="text-eyebrow text-text-tertiary">Active Profile</span>
           <select
             value={selectedProfileId}
             onChange={(e) => setSelectedProfileId(e.target.value)}
-            className="bg-transparent text-sm font-semibold text-text-primary focus:outline-none cursor-pointer"
+            className="cursor-pointer bg-transparent text-sm font-semibold text-text-primary focus:outline-none"
           >
             {profiles.map(p => (
               <option key={p.id} value={p.id}>{p.name}</option>
