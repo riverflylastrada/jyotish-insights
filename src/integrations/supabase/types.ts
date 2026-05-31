@@ -92,6 +92,7 @@ export type Database = {
           current_lon: number | null
           current_place_name: string | null
           current_timezone: string | null
+          default_chart_id: string | null
           display_name: string | null
           house_system: string
           id: string
@@ -109,6 +110,7 @@ export type Database = {
           current_lon?: number | null
           current_place_name?: string | null
           current_timezone?: string | null
+          default_chart_id?: string | null
           display_name?: string | null
           house_system?: string
           id?: string
@@ -126,6 +128,7 @@ export type Database = {
           current_lon?: number | null
           current_place_name?: string | null
           current_timezone?: string | null
+          default_chart_id?: string | null
           display_name?: string | null
           house_system?: string
           id?: string
