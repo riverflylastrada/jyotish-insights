@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAstroProvider } from '@/lib/astro/factory';
-import { PLANET_LABELS, type PlanetPosition, type KundliData } from '@/lib/astro/types';
+import { PLANET_LABELS, CURRENT_SNAPSHOT_VERSION, type PlanetPosition, type KundliData } from '@/lib/astro/types';
 import { toast } from '@/components/ui/sonner';
 import { useCurrentLocation } from '@/hooks/useCurrentLocation';
 
@@ -26,6 +26,12 @@ interface Profile {
   birth_details: any;
   snapshot: KundliData | null;
 }
+
+// A stored snapshot is only usable if it was produced by the current engine.
+// Older snapshots are missing newer fields (dashas/vargas/etc.), so the
+// dashboard treats them as absent and recomputes — matching useKundli.
+const isSnapshotFresh = (snap: KundliData | null | undefined): snap is KundliData =>
+  !!snap && (snap.snapshotVersion ?? 0) >= CURRENT_SNAPSHOT_VERSION;
 
 export default function Dashboard() {
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
@@ -87,7 +93,7 @@ export default function Dashboard() {
   // Dynamically compute snapshot if it doesn't exist
   useEffect(() => {
     if (!activeProfile) return;
-    if (activeProfile.snapshot) return;
+    if (isSnapshotFresh(activeProfile.snapshot)) return;
     if (attemptedComputes[activeProfile.id]) return;
 
     async function computeSnapshot() {
@@ -108,7 +114,10 @@ export default function Dashboard() {
     computeSnapshot();
   }, [activeProfile, attemptedComputes]);
 
-  if (profiles === null || loadingTransits) {
+  // Only block on profiles. Transits load from an edge function (can be slow,
+  // especially on a cold start) — don't hold the whole dashboard hostage to it;
+  // the transit/auspiciousness cards fill in when `transits` resolves.
+  if (profiles === null) {
     return (
       <div className="mx-auto max-w-7xl px-6 py-24 text-center">
         <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-saffron" />
@@ -159,7 +168,12 @@ export default function Dashboard() {
     );
   }
 
-  const chartData = activeProfile?.snapshot || computedSnapshots[activeProfile?.id] || null;
+  // Prefer a fresh stored snapshot; ignore stale ones in favour of the
+  // freshly recomputed snapshot so dashas/D1 actually populate the feed.
+  const chartData =
+    (isSnapshotFresh(activeProfile?.snapshot) ? activeProfile!.snapshot : null) ||
+    computedSnapshots[activeProfile?.id ?? ''] ||
+    null;
 
   // Every feed value is derived from real data below. `null` means "not available
   // yet" and renders as an honest placeholder — never a fabricated specific.
@@ -351,7 +365,9 @@ export default function Dashboard() {
 
           <div className="mt-6 text-xs text-text-secondary px-4 leading-relaxed font-medium">
             {auspiciousScore === null ? (
-              "Live transit data is unavailable right now. Open this chart to refresh today's gochara."
+              loadingTransits
+                ? "Computing today's planetary transits…"
+                : "Live transit data is unavailable right now. Open this chart to refresh today's gochara."
             ) : auspiciousScore >= 80 ? (
               "Highly auspicious. Perfect alignment for launching key ventures, travel, or critical agreements."
             ) : auspiciousScore >= 60 ? (
@@ -379,7 +395,9 @@ export default function Dashboard() {
               )}
             </div>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              {moonHouseText ?? "Live transit data isn't available yet. Reopen this chart to refresh today's Moon gochara."}
+              {moonHouseText ?? (loadingTransits
+                ? "Computing today's transit Moon position…"
+                : "Live transit data isn't available yet. Reopen this chart to refresh today's Moon gochara.")}
             </p>
             {(natalMoonSign || natalLagnaSign) && (
               <div className="mt-4 flex flex-wrap gap-2 text-xs">
