@@ -138,14 +138,15 @@ export function KundliChart({ chart, style = 'north', size = 360, onHouseClick }
   );
 }
 
-export function KundliFrame({ title, subtitle, children, className }: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
+export function KundliFrame({ title, subtitle, action, children, className }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn('rounded-md border border-hairline-subtle bg-surface p-5 shadow-sm', className)}>
-      <div className="mb-3 flex items-baseline justify-between">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-eyebrow text-text-tertiary">{title}</div>
           {subtitle && <div className="font-display text-h3 text-text-primary">{subtitle}</div>}
         </div>
+        {action && <div className="shrink-0">{action}</div>}
       </div>
       <div className="flex justify-center">{children}</div>
     </div>
