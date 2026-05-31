@@ -43,6 +43,7 @@ import { computeVimsopakaBala } from "./vimsopaka.ts";
 import { kpHoraryLongitude } from "./kp_horary.ts";
 import { computeAvasthas } from "./avasthas.ts";
 import { computeSaturnTransits } from "./saturn_transits.ts";
+import { computeSarvatobhadra } from "./sarvatobhadra.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -373,6 +374,10 @@ export async function calculateKundli(details: BirthDetails) {
     varshphal,
     vargeeyaBala,
     saturnTransits,
+    sarvatobhadra: computeSarvatobhadra(
+      d1Planets.map(p => ({ planet: p.planet, longitude: p.longitude })),
+      ascSid,
+    ),
     houseCusps: selectedSidCusps.length > 0
       ? selectedSidCusps.map((lon, i) => ({
           cusp: i + 1,
