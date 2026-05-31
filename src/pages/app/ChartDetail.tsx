@@ -123,11 +123,12 @@ export default function ChartDetail() {
       )}
       {/* Header */}
       <div className="rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+          <div className="min-w-0">
             <div className="text-eyebrow text-brand-saffron">Kundli · {dayjs(data.generatedAt).format('DD MMM YYYY')}</div>
             <h1 className="mt-2 font-display text-h1 text-text-primary">{data.birthDetails.fullName}</h1>
-            <div className="mt-2 font-mono text-sm text-text-tertiary">
+            <div className="gold-rule mt-3 max-w-[8rem]" />
+            <div className="mt-3 font-mono text-sm text-text-tertiary">
               {dayjs(data.birthDetails.dateOfBirth).format('DD MMM YYYY')}{data.birthDetails.timeOfBirth ? ` · ${data.birthDetails.timeOfBirth}` : ''} · {data.birthDetails.placeOfBirth.name}{data.chartBasis && data.chartBasis !== 'rasi' ? ` · ${data.chartBasis.charAt(0).toUpperCase() + data.chartBasis.slice(1)} chart` : ''}
             </div>
             <div className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -136,12 +137,15 @@ export default function ChartDetail() {
               <Chip label="Sun" value={`${sun.signName} · ${sun.nakshatra}`} color="sun" />
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {!readOnly && <ActionBtn icon={Save} label={isUuid ? 'Update' : 'Save'} onClick={onSave} loading={busy === 'save'} />}
-            <ActionBtn icon={Download} label="PDF" to={`/app/chart/${id}/report${shareToken ? `?share=${shareToken}` : ''}`} />
-            {!readOnly && <ActionBtn icon={Share2} label="Share" onClick={onShare} loading={busy === 'share'} />}
-            {!readOnly && <ActionBtn icon={RefreshCcw} label="Recalculate" onClick={onRecalc} loading={busy === 'recalc'} />}
-            <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-3 py-2 text-sm text-primary-foreground hover:bg-brand-maroon/90">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Secondary actions grouped into one segmented toolbar; labels show from lg */}
+            <div className="inline-flex items-center divide-x divide-hairline-subtle overflow-hidden rounded-sm border border-hairline-subtle bg-surface">
+              {!readOnly && <ActionBtn grouped icon={Save} label={isUuid ? 'Update' : 'Save'} onClick={onSave} loading={busy === 'save'} />}
+              <ActionBtn grouped icon={Download} label="PDF" to={`/app/chart/${id}/report${shareToken ? `?share=${shareToken}` : ''}`} />
+              {!readOnly && <ActionBtn grouped icon={Share2} label="Share" onClick={onShare} loading={busy === 'share'} />}
+              {!readOnly && <ActionBtn grouped icon={RefreshCcw} label="Recalculate" onClick={onRecalc} loading={busy === 'recalc'} />}
+            </div>
+            <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-brand-maroon/90">
               <MessageSquare className="h-4 w-4" /> Open Debate
             </Link>
           </div>
@@ -150,22 +154,18 @@ export default function ChartDetail() {
 
       {/* Grid */}
       <div className="mt-6 grid gap-6 lg:grid-cols-12">
-        {/* LEFT — charts */}
+        {/* LEFT — charts (the North/South toggle now lives on the D1 frame) */}
         <div className="space-y-6 lg:col-span-4">
-          <div className="rounded-md border border-hairline-subtle bg-surface p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-eyebrow text-text-tertiary">Chart style</div>
-              <div className="flex rounded-sm border border-hairline-subtle p-0.5 text-xs">
-                {(['north', 'south'] as const).map(s => (
-                  <button key={s} onClick={() => setChartStyle(s)}
-                    className={`rounded-sm px-3 py-1 capitalize ${chartStyle === s ? 'bg-brand-maroon text-primary-foreground' : 'text-text-tertiary'}`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
+          <KundliFrame title="D1 · Rasi" subtitle="Body & overall life" action={
+            <div className="flex rounded-sm border border-hairline-subtle p-0.5 text-xs">
+              {(['north', 'south'] as const).map(s => (
+                <button key={s} onClick={() => setChartStyle(s)}
+                  className={`rounded-sm px-2.5 py-1 capitalize transition-colors ${chartStyle === s ? 'bg-brand-maroon text-primary-foreground' : 'text-text-tertiary hover:text-text-primary'}`}>
+                  {s}
+                </button>
+              ))}
             </div>
-          </div>
-          <KundliFrame title="D1 · Rasi" subtitle="Body & overall life">
+          }>
             <KundliChart chart={d1} style={chartStyle} />
           </KundliFrame>
           <KundliFrame title="D9 · Navamsha" subtitle="Marriage & dharma">
@@ -267,13 +267,18 @@ export default function ChartDetail() {
   );
 }
 
-function ActionBtn({ icon: Icon, label, to, onClick, loading }: { icon: React.ElementType; label: string; to?: string; onClick?: () => void; loading?: boolean }) {
-  const cls = 'inline-flex items-center gap-2 rounded-sm border border-hairline-subtle bg-surface px-3 py-2 text-sm text-text-secondary hover:bg-elevated disabled:opacity-50';
-  if (to) return <Link to={to} className={cls}><Icon className="h-4 w-4" />{label}</Link>;
+function ActionBtn({ icon: Icon, label, to, onClick, loading, grouped }: { icon: React.ElementType; label: string; to?: string; onClick?: () => void; loading?: boolean; grouped?: boolean }) {
+  // `grouped` = borderless segment inside a shared toolbar; label collapses to
+  // an icon (with tooltip) until lg so the toolbar stays compact.
+  const cls = grouped
+    ? 'inline-flex items-center gap-2 px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-elevated disabled:opacity-50'
+    : 'inline-flex items-center gap-2 rounded-sm border border-hairline-subtle bg-surface px-3 py-2 text-sm text-text-secondary hover:bg-elevated disabled:opacity-50';
+  const labelEl = <span className={grouped ? 'hidden lg:inline' : undefined}>{label}</span>;
+  if (to) return <Link to={to} className={cls} title={label}><Icon className="h-4 w-4" />{labelEl}</Link>;
   return (
-    <button onClick={onClick} disabled={loading} className={cls}>
+    <button onClick={onClick} disabled={loading} className={cls} title={label}>
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
-      {label}
+      {labelEl}
     </button>
   );
 }
