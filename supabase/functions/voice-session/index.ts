@@ -137,10 +137,16 @@ async function handleGetSignedUrl(req: Request, body: any): Promise<Response> {
   ].join("\n\n");
 
   // overrides shape per @elevenlabs SDK: tts is TOP-LEVEL (sibling of agent).
+  // Per-guru speed/stability/similarity are admin-tunable (app_settings, category
+  // 'voice'); fall back to the persona defaults when a row is blank/unset.
+  const num = (v: string | undefined, dflt: number) => {
+    const n = Number(v);
+    return Number.isFinite(n) && v !== undefined && v !== "" ? n : dflt;
+  };
   const tts: Record<string, unknown> = {
-    speed: persona.speed,
-    stability: persona.stability,
-    similarityBoost: persona.similarity,
+    speed: num(cfg[`elevenlabs_voice_speed_${guruId}`], persona.speed),
+    stability: num(cfg[`elevenlabs_voice_stability_${guruId}`], persona.stability),
+    similarityBoost: num(cfg[`elevenlabs_voice_similarity_${guruId}`], persona.similarity),
   };
   if (voiceId) tts.voiceId = voiceId;
 

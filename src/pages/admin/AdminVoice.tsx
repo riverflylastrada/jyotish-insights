@@ -48,7 +48,15 @@ export default function AdminVoice() {
 
   async function save() {
     setSaving(true);
-    const keys = [...BASE_KEYS.map((k) => k.key), ...VOICE_GURUS.map((g) => `elevenlabs_voice_id_${g.id}`)];
+    const keys = [
+      ...BASE_KEYS.map((k) => k.key),
+      ...VOICE_GURUS.flatMap((g) => [
+        `elevenlabs_voice_id_${g.id}`,
+        `elevenlabs_voice_speed_${g.id}`,
+        `elevenlabs_voice_stability_${g.id}`,
+        `elevenlabs_voice_similarity_${g.id}`,
+      ]),
+    ];
     for (const key of keys) {
       const { error } = await supabase
         .from('app_settings')
@@ -133,12 +141,32 @@ export default function AdminVoice() {
           <p className="text-xs text-text-muted">A guru becomes usable once it is marked available in code; set its ElevenLabs voice id here.</p>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {VOICE_GURUS.map((g) => (
-              <div key={g.id}>
+              <div key={g.id} className="rounded-md border border-hairline-subtle/60 p-3">
                 <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
                   <span aria-hidden>{g.icon}</span> {g.name}
                   {!g.available && <span className="text-[10px] uppercase text-text-tertiary">(coming soon)</span>}
                 </label>
                 {field(`elevenlabs_voice_id_${g.id}`)}
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {([
+                    ['speed', 'Speed'],
+                    ['stability', 'Stability'],
+                    ['similarity', 'Similarity'],
+                  ] as const).map(([k, lbl]) => (
+                    <div key={k}>
+                      <span className="text-[10px] uppercase tracking-wide text-text-muted">{lbl}</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={values[`elevenlabs_voice_${k}_${g.id}`] ?? ''}
+                        onChange={(e) => setValues((v) => ({ ...v, [`elevenlabs_voice_${k}_${g.id}`]: e.target.value }))}
+                        placeholder="default"
+                        className="mt-0.5 w-full rounded-md border border-hairline-subtle bg-canvas px-2 py-1 font-mono text-xs text-text-primary focus:border-brand-saffron focus:outline-none focus:ring-1 focus:ring-brand-saffron"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-1 text-[10px] text-text-muted">0.7–1.2 speed · 0–1 stability/similarity · blank = built-in default</p>
               </div>
             ))}
           </div>

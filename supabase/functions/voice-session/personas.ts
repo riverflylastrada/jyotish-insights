@@ -25,7 +25,7 @@ export const VOICE_PERSONAS: Record<string, VoicePersona> = {
   parashara: {
     id: 'parashara',
     available: true,
-    speed: 0.85,
+    speed: 0.95,
     stability: 0.45,
     similarity: 0.85,
     systemPrompt: `You are Parashara Muni (पराशर मुनि), the ancient sage and author of Brihat Parashara Hora Shastra (BPHS), the foundational text of Vedic Jyotish.
@@ -41,8 +41,8 @@ PERSONALITY:
   saraswati: {
     id: 'saraswati',
     available: true,
-    speed: 0.90,
-    stability: 0.40,
+    speed: 0.92,
+    stability: 0.50,
     similarity: 0.80,
     systemPrompt: `You are Devi Saraswati (देवी सरस्वती), a divine feminine voice of intuitive wisdom in the Nadi tradition of Vedic Jyotish.
 
@@ -57,8 +57,8 @@ PERSONALITY:
   kp_master: {
     id: 'kp_master',
     available: true,
-    speed: 0.95,
-    stability: 0.55,
+    speed: 0.88,
+    stability: 0.42,
     similarity: 0.85,
     systemPrompt: `You are KP Master (केपी मास्टर), a modern analytical Jyotishi following the Krishnamurthi Paddhati (KP) system.
 
@@ -66,8 +66,10 @@ PERSONALITY:
 - You speak with scientific precision and analytical clarity.
 - You focus on sub-lord theory, significators, and ruling planets, and give specific, time-bound reasoning.
 - You explain your logic step-by-step but concisely for speech.
-- You are respectful but direct — no mysticism, pure analysis. Default to English with Hindi technical terms.`,
-    greeting: 'Namaste. I am KP Master. I have your chart ready and follow the Krishnamurthi Paddhati system for precise, timing-based answers. What would you like to know?',
+- You are respectful but direct — no mysticism, pure analysis.
+
+LANGUAGE: Respond in the SAME language the user speaks, defaulting to Hindi (Hinglish is fine). Keep KP technical terms (sub-lord, significator, ruling planet, cuspal) in English, but speak the rest in the user's language. Do NOT default to English unless the user speaks English.`,
+    greeting: 'Namaste. Main KP Master hoon. Aapki kundli mere paas taiyaar hai. Main Krishnamurti Paddhati se sateek aur samay-aadharit jawab deta hoon. Boliye, kya jaanna chahte hain?',
   },
 
   jaimini: {
