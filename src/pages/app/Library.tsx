@@ -1,31 +1,59 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { Loader2, Trash2, ArrowRight, BookOpen, PlusCircle } from 'lucide-react';
+import { Loader2, Trash2, ArrowRight, BookOpen, PlusCircle, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSession } from '@/hooks/useSession';
 import { toast } from '@/components/ui/sonner';
+import { cn } from '@/lib/utils';
 
 interface Row {
   id: string;
   name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSONB birth_details (matches Supabase Json)
   birth_details: any;
   share_token: string;
   created_at: string;
 }
 
 export default function Library() {
+  const { user } = useSession();
+  const queryClient = useQueryClient();
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [defaultId, setDefaultId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data, error } = await supabase
-      .from('charts')
-      .select('id,name,birth_details,share_token,created_at')
-      .order('created_at', { ascending: false });
+    const [{ data, error }, { data: profile }] = await Promise.all([
+      supabase
+        .from('charts')
+        .select('id,name,birth_details,share_token,created_at')
+        .order('created_at', { ascending: false }),
+      user
+        ? supabase.from('profiles').select('default_chart_id').eq('user_id', user.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
     if (error) { toast.error(error.message); return; }
     setRows(data ?? []);
+    setDefaultId(profile?.default_chart_id ?? null);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [user?.id]);
+
+  // Toggle a chart as the user's default. Clicking the current default clears it.
+  const setDefault = async (id: string) => {
+    if (!user) return;
+    const next = defaultId === id ? null : id;
+    setDefaultId(next); // optimistic
+    const { error } = await supabase
+      .from('profiles')
+      .update({ default_chart_id: next })
+      .eq('user_id', user.id);
+    if (error) { setDefaultId(defaultId); toast.error(error.message); return; }
+    toast.success(next ? 'Set as your default chart' : 'Default chart cleared');
+    // refresh the resolver used by the Voice Guru entries
+    queryClient.invalidateQueries({ queryKey: ['default-chart'] });
+  };
 
   const remove = async (id: string) => {
     if (!confirm('Delete this chart? This cannot be undone.')) return;
@@ -33,6 +61,11 @@ export default function Library() {
     if (error) { toast.error(error.message); return; }
     toast.success('Chart deleted');
     setRows((r) => r?.filter((x) => x.id !== id) ?? null);
+    // DB clears default_chart_id via ON DELETE SET NULL; mirror it locally.
+    if (defaultId === id) {
+      setDefaultId(null);
+      queryClient.invalidateQueries({ queryKey: ['default-chart'] });
+    }
   };
 
   if (rows === null) {
@@ -63,12 +96,32 @@ export default function Library() {
           {rows.map((r) => (
             <li key={r.id} className="flex items-center gap-4 px-5 py-4">
               <div className="min-w-0 flex-1">
-                <div className="font-display text-h3 text-text-primary truncate">{r.name}</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-h3 text-text-primary truncate">{r.name}</span>
+                  {defaultId === r.id && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-saffron/15 px-2 py-0.5 text-[10px] font-medium text-brand-saffron">
+                      <Star className="h-3 w-3 fill-current" /> Default
+                    </span>
+                  )}
+                </div>
                 <div className="font-mono text-xs text-text-tertiary truncate">
                   {r.birth_details?.dateOfBirth}{r.birth_details?.timeOfBirth ? ` · ${r.birth_details.timeOfBirth}` : ''} · {r.birth_details?.placeOfBirth?.name ?? '—'}
                 </div>
                 <div className="font-mono text-[10px] text-text-muted">Saved {dayjs(r.created_at).format('DD MMM YYYY')}</div>
               </div>
+              <button
+                onClick={() => setDefault(r.id)}
+                className={cn(
+                  'rounded-sm p-2 transition-colors',
+                  defaultId === r.id
+                    ? 'text-brand-saffron hover:bg-elevated'
+                    : 'text-text-tertiary hover:bg-elevated hover:text-brand-saffron',
+                )}
+                title={defaultId === r.id ? 'Default chart — click to clear' : 'Set as default chart'}
+                aria-label={defaultId === r.id ? 'Clear default chart' : 'Set as default chart'}
+              >
+                <Star className={cn('h-4 w-4', defaultId === r.id && 'fill-current')} />
+              </button>
               <button onClick={() => remove(r.id)} className="rounded-sm p-2 text-text-tertiary hover:bg-elevated hover:text-semantic-negative" aria-label="Delete">
                 <Trash2 className="h-4 w-4" />
               </button>

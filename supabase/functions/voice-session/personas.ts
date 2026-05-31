@@ -17,8 +17,13 @@ export interface VoicePersona {
   similarity: number;   // 0..1  -> overrides.tts.similarityBoost
   /** Persona system prompt (grounding + dossier are appended by voice-session). */
   systemPrompt: string;
-  /** First spoken line (overrides.agent.firstMessage), Hindi-first. */
+  /** First spoken line when a chart IS loaded (overrides.agent.firstMessage), Hindi-first. */
   greeting: string;
+  /**
+   * First spoken line when NO chart is loaded — must NOT claim to have seen the
+   * chart; instead ask for birth details. Falls back to NO_CHART_GREETING.
+   */
+  noChartGreeting?: string;
 }
 
 export const VOICE_PERSONAS: Record<string, VoicePersona> = {
@@ -36,6 +41,7 @@ PERSONALITY:
 - You are compassionate and reassuring — people come to you with anxiety; you give them clarity and peace.
 - You use warm address like "beta" (बेटा) or "putri" (पुत्री).`,
     greeting: 'Om Namah Shivaya. Namaste beta, main Parashara Muni hoon. Maine aapki kundli dekhi hai. Bataiye, aap kya jaanna chahte hain?',
+    noChartGreeting: 'Om Namah Shivaya. Namaste beta, main Parashara Muni hoon. Aapki kundli abhi mere saamne nahi hai. Kripya apni janm tithi, sahi samay, aur janm sthan bataiye — phir main aapki kundli bana kar uttar dunga.',
   },
 
   saraswati: {
@@ -52,6 +58,7 @@ PERSONALITY:
 - You emphasize Nadi readings and past-life karma connections.
 - You address users as "mere bachche" (मेरे बच्चे) or by name with affection.`,
     greeting: 'Om Saraswati Namaha. Mere bachche, main Devi Saraswati hoon. Tumhari kundli mein chhupe karmic sandesh main padh chuki hoon. Kya jaanna chahte ho?',
+    noChartGreeting: 'Om Saraswati Namaha. Mere bachche, main Devi Saraswati hoon. Tumhari kundli abhi mere paas nahi hai. Pehle apni janm tithi, sahi samay aur janm sthan batao, taaki main tumhari kundli ke karmic sandesh padh sakoon.',
   },
 
   kp_master: {
@@ -70,6 +77,7 @@ PERSONALITY:
 
 LANGUAGE: Respond in the SAME language the user speaks, defaulting to Hindi (Hinglish is fine). Keep KP technical terms (sub-lord, significator, ruling planet, cuspal) in English, but speak the rest in the user's language. Do NOT default to English unless the user speaks English.`,
     greeting: 'Namaste. Main KP Master hoon. Aapki kundli mere paas taiyaar hai. Main Krishnamurti Paddhati se sateek aur samay-aadharit jawab deta hoon. Boliye, kya jaanna chahte hain?',
+    noChartGreeting: 'Namaste. Main KP Master hoon. Sateek KP vishleshan ke liye mujhe aapki janm tithi, sahi samay aur janm sthan chahiye. Kripya bataiye, phir main aapki kundli banakar jawab dunga.',
   },
 
   jaimini: {
@@ -162,3 +170,6 @@ export const DOSSIER_HEADER = `## USER'S BIRTH CHART DATA — COMPUTED BY OUR VS
 ## Always cite these values verbatim. Never contradict this data even if the user disagrees.`;
 
 export const NO_CHART_NOTICE = `(No birth chart is loaded yet. Greet the user, then ask for their birth date, exact time, and place. Once they provide it, use the compute_kundli tool to calculate the chart before giving any reading. Do NOT fabricate a specific person's placements.)`;
+
+/** Fallback first message when no chart is loaded (persona.noChartGreeting takes precedence). */
+export const NO_CHART_GREETING = 'Namaste. Aapki kundli abhi load nahi hui hai. Kripya apni janm tithi, sahi samay, aur janm sthan bataiye, taki main aapki kundli banakar aapko sahi margdarshan de sakoon.';

@@ -23,6 +23,7 @@ import {
   VOICE_DELIVERY_RULES,
   DOSSIER_HEADER,
   NO_CHART_NOTICE,
+  NO_CHART_GREETING,
 } from "./personas.ts";
 
 const corsHeaders = {
@@ -120,14 +121,21 @@ async function handleGetSignedUrl(req: Request, body: any): Promise<Response> {
   }
 
   // Build the dossier (only when we have a chart). transits mirror guru-debate.
+  const hasDossier = !!chart?.birthDetails;
   let dossierBlock = NO_CHART_NOTICE;
-  if (chart?.birthDetails) {
+  if (hasDossier) {
     let transits: any[] = [];
     try { transits = calculateTransits(chart.birthDetails); } catch (e) { console.warn("transits failed", e); }
     if ((!transits || transits.length === 0) && Array.isArray(body.transits)) transits = body.transits;
     const dossier = buildChartDossier(chart, transits, new Date(), body.clientTimeZone);
     dossierBlock = `${DOSSIER_HEADER}\n\n${dossier}`;
   }
+
+  // First message must match reality: only claim "I've seen your chart" when a
+  // dossier was actually built; otherwise greet honestly and ask for details.
+  const firstMessage = hasDossier
+    ? persona.greeting
+    : (persona.noChartGreeting ?? NO_CHART_GREETING);
 
   const systemPrompt = [
     persona.systemPrompt,
@@ -153,7 +161,7 @@ async function handleGetSignedUrl(req: Request, body: any): Promise<Response> {
   const overrides = {
     agent: {
       prompt: { prompt: systemPrompt },
-      firstMessage: persona.greeting,
+      firstMessage,
       language,
     },
     tts,
