@@ -248,6 +248,7 @@ export default function ChartDetail() {
           ['jaimini', 'Jaimini'],
           ['varshphal', 'Varshphal'],
           ['sarvatobhadra', 'Sarvatobhadra Chakra'],
+          ['kalachakra-chakra', 'Kalachakra Chakra'],
         ] },
         { heading: 'Output', items: [
           ['remedies', 'Remedies'],
