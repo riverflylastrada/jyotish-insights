@@ -427,6 +427,9 @@ export interface SaturnTransitsData {
   kantakaAsc: SaturnTransitPeriod[];
   ashtamaMoon: SaturnTransitPeriod[];
   ashtamaAsc: SaturnTransitPeriod[];
+  citation: string;
+}
+
 // ─── Sarvatobhadra Chakra ─────────────────────────────────────────────────────
 
 export type SbcCellType = 'nakshatra' | 'rashi' | 'vowel' | 'consonant' | 'weekday' | 'tithi' | 'empty';

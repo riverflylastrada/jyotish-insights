@@ -381,21 +381,23 @@ function computeTaraGroups(refNkIdx28: number): TaraGroupData[] {
 // ─── JHora Types ────────────────────────────────────────────────────────────
 
 function computeJhoraTypes(moonNkIdx28: number, lagnaNkIdx28: number): JhoraTypeData[] {
-  // Each type corresponds to a specific offset from the reference nakshatra.
-  // Janma=0, Karma=10, Samudayika=18, Sanghatika=16, Jaati=7,
-  // Naidhana=22, Desa=3, Abhisheka=25, Aadhaana=12, Vainasika=5, Maanasa=14
+  // Each type corresponds to a specific offset from the reference nakshatra
+  // in the 28-nakshatra (incl. Abhijit) cycle.
+  // Validated against PyJHora 4.8.6 output for:
+  //   Chart 1: 23 Aug 1983, 15:35 IST, Patan (Moon=Dhanishta idx 23)
+  //   Chart 2: 15 Aug 1947, 00:00 IST, Delhi (Moon=Pushya idx 7)
   const offsets: Record<JhoraType, number> = {
     'Janma': 0,
-    'Karma': 10,
-    'Samudayika': 18,
-    'Sanghatika': 16,
-    'Jaati': 7,
-    'Naidhana': 22,
-    'Desa': 3,
-    'Abhisheka': 25,
-    'Aadhaana': 12,
-    'Vainasika': 5,
-    'Maanasa': 14,
+    'Karma': 9,
+    'Samudayika': 17,
+    'Sanghatika': 15,
+    'Jaati': 3,
+    'Naidhana': 6,
+    'Desa': 11,
+    'Abhisheka': 26,
+    'Aadhaana': 18,
+    'Vainasika': 21,
+    'Maanasa': 24,
   };
 
   return JHORA_TYPES.map(type => {
