@@ -316,6 +316,24 @@ export interface TajikYogaResultData {
   induvara: boolean;
 }
 
+export interface SahamData {
+  id: string;
+  name: string;
+  meaning: string;
+  longitude: number;
+  signNumber: number;
+  signName: string;
+  signDegree: number;
+  nakshatra: string;
+  houseNumber: number;
+}
+
+export interface SahamsData {
+  sahams: SahamData[];
+  isDayBirth: boolean;
+  citation: string;
+}
+
 export interface VarshphalData {
   /** Years elapsed since birth for this annual chart. */
   years: number;
@@ -335,6 +353,8 @@ export interface VarshphalData {
   yearLord: string;
   /** Tajik yogas detected on the annual chart. */
   tajikYogas?: TajikYogaResultData;
+  /** 36 Sahams (sensitive points). */
+  sahams?: SahamsData;
 }
 
 /**
@@ -343,7 +363,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 22;
+export const CURRENT_SNAPSHOT_VERSION = 23;
 
 export interface KundliData {
   id: string;

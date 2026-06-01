@@ -54,6 +54,12 @@ own sandbox. Screenshot the look; port the styling into this repo by hand.
    loading state + dashed-border empty state. Reuse `KundliChart` and shadcn/ui.
 6. **CI must pass for real** (`.github/workflows/ci.yml`) — not because errors were
    cast away.
+7. **Sahams must stay O(1).** The `sahams.ts` module computes 36 Sahams from
+   planet/lagna longitudes in constant time (no time-scans, no per-day loops).
+   If adding or modifying Sahams, validate against PyJHora
+   `jhora.horoscope.transit.saham` for the reference chart (23 Aug 1983, 15:35
+   IST, Patan) with ±0.5° tolerance — assert **PyJHora's actual values**, never
+   the engine's own output.
 
 ## Note on secrets
 

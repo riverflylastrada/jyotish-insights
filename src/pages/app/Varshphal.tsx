@@ -8,7 +8,7 @@ import { useChartStore } from '@/stores/useChartStore';
 import {
   SIGN_NAMES, SIGN_NAMES_DEVA,
   type DivisionalChart, type PlanetName, type PlanetPosition,
-  type VarshphalData,
+  type VarshphalData, type SahamsData,
 } from '@/lib/astro/types';
 
 const PLANET_NAME_TO_KEY: Record<string, PlanetName> = {
@@ -101,6 +101,8 @@ export default function Varshphal() {
             <PlanetTable planets={v.planets} />
 
             {v.tajikYogas && <TajikYogas data={v.tajikYogas} />}
+
+            {v.sahams && <SahamsTable data={v.sahams} />}
           </div>
         </div>
       )}
@@ -225,5 +227,47 @@ function YogaChip({ children }: { children: React.ReactNode }) {
     <span className="inline-flex items-center gap-1 rounded-sm border border-hairline-subtle bg-canvas px-2 py-1 font-mono text-xs text-text-secondary">
       {children}
     </span>
+  );
+}
+
+function SahamsTable({ data }: { data: SahamsData }) {
+  return (
+    <div className="rounded-md border border-hairline-subtle bg-surface shadow-sm">
+      <div className="border-b border-hairline-subtle px-5 py-4">
+        <h2 className="font-display text-h3 text-text-primary">Sahams (36 Sensitive Points)</h2>
+        <p className="mt-1 text-xs text-text-tertiary">
+          {data.isDayBirth ? 'Day' : 'Night'} birth formulas applied · {data.citation}
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-elevated text-left text-xs uppercase tracking-wide text-text-tertiary">
+            <tr>
+              <th className="px-4 py-2 font-medium">Saham</th>
+              <th className="px-3 py-2 font-medium">Meaning</th>
+              <th className="px-3 py-2 font-medium">Sign</th>
+              <th className="px-3 py-2 text-right font-medium">Degree</th>
+              <th className="px-3 py-2 font-medium">Nakshatra</th>
+              <th className="px-3 py-2 font-medium">House</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-hairline-subtle">
+            {data.sahams.map((s) => (
+              <tr key={s.id}>
+                <td className="px-4 py-2 font-display text-text-primary">{s.name}</td>
+                <td className="px-3 py-2 text-xs text-text-tertiary">{s.meaning}</td>
+                <td className="px-3 py-2">
+                  <span className="text-text-secondary">{s.signName}</span>
+                  <span className="ml-1 font-deva text-xs text-text-tertiary">{SIGN_NAMES_DEVA[s.signNumber - 1]}</span>
+                </td>
+                <td className="px-3 py-2 text-right font-mono text-xs text-text-tertiary">{s.signDegree.toFixed(2)}°</td>
+                <td className="px-3 py-2 text-xs text-text-secondary">{s.nakshatra}</td>
+                <td className="px-3 py-2 font-mono text-xs text-text-tertiary">H{s.houseNumber}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

@@ -19,6 +19,7 @@ import {
   type AyanamsaKey,
 } from "./vedic.ts";
 import type { BirthDetails } from "./engine.ts";
+import { computeSahams, type SahamsData } from "./sahams.ts";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -67,6 +68,8 @@ export interface VarshphalData {
   yearLord: string;
   /** Tajik yogas detected on the annual chart. */
   tajikYogas?: import("./tajik_yogas.ts").TajikYogaResult;
+  /** 36 Sahams (sensitive points) computed on the annual chart. */
+  sahams?: SahamsData;
 }
 
 // ─── Solar Return (Varsha Pravesh) ──────────────────────────────────────────
@@ -485,6 +488,24 @@ export function computeVarshphal(
     nodeType,
   );
 
+  // Sahams — computed from NATAL planet positions (traditional Tajik method).
+  // Day/night: Sun in houses 7–12 = above horizon = day birth.
+  const sunSidNatal = norm360(toSidereal(natalTrop.sun, birthAya));
+  const sunHouseNatal = wholeSignHouse(signNumber(sunSidNatal), natalAscSign);
+  const isDayBirth = sunHouseNatal >= 7 && sunHouseNatal <= 12;
+
+  const natalLons = {
+    ascendant: natalAscSid,
+    sun: sunSidNatal,
+    moon: norm360(toSidereal(natalTrop.moon, birthAya)),
+    mars: norm360(toSidereal(natalTrop.mars, birthAya)),
+    mercury: norm360(toSidereal(natalTrop.mercury, birthAya)),
+    jupiter: norm360(toSidereal(natalTrop.jupiter, birthAya)),
+    venus: norm360(toSidereal(natalTrop.venus, birthAya)),
+    saturn: norm360(toSidereal(natalTrop.saturn, birthAya)),
+  };
+  const sahamsData = computeSahams(natalLons, natalAscSign, isDayBirth);
+
   return {
     years,
     varshaPraveshJd: vpJd,
@@ -494,5 +515,6 @@ export function computeVarshphal(
     munthaSign,
     munthaHouse,
     yearLord,
+    sahams: sahamsData,
   };
 }
