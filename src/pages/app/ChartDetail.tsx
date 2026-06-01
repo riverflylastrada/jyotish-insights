@@ -238,6 +238,7 @@ export default function ChartDetail() {
           ['yogas', 'Yogas'],
           ['ashtakavarga', 'Ashtakavarga'],
           ['transits', 'Transits'],
+          ['saturn-transits', 'Saturn Transits'],
         ] },
         { heading: 'Strength & Bala', items: [
           ['strengths', 'Strengths'],
@@ -246,6 +247,8 @@ export default function ChartDetail() {
           ['kp', 'KP System'],
           ['jaimini', 'Jaimini'],
           ['varshphal', 'Varshphal'],
+          ['sarvatobhadra', 'Sarvatobhadra Chakra'],
+          ['kalachakra-chakra', 'Kalachakra Chakra'],
         ] },
         { heading: 'Output', items: [
           ['remedies', 'Remedies'],
