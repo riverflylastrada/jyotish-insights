@@ -53,6 +53,7 @@ const VoiceGuruPage = lazy(() => import("./pages/app/VoiceGuruPage"));
 const Mundane = lazy(() => import("./pages/Mundane"));
 const Panchang = lazy(() => import("./pages/Panchang"));
 const SaturnTransits = lazy(() => import("./pages/app/SaturnTransits"));
+const SarvatobhadraChakra = lazy(() => import("./pages/app/SarvatobhadraChakra"));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -91,6 +92,7 @@ const App = () => (
               <Route path="chart/:id/ashtakavarga" element={<Ashtakavarga />} />
               <Route path="chart/:id/transits" element={<Transits />} />
               <Route path="chart/:id/saturn-transits" element={<SaturnTransits />} />
+              <Route path="chart/:id/sarvatobhadra" element={<SarvatobhadraChakra />} />
               <Route path="chart/:id/debate" element={<Debate />} />
               <Route path="chart/:id/report" element={<Report />} />
               <Route path="chart/:id/remedies" element={<Remedies />} />
