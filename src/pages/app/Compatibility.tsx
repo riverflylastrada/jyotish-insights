@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Users, Heart, Sparkles, HelpCircle, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Loader2, Users, Heart, Sparkles, HelpCircle, ArrowRight, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { getAstroProvider } from '@/lib/astro/factory';
+import { computeSouthIndianMatch, type SouthIndianMatchResult } from '@/lib/astro/south_indian_match';
 
 interface SavedChart {
   id: string;
@@ -140,6 +142,8 @@ export default function Compatibility() {
   const [chart2Id, setChart2Id] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<any | null>(null);
+  const [southResult, setSouthResult] = useState<SouthIndianMatchResult | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('ashta-koota');
 
   useEffect(() => {
     async function loadCharts() {
@@ -368,6 +372,12 @@ export default function Compatibility() {
         { name: "Nadi (Physical & Genetic Health)", max: 8, scored: nadiPoints, desc: `Groom: ${getNadiName(gNadi)} · Bride: ${getNadiName(bNadi)}. Represents physical health, nerve energy, and genetic compatibility.`, status: nadiPoints === 8 ? "Perfect Health Match" : "Nadi Dosha (Genetic Warning)" }
       ]
     });
+
+    // South Indian 10 Porutham
+    const groomPada = gMoon.nakshatraPada ?? 1;
+    const bridePada = bMoon.nakshatraPada ?? 1;
+    const southMatch = computeSouthIndianMatch(gNakIdx, groomPada, bNakIdx, bridePada);
+    setSouthResult(southMatch);
   };
 
   if (loading) {
@@ -403,9 +413,9 @@ export default function Compatibility() {
       <div className="text-eyebrow text-brand-saffron flex items-center gap-1.5">
         <Heart className="h-3.5 w-3.5 fill-brand-saffron" /> Relationship Compatibility
       </div>
-      <h1 className="mt-2 font-display text-h1 text-text-primary">Ashta Koota Milan</h1>
+      <h1 className="mt-2 font-display text-h1 text-text-primary">Kundli Milan</h1>
       <p className="mt-2 text-body text-text-secondary">
-        Select two natal charts from your saved research archives to run the legendary 36-point Jyotish compatibility engine.
+        Select two natal charts from your saved research archives to compute marriage compatibility.
       </p>
 
       {/* Selectors Panel */}
@@ -417,7 +427,7 @@ export default function Compatibility() {
             </label>
             <select
               value={chart1Id}
-              onChange={(e) => { setChart1Id(e.target.value); setResult(null); }}
+              onChange={(e) => { setChart1Id(e.target.value); setResult(null); setSouthResult(null); }}
               className="mt-2 block w-full rounded-sm border border-hairline-subtle bg-elevated px-3 py-2 text-sm text-text-primary focus:border-brand-saffron focus:outline-none"
             >
               {charts.map(c => (
@@ -433,7 +443,7 @@ export default function Compatibility() {
             </label>
             <select
               value={chart2Id}
-              onChange={(e) => { setChart2Id(e.target.value); setResult(null); }}
+              onChange={(e) => { setChart2Id(e.target.value); setResult(null); setSouthResult(null); }}
               className="mt-2 block w-full rounded-sm border border-hairline-subtle bg-elevated px-3 py-2 text-sm text-text-primary focus:border-brand-saffron focus:outline-none"
             >
               {charts.map(c => (
@@ -453,7 +463,16 @@ export default function Compatibility() {
         </button>
       </div>
 
-      {/* Results View */}
+      {/* Tab Switcher */}
+      {(result || southResult) && (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="ashta-koota">Ashta Koota (North Indian)</TabsTrigger>
+            <TabsTrigger value="south-porutham">South Indian (10 Porutham)</TabsTrigger>
+          </TabsList>
+
+      {/* Ashta Koota Results */}
+      <TabsContent value="ashta-koota">
       {result && (
         <div className="mt-8 space-y-8 animate-in fade-in duration-500">
           {/* Main Dial and Card */}
@@ -573,6 +592,123 @@ export default function Compatibility() {
             </Accordion>
           </div>
         </div>
+      )}
+      </TabsContent>
+
+      {/* South Indian 10 Porutham Results */}
+      <TabsContent value="south-porutham">
+      {southResult && (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          {/* Score Dial and Summary */}
+          <div className="grid gap-6 md:grid-cols-12">
+            {/* Dial */}
+            <div className="md:col-span-4 rounded-md border border-hairline-subtle bg-surface p-6 flex flex-col items-center justify-center text-center shadow-sm">
+              <div className="text-eyebrow text-text-tertiary">Poruthams Met</div>
+              <div className="relative mt-6 flex h-40 w-40 items-center justify-center rounded-full border-4 border-hairline-subtle">
+                <svg className="absolute inset-0 h-full w-full -rotate-90">
+                  <circle
+                    cx="80" cy="80" r="72" fill="transparent"
+                    stroke="hsl(var(--brand-maroon) / 0.1)" strokeWidth="8"
+                  />
+                  <circle
+                    cx="80" cy="80" r="72" fill="transparent"
+                    stroke="hsl(var(--brand-maroon))" strokeWidth="8"
+                    strokeDasharray={2 * Math.PI * 72}
+                    strokeDashoffset={2 * Math.PI * 72 * (1 - southResult.metCount / southResult.total)}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="text-center z-10">
+                  <span className="font-display text-4xl font-bold text-text-primary">{southResult.metCount}</span>
+                  <span className="text-sm text-text-muted"> / {southResult.total}</span>
+                </div>
+              </div>
+              <div className={`mt-6 px-4 py-1.5 rounded-full border text-xs font-semibold ${
+                southResult.metCount >= 8
+                  ? 'text-semantic-positive bg-semantic-positive/10 border-semantic-positive/30'
+                  : southResult.metCount >= 6
+                    ? 'text-brand-saffron bg-brand-saffron/10 border-brand-saffron/30'
+                    : southResult.metCount >= 4
+                      ? 'text-brand-gold bg-brand-gold/10 border-brand-gold/30'
+                      : 'text-semantic-negative bg-semantic-negative/10 border-semantic-negative/30'
+              }`}>
+                {southResult.verdict.split('—')[0].trim()}
+              </div>
+            </div>
+
+            {/* Overview */}
+            <div className="md:col-span-8 rounded-md border border-hairline-subtle bg-surface p-6 flex flex-col justify-between shadow-sm">
+              <div>
+                <h3 className="font-display text-h2 text-text-primary">10 Porutham Synthesis</h3>
+                <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+                  {southResult.verdict}
+                </p>
+                <p className="mt-2 text-xs text-text-tertiary italic">
+                  {southResult.citation}
+                </p>
+              </div>
+
+              {result && (
+                <div className="mt-6 grid grid-cols-2 gap-4 border-t border-hairline-subtle pt-6">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-text-muted">Groom Star / Moon Sign</span>
+                    <div className="mt-1 font-display text-sm font-semibold text-text-primary">{result.groom.nakshatra} ({result.groom.rashi})</div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-text-muted">Bride Star / Moon Sign</span>
+                    <div className="mt-1 font-display text-sm font-semibold text-text-primary">{result.bride.nakshatra} ({result.bride.rashi})</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Porutham Checklist */}
+          <div>
+            <h3 className="font-display text-h3 text-text-primary mb-4">Detailed 10-Porutham Breakdown</h3>
+            <Accordion type="single" collapsible className="w-full space-y-2">
+              {southResult.poruthams.map((p, idx) => (
+                <AccordionItem
+                  key={idx}
+                  value={`south-${idx}`}
+                  className="border border-hairline-subtle bg-surface rounded-md overflow-hidden"
+                >
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline">
+                    <div className="flex w-full items-center justify-between text-left pr-4">
+                      <div className="flex items-center gap-3">
+                        {p.met
+                          ? <CheckCircle2 className="h-5 w-5 text-semantic-positive flex-shrink-0" />
+                          : <XCircle className="h-5 w-5 text-semantic-negative flex-shrink-0" />}
+                        <div>
+                          <div className="font-display text-sm font-semibold text-text-primary">
+                            {p.name} <span className="text-text-tertiary font-normal">({p.nameTamil})</span>
+                          </div>
+                          <div className="text-xs text-text-muted mt-0.5">{p.met ? 'Met' : 'Not Met'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-5 pb-5 pt-1 text-sm text-text-secondary border-t border-hairline-subtle/50 leading-relaxed bg-canvas/30">
+                    <p>{p.reason}</p>
+                    <div className="mt-3 flex items-center gap-2 text-xs text-text-tertiary">
+                      <HelpCircle className="h-3.5 w-3.5" />
+                      <span>{p.citation}</span>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </div>
+      )}
+      {!southResult && result && (
+        <div className="rounded-md border border-dashed border-hairline-subtle bg-surface p-12 text-center shadow-sm">
+          <p className="text-text-tertiary text-sm">Press "Compute Match Score" above to calculate the South Indian 10-Porutham compatibility.</p>
+        </div>
+      )}
+      </TabsContent>
+        </Tabs>
       )}
     </div>
   );
