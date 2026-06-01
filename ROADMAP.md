@@ -64,6 +64,29 @@ Product gap: monetization.
 
 ## Recently shipped ✅
 
+- ✅ **Three JHora chakras — Saturn Transits, Sarvatobhadra, Kalachakra Chakra.**
+  Mined from Jagannatha Hora and validated against it.
+  **Saturn Transits** ([saturn_transits.ts](supabase/functions/calculate-kundli/saturn_transits.ts),
+  [SaturnTransits.tsx](src/pages/app/SaturnTransits.tsx)) — all Sade Sati cycles
+  (past/active/future) computed two ways (sign-based 12/1/2 from Moon **and**
+  degree-based ±45°), plus Kantaka (4th/10th) and Ashtama (8th) Shani from both
+  Moon and Ascendant; cited BPHS Ch. 65 / Saravali Ch. 35. **Sarvatobhadra
+  Chakra** ([sarvatobhadra.ts](supabase/functions/calculate-kundli/sarvatobhadra.ts))
+  — the 9×9 nakshatra/rashi/akshara grid with Tara groups, the 11 JHora vedha
+  types (from Moon & Lagna), and transit Vedha. **Kalachakra Chakra** (directional)
+  ([kalachakra_direction.ts](supabase/functions/calculate-kundli/kalachakra_direction.ts))
+  — planets placed in 8 directions (Indra→Isana) by nakshatra. Snapshot version
+  bumped to 22.
+  > **Hard-won engineering notes (so we don't repeat them):** (1) the Saturn
+  > lifetime ephemeris scan first ran ~14.5s and hit the Supabase Edge Function
+  > `WORKER_RESOURCE_LIMIT`, breaking chart computation in prod — fixed to ~250ms
+  > via per-day memoization + a coarse-scan/binary-search boundary finder
+  > ([PR #96]). **Engine work must stay well under the edge CPU limit — no
+  > per-day loops over years.** (2) Parity tests must assert against **real
+  > PyJHora 4.8.6** values, not the engine's own output (an earlier draft did the
+  > latter and shipped wrong nakshatra mappings). **PyJHora is now installed as a
+  > local parity oracle**, and every new engine PR is **edge-gated** (deployed to
+  > a throwaway test function to confirm no resource-limit) before merge.
 - ✅ **Progressive Web App (installable mobile app).** Acharya Jyotish now
   installs to the home screen and runs full-screen offline. Built on
   [vite-plugin-pwa](vite.config.ts) (Workbox `generateSW`, `registerType:
@@ -386,6 +409,16 @@ Product gap: monetization.
   Strengths page section.
 
 ### Quality & testing
+- ✅ **PyJHora parity oracle.** `pip install PyJHora` (the Python port of
+  Jagannatha Hora, v4.8.6 — the same engine the parity tests cite) is set up
+  locally as the **authoritative reference**. New engine features assert against
+  *PyJHora's actual output* for a reference chart (not the engine's own output —
+  the failure mode that shipped wrong Sarvatobhadra/Kalachakra mappings in a
+  first draft). Devin specs now instruct "validate against PyJHora".
+- ✅ **Edge-deploy gate.** Because CI auto-deploys edge functions on merge to
+  `main`, every engine PR is first deployed to a throwaway `calculate-kundli-test`
+  function and confirmed free of `WORKER_RESOURCE_LIMIT` **before merge** — added
+  after the Saturn lifetime scan broke prod chart computation once.
 - 🟡 **Engine unit coverage.** KP, Jaimini, Shadbala, the dossier, and a
   Swiss-Eph/JHora parity harness are covered; extend to vedic, divisional,
   dashas, yogas, doshas, ashtakavarga, panchang with golden-snapshot tests.
@@ -540,6 +573,25 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 ---
 
 ## Mid-term
+
+### From PyJHora — next features to mine
+> PyJHora 4.8.6 (the Python port of Jagannatha Hora) is now installed as the
+> local **parity oracle**. The chakras above came from it; these are the next
+> gaps, prioritised by value. Spec + Devin prompts:
+> [jhora-features-batch2-spec.md](docs/jhora-features-batch2-spec.md). Each is
+> validated against PyJHora and edge-gated before deploy.
+- ⬜ **Sudarshana Chakra** — tri-wheel overlaying D1 from Lagna + Moon + Sun
+  (reuses the existing `chartBasis` rasi/moon/solar charts); a house is "confirmed"
+  when strong from all three. Mostly a UI feature.
+- ⬜ **South-Indian compatibility · 10 Porutham** — Dina/Gana/Mahendra/
+  Stree-Dheerga/Yoni/Rasi/Rajju/Vedha/Vasya/Nadi, alongside the existing
+  North-Indian 36-point Ashta Koota. **Market expansion** (South-Indian users).
+- ⬜ **Sahams (36 sensitive points)** — Tajik/Varshphal sensitive points (Punya,
+  Vidya, Yasas, …) on the annual chart; deepens the existing Varshphal feature.
+- 💡 Further PyJHora gaps: Graha Yuddha (planetary war), more predictive chakras
+  (Tripataki, Shoola-chakra, Kaala), a Festival/Vratha calendar (SEO top-of-funnel
+  like Panchang), full eclipse computation, and more divisional charts (D-5/6/8/11,
+  D-150, D-300).
 
 ### Additional classical systems
 - ✅ **More dasha systems** (target: 12+) — 12 systems now ship: Vimshottari,
