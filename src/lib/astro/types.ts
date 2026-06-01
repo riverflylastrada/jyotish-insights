@@ -377,7 +377,6 @@ export interface KundliData {
   vargeeyaBala?: VargeeyaBalaData;
   saturnTransits?: SaturnTransitsData;
   sarvatobhadra?: SarvatobhadraData;
-  kalachakraDirection?: KalachakraDirectionData;
   autoInsights?: {
     generatedAt: string;
     model: string;
@@ -472,31 +471,6 @@ export interface SarvatobhadraData {
   taraFromLagna: TaraGroupData[];
   jhoraTypes: JhoraTypeData[];
   vedha: VedhaData[];
-  citation: string;
-}
-
-// ─── Kalachakra Chakra (directional) ────────────────────────────────────────
-
-export type KalachakraDirection = 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW' | 'N' | 'NE';
-
-export interface DirectionInfo {
-  direction: KalachakraDirection;
-  deity: string;
-  deityDeva: string;
-  nakshatras: string[];
-  nakshatraIndices: number[];
-  planets: string[];
-}
-
-export interface KalachakraDirectionData {
-  directions: DirectionInfo[];
-  planetPlacements: Array<{
-    planet: string;
-    nakshatraIdx: number;
-    nakshatraName: string;
-    direction: KalachakraDirection;
-    deity: string;
-  }>;
   citation: string;
 }
 
