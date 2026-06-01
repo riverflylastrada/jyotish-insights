@@ -210,3 +210,21 @@ Deno.test("Saturn — citation present", () => {
   assertEquals(typeof result.citation, 'string');
   assertEquals(result.citation.includes('BPHS'), true);
 });
+
+// ─── Timing guard ───────────────────────────────────────────────────────────
+
+Deno.test("Saturn — computeSaturnTransits completes in < 1500 ms", () => {
+  // Warm-up run (JIT / module init)
+  computeSaturnTransits(C1_MOON_LON, C1_MOON_SIGN, C1_ASC_SIGN, C1_BIRTH, AYA);
+
+  const t0 = performance.now();
+  computeSaturnTransits(C1_MOON_LON, C1_MOON_SIGN, C1_ASC_SIGN, C1_BIRTH, AYA);
+  const elapsed = performance.now() - t0;
+
+  console.log(`computeSaturnTransits elapsed: ${elapsed.toFixed(1)} ms`);
+  assertEquals(
+    elapsed < 1500,
+    true,
+    `Expected < 1500 ms, got ${elapsed.toFixed(1)} ms`,
+  );
+});

@@ -84,10 +84,20 @@ function fmtDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Call-scoped cache: keyed by Math.round(jd), set in computeSaturnTransits. */
+let _saturnLonCache: Map<number, number> | null = null;
+
 function saturnSiderealLon(jd: number, ayaKey: AyanamsaKey): number {
+  const key = Math.round(jd);
+  if (_saturnLonCache) {
+    const cached = _saturnLonCache.get(key);
+    if (cached !== undefined) return cached;
+  }
   const trop = tropicalPositions(jd, 0, 0, 'true');
   const aya = ayanamsa(ayaKey, jd);
-  return toSidereal(trop.saturn, aya);
+  const lon = toSidereal(trop.saturn, aya);
+  if (_saturnLonCache) _saturnLonCache.set(key, lon);
+  return lon;
 }
 
 function saturnSiderealSign(jd: number, ayaKey: AyanamsaKey): number {
@@ -96,6 +106,64 @@ function saturnSiderealSign(jd: number, ayaKey: AyanamsaKey): number {
 
 function daysBetween(a: string, b: string): number {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);
+}
+
+// ─── Coarse-scan + binary-search segment finder ─────────────────────────────
+
+interface Segment { state: number; startJd: number; endJd: number }
+
+/**
+ * Identify contiguous segments where `classify(jd)` returns the same non-(-1)
+ * state.  Uses a coarse scan followed by binary-search refinement at each
+ * detected transition (~1-day precision, ~5 evals per boundary).
+ */
+function findSegments(
+  startJd: number,
+  endJd: number,
+  classify: (jd: number) => number,
+  coarseStep = 90,
+): Segment[] {
+  // Phase 1 — coarse scan
+  const jds: number[] = [];
+  const states: number[] = [];
+  for (let jd = startJd; jd <= endJd; jd += coarseStep) {
+    jds.push(jd);
+    states.push(classify(jd));
+  }
+  if (jds.length === 0 || jds[jds.length - 1] < endJd) {
+    jds.push(endJd);
+    states.push(classify(endJd));
+  }
+
+  // Phase 2 — binary-search each transition to ~1-day precision
+  function refine(lo: number, hi: number): number {
+    const loState = classify(lo);
+    while (hi - lo > 1.0) {
+      const mid = (lo + hi) / 2;
+      if (classify(mid) === loState) lo = mid; else hi = mid;
+    }
+    return hi;
+  }
+
+  // Build ordered boundary list: [{jd, state starting here}]
+  const boundaries: { jd: number; state: number }[] = [
+    { jd: jds[0], state: states[0] },
+  ];
+  for (let i = 1; i < jds.length; i++) {
+    if (states[i] !== states[i - 1]) {
+      const bJd = refine(jds[i - 1], jds[i]);
+      boundaries.push({ jd: bJd, state: states[i] });
+    }
+  }
+
+  // Phase 3 — assemble segments, skipping state === -1
+  const segments: Segment[] = [];
+  for (let i = 0; i < boundaries.length; i++) {
+    if (boundaries[i].state === -1) continue;
+    const segEnd = i + 1 < boundaries.length ? boundaries[i + 1].jd : endJd;
+    segments.push({ state: boundaries[i].state, startJd: boundaries[i].jd, endJd: segEnd });
+  }
+  return segments;
 }
 
 // ─── Cycle merger ───────────────────────────────────────────────────────────
@@ -160,6 +228,12 @@ function mergeSadeSatiCycles(raw: SadeSatiPeriod[]): SadeSatiPeriod[] {
 
 // ─── Sign-based Sade Sati ───────────────────────────────────────────────────
 
+const SIGN_PHASE_LABELS: Record<number, string> = {
+  1: 'Rising (12th from Moon)',
+  2: 'Peak (over natal Moon)',
+  3: 'Setting (2nd from Moon)',
+};
+
 function detectSignSadeSatiRaw(
   moonSign: number,
   startJd: number,
@@ -167,54 +241,30 @@ function detectSignSadeSatiRaw(
   ayaKey: AyanamsaKey,
   now: Date,
 ): SadeSatiPeriod[] {
-  const periods: SadeSatiPeriod[] = [];
-  const step = 3; // days
-
-  const phaseForDiff = (diff: number): 1 | 2 | 3 | -1 => {
-    if (diff === 11) return 1; // 12th from Moon
-    if (diff === 0) return 2;  // over Moon
-    if (diff === 1) return 3;  // 2nd from Moon
+  const classify = (jd: number): number => {
+    const diff = (saturnSiderealSign(jd, ayaKey) - moonSign + 12) % 12;
+    if (diff === 11) return 1;
+    if (diff === 0) return 2;
+    if (diff === 1) return 3;
     return -1;
   };
 
-  const PHASE_LABELS: Record<number, string> = {
-    1: 'Rising (12th from Moon)',
-    2: 'Peak (over natal Moon)',
-    3: 'Setting (2nd from Moon)',
-  };
-
-  let currentPhase: 1 | 2 | 3 | -1 = -1;
-  let phaseStartJd = startJd;
-
-  for (let jd = startJd; jd <= endJd + step; jd += step) {
-    const satSign = jd <= endJd ? saturnSiderealSign(jd, ayaKey) : -1;
-    const diff = satSign >= 0 ? ((satSign - moonSign + 12) % 12) : -1;
-    const phase = satSign >= 0 ? phaseForDiff(diff) : -1;
-
-    if (phase !== currentPhase) {
-      // close previous period
-      if (currentPhase !== -1) {
-        const start = fmtDate(jdToDate(phaseStartJd));
-        const end = fmtDate(jdToDate(jd));
-        const satAtStart = saturnSiderealSign(phaseStartJd, ayaKey);
-        periods.push({
-          phase: currentPhase,
-          phaseLabel: PHASE_LABELS[currentPhase],
-          startDate: start,
-          endDate: end,
-          durationDays: daysBetween(start, end),
-          saturnSign: satAtStart,
-          saturnSignName: signName(satAtStart),
-          basis: 'sign',
-          isActive: new Date(start) <= now && now < new Date(end),
-        });
-      }
-      currentPhase = phase;
-      phaseStartJd = jd;
-    }
-  }
-
-  return periods;
+  return findSegments(startJd, endJd, classify).map(seg => {
+    const start = fmtDate(jdToDate(seg.startJd));
+    const end = fmtDate(jdToDate(seg.endJd));
+    const satSign = saturnSiderealSign(seg.startJd, ayaKey);
+    return {
+      phase: seg.state as 1 | 2 | 3,
+      phaseLabel: SIGN_PHASE_LABELS[seg.state],
+      startDate: start,
+      endDate: end,
+      durationDays: daysBetween(start, end),
+      saturnSign: satSign,
+      saturnSignName: signName(satSign),
+      basis: 'sign' as const,
+      isActive: new Date(start) <= now && now < new Date(end),
+    };
+  });
 }
 
 function detectSignSadeSati(
@@ -224,11 +274,16 @@ function detectSignSadeSati(
   ayaKey: AyanamsaKey,
   now: Date,
 ): SadeSatiPeriod[] {
-  const raw = detectSignSadeSatiRaw(moonSign, startJd, endJd, ayaKey, now);
-  return mergeSadeSatiCycles(raw);
+  return mergeSadeSatiCycles(detectSignSadeSatiRaw(moonSign, startJd, endJd, ayaKey, now));
 }
 
 // ─── Degree-based Sade Sati (±45° orb) ─────────────────────────────────────
+
+const DEG_PHASE_LABELS: Record<number, string> = {
+  1: 'Rising (approaching Moon)',
+  2: 'Peak (conjunct Moon)',
+  3: 'Setting (departing Moon)',
+};
 
 function detectDegreeSadeSatiRaw(
   moonLon: number,
@@ -237,52 +292,33 @@ function detectDegreeSadeSatiRaw(
   ayaKey: AyanamsaKey,
   now: Date,
 ): SadeSatiPeriod[] {
-  const periods: SadeSatiPeriod[] = [];
-  const step = 3;
   const ORB = 45;
-
-  const phaseForOrb = (satLon: number): 1 | 2 | 3 | -1 => {
-    let diff = satLon - moonLon;
+  const classify = (jd: number): number => {
+    let diff = saturnSiderealLon(jd, ayaKey) - moonLon;
     if (diff > 180) diff -= 360;
     if (diff < -180) diff += 360;
     if (Math.abs(diff) > ORB) return -1;
-    if (diff < -15) return 1;  // approaching
-    if (diff <= 15) return 2;  // peak
-    return 3;                   // departing
+    if (diff < -15) return 1;
+    if (diff <= 15) return 2;
+    return 3;
   };
 
-  let currentPhase: 1 | 2 | 3 | -1 = -1;
-  let phaseStartJd = startJd;
-
-  for (let jd = startJd; jd <= endJd + step; jd += step) {
-    const satLon = jd <= endJd ? saturnSiderealLon(jd, ayaKey) : -999;
-    const phase = satLon >= 0 ? phaseForOrb(satLon) : -1;
-
-    if (phase !== currentPhase) {
-      if (currentPhase !== -1) {
-        const start = fmtDate(jdToDate(phaseStartJd));
-        const end = fmtDate(jdToDate(jd));
-        const satSign = saturnSiderealSign(phaseStartJd, ayaKey);
-        periods.push({
-          phase: currentPhase,
-          phaseLabel: currentPhase === 1 ? 'Rising (approaching Moon)'
-            : currentPhase === 2 ? 'Peak (conjunct Moon)'
-            : 'Setting (departing Moon)',
-          startDate: start,
-          endDate: end,
-          durationDays: daysBetween(start, end),
-          saturnSign: satSign,
-          saturnSignName: signName(satSign),
-          basis: 'degree',
-          isActive: new Date(start) <= now && now < new Date(end),
-        });
-      }
-      currentPhase = phase;
-      phaseStartJd = jd;
-    }
-  }
-
-  return periods;
+  return findSegments(startJd, endJd, classify).map(seg => {
+    const start = fmtDate(jdToDate(seg.startJd));
+    const end = fmtDate(jdToDate(seg.endJd));
+    const satSign = saturnSiderealSign(seg.startJd, ayaKey);
+    return {
+      phase: seg.state as 1 | 2 | 3,
+      phaseLabel: DEG_PHASE_LABELS[seg.state],
+      startDate: start,
+      endDate: end,
+      durationDays: daysBetween(start, end),
+      saturnSign: satSign,
+      saturnSignName: signName(satSign),
+      basis: 'degree' as const,
+      isActive: new Date(start) <= now && now < new Date(end),
+    };
+  });
 }
 
 function detectDegreeSadeSati(
@@ -292,8 +328,7 @@ function detectDegreeSadeSati(
   ayaKey: AyanamsaKey,
   now: Date,
 ): SadeSatiPeriod[] {
-  const raw = detectDegreeSadeSatiRaw(moonLon, startJd, endJd, ayaKey, now);
-  return mergeSadeSatiCycles(raw);
+  return mergeSadeSatiCycles(detectDegreeSadeSatiRaw(moonLon, startJd, endJd, ayaKey, now));
 }
 
 // ─── Generic house-transit detector ─────────────────────────────────────────
@@ -308,60 +343,28 @@ function detectHouseTransit(
   ayaKey: AyanamsaKey,
   now: Date,
 ): SaturnTransitPeriod[] {
-  const periods: SaturnTransitPeriod[] = [];
-  const step = 3;
+  const classify = (jd: number): number => {
+    const satSign = saturnSiderealSign(jd, ayaKey);
+    const house = ((satSign - refSign + 12) % 12) + 1;
+    return targetHouses.includes(house) ? house : -1;
+  };
 
-  let inTransit = false;
-  let transitStartJd = startJd;
-  let currentHouse = 0;
-
-  for (let jd = startJd; jd <= endJd + step; jd += step) {
-    const satSign = jd <= endJd ? saturnSiderealSign(jd, ayaKey) : -1;
-    const house = satSign >= 0 ? ((satSign - refSign + 12) % 12) + 1 : -1;
-    const isTarget = targetHouses.includes(house);
-
-    if (isTarget && !inTransit) {
-      inTransit = true;
-      transitStartJd = jd;
-      currentHouse = house;
-    } else if (!isTarget && inTransit) {
-      const start = fmtDate(jdToDate(transitStartJd));
-      const end = fmtDate(jdToDate(jd));
-      const satSign2 = saturnSiderealSign(transitStartJd, ayaKey);
-      periods.push({
-        type,
-        reference,
-        houseFromRef: currentHouse,
-        startDate: start,
-        endDate: end,
-        durationDays: daysBetween(start, end),
-        saturnSign: satSign2,
-        saturnSignName: signName(satSign2),
-        isActive: new Date(start) <= now && now < new Date(end),
-      });
-      inTransit = false;
-    } else if (isTarget && inTransit && house !== currentHouse) {
-      // house changed within target set (e.g. 4th→10th for kantaka)
-      const start = fmtDate(jdToDate(transitStartJd));
-      const end = fmtDate(jdToDate(jd));
-      const satSign2 = saturnSiderealSign(transitStartJd, ayaKey);
-      periods.push({
-        type,
-        reference,
-        houseFromRef: currentHouse,
-        startDate: start,
-        endDate: end,
-        durationDays: daysBetween(start, end),
-        saturnSign: satSign2,
-        saturnSignName: signName(satSign2),
-        isActive: new Date(start) <= now && now < new Date(end),
-      });
-      transitStartJd = jd;
-      currentHouse = house;
-    }
-  }
-
-  return periods;
+  return findSegments(startJd, endJd, classify).map(seg => {
+    const start = fmtDate(jdToDate(seg.startJd));
+    const end = fmtDate(jdToDate(seg.endJd));
+    const satSign = saturnSiderealSign(seg.startJd, ayaKey);
+    return {
+      type,
+      reference,
+      houseFromRef: seg.state,
+      startDate: start,
+      endDate: end,
+      durationDays: daysBetween(start, end),
+      saturnSign: satSign,
+      saturnSignName: signName(satSign),
+      isActive: new Date(start) <= now && now < new Date(end),
+    };
+  });
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────
@@ -389,27 +392,33 @@ export function computeSaturnTransits(
   const startJd = dateToJd(scanStart);
   const endJd = dateToJd(scanEnd);
 
-  const sadeSatiSign = detectSignSadeSati(natalMoonSign, startJd, endJd, ayaKey, now);
-  const sadeSatiDegree = detectDegreeSadeSati(natalMoonLon, startJd, endJd, ayaKey, now);
+  // Memoize Saturn's sidereal longitude for the duration of this call
+  _saturnLonCache = new Map();
+  try {
+    const sadeSatiSign = detectSignSadeSati(natalMoonSign, startJd, endJd, ayaKey, now);
+    const sadeSatiDegree = detectDegreeSadeSati(natalMoonLon, startJd, endJd, ayaKey, now);
 
-  const kantakaMoon = detectHouseTransit(natalMoonSign, [4, 10], 'kantaka', 'moon', startJd, endJd, ayaKey, now);
-  const kantakaAsc = detectHouseTransit(ascSign, [4, 10], 'kantaka', 'ascendant', startJd, endJd, ayaKey, now);
+    const kantakaMoon = detectHouseTransit(natalMoonSign, [4, 10], 'kantaka', 'moon', startJd, endJd, ayaKey, now);
+    const kantakaAsc = detectHouseTransit(ascSign, [4, 10], 'kantaka', 'ascendant', startJd, endJd, ayaKey, now);
 
-  const ashtamaMoon = detectHouseTransit(natalMoonSign, [8], 'ashtama', 'moon', startJd, endJd, ayaKey, now);
-  const ashtamaAsc = detectHouseTransit(ascSign, [8], 'ashtama', 'ascendant', startJd, endJd, ayaKey, now);
+    const ashtamaMoon = detectHouseTransit(natalMoonSign, [8], 'ashtama', 'moon', startJd, endJd, ayaKey, now);
+    const ashtamaAsc = detectHouseTransit(ascSign, [8], 'ashtama', 'ascendant', startJd, endJd, ayaKey, now);
 
-  return {
-    natalMoonSign,
-    natalMoonSignName: signName(natalMoonSign),
-    natalMoonLongitude: natalMoonLon,
-    natalAscSign: ascSign,
-    natalAscSignName: signName(ascSign),
-    sadeSatiSign,
-    sadeSatiDegree,
-    kantakaMoon,
-    kantakaAsc,
-    ashtamaMoon,
-    ashtamaAsc,
-    citation: 'BPHS Ch. 65 (Gochara); Saravali Ch. 35; Phaladeepika Ch. 26',
-  };
+    return {
+      natalMoonSign,
+      natalMoonSignName: signName(natalMoonSign),
+      natalMoonLongitude: natalMoonLon,
+      natalAscSign: ascSign,
+      natalAscSignName: signName(ascSign),
+      sadeSatiSign,
+      sadeSatiDegree,
+      kantakaMoon,
+      kantakaAsc,
+      ashtamaMoon,
+      ashtamaAsc,
+      citation: 'BPHS Ch. 65 (Gochara); Saravali Ch. 35; Phaladeepika Ch. 26',
+    };
+  } finally {
+    _saturnLonCache = null;
+  }
 }
