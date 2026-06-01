@@ -42,7 +42,6 @@ import { buildShatTrimsaDasha } from "./shat_trimsa.ts";
 import { computeVimsopakaBala } from "./vimsopaka.ts";
 import { kpHoraryLongitude } from "./kp_horary.ts";
 import { computeAvasthas } from "./avasthas.ts";
-import { computeSaturnTransits } from "./saturn_transits.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -315,24 +314,12 @@ export async function calculateKundli(details: BirthDetails) {
   // Vimsopaka Bala (Shodhasavarga — 16-varga dignity score out of 20)
   const vimsopakaBala = computeVimsopakaBala(d1Planets, divCharts);
 
-  // Saturn Transits — comprehensive Sade Sati + Kantaka + Ashtama
-  const moonPlanet = d1Planets.find(p => p.planet === 'moon');
-  const saturnTransits = moonPlanet
-    ? computeSaturnTransits(
-        moonPlanet.longitude,
-        moonPlanet.signNumber,
-        ascSign,
-        details.dateOfBirth,
-        details.ayanamsa,
-      )
-    : undefined;
-
   const result = {
     id: crypto.randomUUID(),
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 22,
+    snapshotVersion: 21,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -372,7 +359,6 @@ export async function calculateKundli(details: BirthDetails) {
     },
     varshphal,
     vargeeyaBala,
-    saturnTransits,
     houseCusps: selectedSidCusps.length > 0
       ? selectedSidCusps.map((lon, i) => ({
           cusp: i + 1,
