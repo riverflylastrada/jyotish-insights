@@ -343,7 +343,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 21;
+export const CURRENT_SNAPSHOT_VERSION = 22;
 
 export interface KundliData {
   id: string;
@@ -375,6 +375,7 @@ export interface KundliData {
   jaimini?: JaiminiData;
   varshphal?: VarshphalData;
   vargeeyaBala?: VargeeyaBalaData;
+  saturnTransits?: SaturnTransitsData;
   autoInsights?: {
     generatedAt: string;
     model: string;
@@ -385,6 +386,47 @@ export interface KundliData {
     houses: Record<1|2|3|4|5|6|7|8|9|10|11|12, string>;
   };
   raw: unknown;
+}
+
+// ─── Saturn Transits ────────────────────────────────────────────────────────
+
+export interface SadeSatiPeriod {
+  phase: 1 | 2 | 3;
+  phaseLabel: string;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  saturnSign: number;
+  saturnSignName: string;
+  basis: 'sign' | 'degree';
+  isActive: boolean;
+}
+
+export interface SaturnTransitPeriod {
+  type: 'kantaka' | 'ashtama';
+  reference: 'moon' | 'ascendant';
+  houseFromRef: number;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  saturnSign: number;
+  saturnSignName: string;
+  isActive: boolean;
+}
+
+export interface SaturnTransitsData {
+  natalMoonSign: number;
+  natalMoonSignName: string;
+  natalMoonLongitude: number;
+  natalAscSign: number;
+  natalAscSignName: string;
+  sadeSatiSign: SadeSatiPeriod[];
+  sadeSatiDegree: SadeSatiPeriod[];
+  kantakaMoon: SaturnTransitPeriod[];
+  kantakaAsc: SaturnTransitPeriod[];
+  ashtamaMoon: SaturnTransitPeriod[];
+  ashtamaAsc: SaturnTransitPeriod[];
+  citation: string;
 }
 
 export interface AstroProvider {

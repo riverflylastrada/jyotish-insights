@@ -238,6 +238,7 @@ export default function ChartDetail() {
           ['yogas', 'Yogas'],
           ['ashtakavarga', 'Ashtakavarga'],
           ['transits', 'Transits'],
+          ['saturn-transits', 'Saturn Transits'],
         ] },
         { heading: 'Strength & Bala', items: [
           ['strengths', 'Strengths'],
