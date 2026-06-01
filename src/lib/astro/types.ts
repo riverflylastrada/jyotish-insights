@@ -376,7 +376,6 @@ export interface KundliData {
   varshphal?: VarshphalData;
   vargeeyaBala?: VargeeyaBalaData;
   saturnTransits?: SaturnTransitsData;
-  sarvatobhadra?: SarvatobhadraData;
   autoInsights?: {
     generatedAt: string;
     model: string;
@@ -427,50 +426,6 @@ export interface SaturnTransitsData {
   kantakaAsc: SaturnTransitPeriod[];
   ashtamaMoon: SaturnTransitPeriod[];
   ashtamaAsc: SaturnTransitPeriod[];
-  citation: string;
-}
-
-// ─── Sarvatobhadra Chakra ─────────────────────────────────────────────────────
-
-export type SbcCellType = 'nakshatra' | 'rashi' | 'vowel' | 'consonant' | 'weekday' | 'tithi' | 'empty';
-
-export interface SbcCell {
-  row: number;
-  col: number;
-  type: SbcCellType;
-  label: string;
-  nakshatraIdx: number;
-  rashiNum: number;
-  planets: string[];
-}
-
-export interface TaraGroupData {
-  group: string;
-  nakshatraIdx: number;
-  nakshatraName: string;
-}
-
-export interface JhoraTypeData {
-  type: string;
-  fromMoon: { nakshatraIdx: number; nakshatraName: string };
-  fromLagna: { nakshatraIdx: number; nakshatraName: string };
-}
-
-export interface VedhaData {
-  transitPlanet: string;
-  transitNakshatra: string;
-  natalPoint: string;
-  natalNakshatra: string;
-  isVedha: boolean;
-}
-
-export interface SarvatobhadraData {
-  grid: SbcCell[][];
-  natalPlacements: Array<{ planet: string; nakshatraIdx: number; nakshatraName: string; row: number; col: number }>;
-  taraFromMoon: TaraGroupData[];
-  taraFromLagna: TaraGroupData[];
-  jhoraTypes: JhoraTypeData[];
-  vedha: VedhaData[];
   citation: string;
 }
 

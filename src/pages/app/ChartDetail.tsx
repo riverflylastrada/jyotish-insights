@@ -247,7 +247,6 @@ export default function ChartDetail() {
           ['kp', 'KP System'],
           ['jaimini', 'Jaimini'],
           ['varshphal', 'Varshphal'],
-          ['sarvatobhadra', 'Sarvatobhadra Chakra'],
         ] },
         { heading: 'Output', items: [
           ['remedies', 'Remedies'],
