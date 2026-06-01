@@ -343,7 +343,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 22;
+export const CURRENT_SNAPSHOT_VERSION = 21;
 
 export interface KundliData {
   id: string;
@@ -375,9 +375,6 @@ export interface KundliData {
   jaimini?: JaiminiData;
   varshphal?: VarshphalData;
   vargeeyaBala?: VargeeyaBalaData;
-  saturnTransits?: SaturnTransitsData;
-  sarvatobhadra?: SarvatobhadraData;
-  kalachakraDirection?: KalachakraDirectionData;
   autoInsights?: {
     generatedAt: string;
     model: string;
@@ -388,116 +385,6 @@ export interface KundliData {
     houses: Record<1|2|3|4|5|6|7|8|9|10|11|12, string>;
   };
   raw: unknown;
-}
-
-// ─── Saturn Transits ────────────────────────────────────────────────────────
-
-export interface SadeSatiPeriod {
-  phase: 1 | 2 | 3;
-  phaseLabel: string;
-  startDate: string;
-  endDate: string;
-  durationDays: number;
-  saturnSign: number;
-  saturnSignName: string;
-  basis: 'sign' | 'degree';
-  isActive: boolean;
-}
-
-export interface SaturnTransitPeriod {
-  type: 'kantaka' | 'ashtama';
-  reference: 'moon' | 'ascendant';
-  houseFromRef: number;
-  startDate: string;
-  endDate: string;
-  durationDays: number;
-  saturnSign: number;
-  saturnSignName: string;
-  isActive: boolean;
-}
-
-export interface SaturnTransitsData {
-  natalMoonSign: number;
-  natalMoonSignName: string;
-  natalMoonLongitude: number;
-  natalAscSign: number;
-  natalAscSignName: string;
-  sadeSatiSign: SadeSatiPeriod[];
-  sadeSatiDegree: SadeSatiPeriod[];
-  kantakaMoon: SaturnTransitPeriod[];
-  kantakaAsc: SaturnTransitPeriod[];
-  ashtamaMoon: SaturnTransitPeriod[];
-  ashtamaAsc: SaturnTransitPeriod[];
-  citation: string;
-}
-
-// ─── Sarvatobhadra Chakra ─────────────────────────────────────────────────────
-
-export type SbcCellType = 'nakshatra' | 'rashi' | 'vowel' | 'consonant' | 'weekday' | 'tithi' | 'empty';
-
-export interface SbcCell {
-  row: number;
-  col: number;
-  type: SbcCellType;
-  label: string;
-  nakshatraIdx: number;
-  rashiNum: number;
-  planets: string[];
-}
-
-export interface TaraGroupData {
-  group: string;
-  nakshatraIdx: number;
-  nakshatraName: string;
-}
-
-export interface JhoraTypeData {
-  type: string;
-  fromMoon: { nakshatraIdx: number; nakshatraName: string };
-  fromLagna: { nakshatraIdx: number; nakshatraName: string };
-}
-
-export interface VedhaData {
-  transitPlanet: string;
-  transitNakshatra: string;
-  natalPoint: string;
-  natalNakshatra: string;
-  isVedha: boolean;
-}
-
-export interface SarvatobhadraData {
-  grid: SbcCell[][];
-  natalPlacements: Array<{ planet: string; nakshatraIdx: number; nakshatraName: string; row: number; col: number }>;
-  taraFromMoon: TaraGroupData[];
-  taraFromLagna: TaraGroupData[];
-  jhoraTypes: JhoraTypeData[];
-  vedha: VedhaData[];
-  citation: string;
-}
-
-// ─── Kalachakra Chakra (directional) ────────────────────────────────────────
-
-export type KalachakraDirection = 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW' | 'N' | 'NE';
-
-export interface DirectionInfo {
-  direction: KalachakraDirection;
-  deity: string;
-  deityDeva: string;
-  nakshatras: string[];
-  nakshatraIndices: number[];
-  planets: string[];
-}
-
-export interface KalachakraDirectionData {
-  directions: DirectionInfo[];
-  planetPlacements: Array<{
-    planet: string;
-    nakshatraIdx: number;
-    nakshatraName: string;
-    direction: KalachakraDirection;
-    deity: string;
-  }>;
-  citation: string;
 }
 
 export interface AstroProvider {
