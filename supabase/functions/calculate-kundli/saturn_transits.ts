@@ -98,9 +98,69 @@ function daysBetween(a: string, b: string): number {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86_400_000);
 }
 
+// ─── Cycle merger ───────────────────────────────────────────────────────────
+
+/**
+ * Merge fragmented Sade Sati segments (caused by retrograde sign-crossings)
+ * into clean cycles with one entry per phase.
+ *
+ * Algorithm:
+ * 1. Group raw segments into "cycles" — consecutive segments with no gap > MAX_GAP_DAYS.
+ * 2. Within each cycle, merge all segments of the same phase into one
+ *    (earliest start → latest end).
+ * 3. Order phases within each cycle as 1→2→3.
+ */
+function mergeSadeSatiCycles(raw: SadeSatiPeriod[]): SadeSatiPeriod[] {
+  if (raw.length === 0) return [];
+
+  const MAX_GAP_DAYS = 365 * 5; // > 5 year gap = new cycle
+
+  // Split into cycle groups
+  const cycles: SadeSatiPeriod[][] = [];
+  let currentGroup: SadeSatiPeriod[] = [raw[0]];
+
+  for (let i = 1; i < raw.length; i++) {
+    const prevEnd = new Date(raw[i - 1].endDate).getTime();
+    const currStart = new Date(raw[i].startDate).getTime();
+    const gapDays = (currStart - prevEnd) / 86_400_000;
+
+    if (gapDays > MAX_GAP_DAYS) {
+      cycles.push(currentGroup);
+      currentGroup = [raw[i]];
+    } else {
+      currentGroup.push(raw[i]);
+    }
+  }
+  cycles.push(currentGroup);
+
+  // Merge phases within each cycle
+  const merged: SadeSatiPeriod[] = [];
+  for (const cycle of cycles) {
+    for (const phase of [1, 2, 3] as const) {
+      const segs = cycle.filter(s => s.phase === phase);
+      if (segs.length === 0) continue;
+
+      const earliest = segs.reduce((a, b) =>
+        new Date(a.startDate) < new Date(b.startDate) ? a : b);
+      const latest = segs.reduce((a, b) =>
+        new Date(a.endDate) > new Date(b.endDate) ? a : b);
+
+      merged.push({
+        ...earliest,
+        endDate: latest.endDate,
+        durationDays: daysBetween(earliest.startDate, latest.endDate),
+        isActive: earliest.isActive || latest.isActive ||
+          segs.some(s => s.isActive),
+      });
+    }
+  }
+
+  return merged;
+}
+
 // ─── Sign-based Sade Sati ───────────────────────────────────────────────────
 
-function detectSignSadeSati(
+function detectSignSadeSatiRaw(
   moonSign: number,
   startJd: number,
   endJd: number,
@@ -157,9 +217,20 @@ function detectSignSadeSati(
   return periods;
 }
 
+function detectSignSadeSati(
+  moonSign: number,
+  startJd: number,
+  endJd: number,
+  ayaKey: AyanamsaKey,
+  now: Date,
+): SadeSatiPeriod[] {
+  const raw = detectSignSadeSatiRaw(moonSign, startJd, endJd, ayaKey, now);
+  return mergeSadeSatiCycles(raw);
+}
+
 // ─── Degree-based Sade Sati (±45° orb) ─────────────────────────────────────
 
-function detectDegreeSadeSati(
+function detectDegreeSadeSatiRaw(
   moonLon: number,
   startJd: number,
   endJd: number,
@@ -212,6 +283,17 @@ function detectDegreeSadeSati(
   }
 
   return periods;
+}
+
+function detectDegreeSadeSati(
+  moonLon: number,
+  startJd: number,
+  endJd: number,
+  ayaKey: AyanamsaKey,
+  now: Date,
+): SadeSatiPeriod[] {
+  const raw = detectDegreeSadeSatiRaw(moonLon, startJd, endJd, ayaKey, now);
+  return mergeSadeSatiCycles(raw);
 }
 
 // ─── Generic house-transit detector ─────────────────────────────────────────
