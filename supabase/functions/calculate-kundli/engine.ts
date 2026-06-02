@@ -45,6 +45,7 @@ import { computeAvasthas } from "./avasthas.ts";
 import { computeSaturnTransits } from "./saturn_transits.ts";
 import { computeSarvatobhadra } from "./sarvatobhadra.ts";
 import { computeKalachakraDirection } from "./kalachakra_direction.ts";
+import { computeSudarshana } from "./sudarshana.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -334,7 +335,7 @@ export async function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 22,
+    snapshotVersion: 23,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -381,6 +382,10 @@ export async function calculateKundli(details: BirthDetails) {
     ),
     kalachakraDirection: computeKalachakraDirection(
       d1Planets.map(p => ({ planet: p.planet, longitude: p.longitude })),
+    ),
+    sudarshana: computeSudarshana(
+      d1Planets.map(p => ({ planet: p.planet, longitude: p.longitude, signNumber: p.signNumber })),
+      ascSign,
     ),
     houseCusps: selectedSidCusps.length > 0
       ? selectedSidCusps.map((lon, i) => ({

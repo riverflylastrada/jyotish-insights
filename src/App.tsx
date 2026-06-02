@@ -55,6 +55,7 @@ const Panchang = lazy(() => import("./pages/Panchang"));
 const SaturnTransits = lazy(() => import("./pages/app/SaturnTransits"));
 const SarvatobhadraChakra = lazy(() => import("./pages/app/SarvatobhadraChakra"));
 const KalachakraChakra = lazy(() => import("./pages/app/KalachakraChakra"));
+const SudarshanaChakra = lazy(() => import("./pages/app/SudarshanaChakra"));
 
 const PageFallback = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="chart/:id/saturn-transits" element={<SaturnTransits />} />
               <Route path="chart/:id/sarvatobhadra" element={<SarvatobhadraChakra />} />
               <Route path="chart/:id/kalachakra-chakra" element={<KalachakraChakra />} />
+              <Route path="chart/:id/sudarshana" element={<SudarshanaChakra />} />
               <Route path="chart/:id/debate" element={<Debate />} />
               <Route path="chart/:id/report" element={<Report />} />
               <Route path="chart/:id/remedies" element={<Remedies />} />

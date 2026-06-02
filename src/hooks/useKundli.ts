@@ -65,7 +65,10 @@ export function useKundli(chartId: string, details: BirthDetails = DEMO_BIRTH) {
         void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', chartId);
         return fresh;
       }
-      // Demo / fallback
+      // Demo / fallback. Also serves the landing-page sample report
+      // (/app/chart/demo?share=demo): the non-UUID id and token skip both
+      // branches above, so the public demo is computed from DEMO_BIRTH
+      // (15 Aug 1980, 14:30, Ahmedabad) with no auth or DB round-trip.
       return getAstroProvider().generateKundli(details);
     },
     staleTime: 1000 * 60 * 60 * 24,

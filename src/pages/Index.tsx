@@ -98,7 +98,11 @@ const Index = () => {
               <Link to="/app/new" className="inline-flex items-center gap-2 rounded-sm bg-brand-saffron px-5 py-3 text-sm font-medium text-accent-foreground shadow-sm transition-colors hover:bg-brand-saffron-hover">
                 Generate my Kundli <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link to="/app/chart/demo" className="inline-flex items-center gap-2 rounded-sm border border-hairline px-5 py-3 text-sm font-medium text-text-primary hover:bg-elevated">
+              {/* Pre-computed demo chart (15 Aug 1980, 14:30, Ahmedabad — see
+                  DEMO_BIRTH). The fixed `?share=demo` token lets RequireAuth
+                  through and renders the chart read-only, so no login is needed
+                  to view the sample. */}
+              <Link to="/app/chart/demo?share=demo" className="inline-flex items-center gap-2 rounded-sm border border-hairline px-5 py-3 text-sm font-medium text-text-primary hover:bg-elevated">
                 See sample report
               </Link>
             </div>

@@ -249,6 +249,7 @@ export default function ChartDetail() {
           ['varshphal', 'Varshphal'],
           ['sarvatobhadra', 'Sarvatobhadra Chakra'],
           ['kalachakra-chakra', 'Kalachakra Chakra'],
+          ['sudarshana', 'Sudarshana Chakra'],
         ] },
         { heading: 'Output', items: [
           ['remedies', 'Remedies'],

@@ -6,6 +6,16 @@ import { Loader2, Trash2, ArrowRight, BookOpen, PlusCircle, Star } from 'lucide-
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/hooks/useSession';
 import { toast } from '@/components/ui/sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
 interface Row {
@@ -22,6 +32,7 @@ export default function Library() {
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [defaultId, setDefaultId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
 
   const load = async () => {
     const [{ data, error }, { data: profile }] = await Promise.all([
@@ -56,7 +67,6 @@ export default function Library() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Delete this chart? This cannot be undone.')) return;
     const { error } = await supabase.from('charts').delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Chart deleted');
@@ -122,7 +132,7 @@ export default function Library() {
               >
                 <Star className={cn('h-4 w-4', defaultId === r.id && 'fill-current')} />
               </button>
-              <button onClick={() => remove(r.id)} className="rounded-sm p-2 text-text-tertiary hover:bg-elevated hover:text-semantic-negative" aria-label="Delete">
+              <button onClick={() => setPendingDelete(r)} className="rounded-sm p-2 text-text-tertiary hover:bg-elevated hover:text-semantic-negative" aria-label="Delete">
                 <Trash2 className="h-4 w-4" />
               </button>
               <Link to={`/app/chart/${r.id}`} className="inline-flex items-center gap-1 rounded-sm bg-brand-maroon px-3 py-1.5 text-sm text-primary-foreground hover:bg-brand-maroon/90">
@@ -132,6 +142,26 @@ export default function Library() {
           ))}
         </ul>
       )}
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete chart</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {pendingDelete?.name ?? 'this chart'}? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (pendingDelete) remove(pendingDelete.id); }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
