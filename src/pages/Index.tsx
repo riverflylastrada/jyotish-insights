@@ -71,6 +71,7 @@ const Index = () => {
             <a href="#report" className="text-sm text-text-secondary hover:text-text-primary">Report</a>
             <Link to="/mundane" className="text-sm text-text-secondary hover:text-text-primary">Mundane</Link>
             <Link to="/panchang" className="text-sm text-text-secondary hover:text-text-primary">Panchang</Link>
+            <Link to="/eclipses" className="text-sm text-text-secondary hover:text-text-primary">Eclipses</Link>
             <a href="#pricing" className="text-sm text-text-secondary hover:text-text-primary">Pricing</a>
           </nav>
           <div className="flex items-center gap-3">

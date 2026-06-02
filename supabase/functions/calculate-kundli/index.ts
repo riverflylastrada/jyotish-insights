@@ -6,6 +6,8 @@
  */
 
 import { calculateKundli, calculateTransits } from "./engine.ts";
+import { computeEclipses } from "./eclipse.ts";
+import { julianDay } from "./astronomy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +26,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { birthDetails, mode } = await req.json();
+    const body = await req.json();
+    const { birthDetails, mode } = body;
 
     if (mode === "health") {
       return new Response(
@@ -37,6 +40,17 @@ Deno.serve(async (req) => {
       const positions = calculateTransits(birthDetails);
       return new Response(
         JSON.stringify(positions),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (mode === "eclipses") {
+      const { fromDate, lat, lon, ayanamsa, maxEclipses } = body;
+      const [y, m, d] = (fromDate as string).split("-").map(Number);
+      const jd = julianDay(y, m, d, 0, 0, 0);
+      const eclipses = computeEclipses(jd, lat ?? 0, lon ?? 0, ayanamsa ?? "lahiri", maxEclipses ?? 6);
+      return new Response(
+        JSON.stringify(eclipses),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
