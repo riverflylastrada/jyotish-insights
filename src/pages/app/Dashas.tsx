@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, Sparkles, MessageSquare } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { DashaTimeline, type SelectedPeriodInfo } from '@/components/dashas/DashaTimeline';
@@ -222,6 +223,7 @@ function AshtottariMathProof({ d1 }: { d1: DivisionalChart }) {
 
 export default function Dashas() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const available = (data?.dashas ?? []).slice().sort(
     (a, b) => SYSTEM_ORDER.indexOf(a.system) - SYSTEM_ORDER.indexOf(b.system),
@@ -247,7 +249,7 @@ export default function Dashas() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
       {current && meta && (
@@ -453,7 +455,7 @@ export default function Dashas() {
                   </div>
                 );
                 return (
-                  <Link to={`/app/chart/${id}/debate`} className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                  <Link to={chartLink(`/app/chart/${id}/debate`)} className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
                     <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
                   </Link>
                 );

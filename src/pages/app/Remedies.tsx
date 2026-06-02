@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Gem, Sparkles, HandHeart, Flame, Leaf, BookOpen, Loader2 } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { PLANET_LABELS, type PlanetName, type PlanetPosition } from '@/lib/astro/types';
@@ -83,6 +84,7 @@ function planetAfflictionScore(p: PlanetPosition): number {
 
 export default function Remedies() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data } = useKundli(id);
 
   if (!data) {
@@ -108,7 +110,7 @@ export default function Remedies() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
       <div className="mt-3 text-eyebrow text-brand-saffron">Upayas · Classical remedial prescriptions</div>

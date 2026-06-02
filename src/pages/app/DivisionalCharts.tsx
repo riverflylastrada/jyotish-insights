@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, Microscope } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { useChartStore } from '@/stores/useChartStore';
@@ -8,6 +9,7 @@ import type { VargaCode } from '@/lib/astro/types';
 
 export default function DivisionalCharts() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const chartStyle = useChartStore((s) => s.chartStyle);
   const setChartStyle = useChartStore((s) => s.setChartStyle);
@@ -29,7 +31,7 @@ export default function DivisionalCharts() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+          <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
             <ArrowLeft className="h-4 w-4" /> Back to chart
           </Link>
           <div className="mt-3 text-eyebrow text-brand-saffron">Vargas · D1 — D144</div>
@@ -51,7 +53,7 @@ export default function DivisionalCharts() {
         <KundliFrame title={`${focusedChart.varga} · ${focusedChart.vargaName}`} subtitle={focusedChart.significance}>
           <KundliChart chart={focusedChart} style={chartStyle} size={420} />
           <Link
-            to={`/app/chart/${id}/charts/${focusedChart.varga}`}
+            to={chartLink(`/app/chart/${id}/charts/${focusedChart.varga}`)}
             className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-sm border border-brand-maroon/30 bg-surface px-3 py-1.5 text-sm text-brand-maroon hover:bg-elevated transition-colors"
           >
             <Microscope className="h-4 w-4" /> Explore {focusedChart.varga} interactively
@@ -61,7 +63,7 @@ export default function DivisionalCharts() {
           <KundliFrame title={`${compareChart.varga} · ${compareChart.vargaName}`} subtitle={compareChart.significance}>
             <KundliChart chart={compareChart} style={chartStyle} size={420} />
             <Link
-              to={`/app/chart/${id}/charts/${compareChart.varga}`}
+              to={chartLink(`/app/chart/${id}/charts/${compareChart.varga}`)}
               className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-sm border border-brand-maroon/30 bg-surface px-3 py-1.5 text-sm text-brand-maroon hover:bg-elevated transition-colors"
             >
               <Microscope className="h-4 w-4" /> Explore {compareChart.varga} interactively
@@ -93,7 +95,7 @@ export default function DivisionalCharts() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Link
-                      to={`/app/chart/${id}/charts/${c.varga}`}
+                      to={chartLink(`/app/chart/${id}/charts/${c.varga}`)}
                       className="rounded-sm border border-hairline-subtle p-1 text-text-tertiary hover:border-brand-maroon/40 hover:text-brand-maroon transition-colors"
                       title={`Explore ${c.varga} interactively`}
                     >

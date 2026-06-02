@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useKundli } from '@/hooks/useKundli';
+import { useChartLink, useShareToken } from '@/hooks/useChartLink';
 import { useChartStore } from '@/stores/useChartStore';
 import { KundliChart, KundliFrame } from '@/components/kundli/KundliChart';
 import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type Dosha, type PlanetPosition } from '@/lib/astro/types';
@@ -20,6 +21,8 @@ export default function ChartDetail() {
   const setChartStyle = useChartStore((s) => s.setChartStyle);
   const [tab, setTab] = useState<'overview' | 'houses' | 'planets'>('overview');
   const [busy, setBusy] = useState<null | 'save' | 'share' | 'recalc'>(null);
+  const shareToken = useShareToken();
+  const chartLink = useChartLink();
 
   if (isLoading || !data) {
     return (
@@ -39,7 +42,6 @@ export default function ChartDetail() {
   const sadeSati = data.doshas.find(dd => dd.name === 'sade_sati');
 
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  const shareToken = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('share') : null;
   const readOnly = !!shareToken;
 
   const onSave = async () => {
@@ -142,11 +144,11 @@ export default function ChartDetail() {
             {/* Secondary actions grouped into one segmented toolbar; labels show from lg */}
             <div className="inline-flex items-center divide-x divide-hairline-subtle overflow-hidden rounded-sm border border-hairline-subtle bg-surface">
               {!readOnly && <ActionBtn grouped icon={Save} label={isUuid ? 'Update' : 'Save'} onClick={onSave} loading={busy === 'save'} />}
-              <ActionBtn grouped icon={Download} label="PDF" to={`/app/chart/${id}/report${shareToken ? `?share=${shareToken}` : ''}`} />
+              <ActionBtn grouped icon={Download} label="PDF" to={chartLink(`/app/chart/${id}/report`)} />
               {!readOnly && <ActionBtn grouped icon={Share2} label="Share" onClick={onShare} loading={busy === 'share'} />}
               {!readOnly && <ActionBtn grouped icon={RefreshCcw} label="Recalculate" onClick={onRecalc} loading={busy === 'recalc'} />}
             </div>
-            <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-brand-maroon/90">
+            <Link to={chartLink(`/app/chart/${id}/debate`)} className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-brand-maroon/90">
               <MessageSquare className="h-4 w-4" /> Open Debate
             </Link>
             <VoiceButton chartId={id} variant="inline" />
@@ -220,7 +222,7 @@ export default function ChartDetail() {
               <li className="flex justify-between"><span className="text-text-tertiary">Karana</span><span className="text-text-primary">{data.panchang.karana}</span></li>
             </ul>
           </div>
-          <Link to={`/app/chart/${id}/debate`} className="block rounded-md border border-brand-maroon/30 bg-surface p-5 text-left shadow-sm hover:bg-elevated">
+          <Link to={chartLink(`/app/chart/${id}/debate`)} className="block rounded-md border border-brand-maroon/30 bg-surface p-5 text-left shadow-sm hover:bg-elevated">
             <div className="text-eyebrow text-brand-saffron">Tribunal</div>
             <div className="mt-2 font-display text-h3 text-text-primary">Ask the Gurus</div>
             <p className="mt-1 text-sm text-text-tertiary">Run a eight-Guru debate on a specific question about this chart.</p>
@@ -261,7 +263,7 @@ export default function ChartDetail() {
           <div className="mb-2 text-eyebrow text-text-tertiary">{group.heading}</div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             {group.items.map(([slug, label]) => (
-              <Link key={slug} to={`/app/chart/${id}/${slug}`}
+              <Link key={slug} to={chartLink(`/app/chart/${id}/${slug}`)}
                 className="rounded-md border border-hairline-subtle bg-surface px-4 py-3 text-center text-sm text-text-secondary hover:border-brand-maroon hover:text-text-primary">
                 {label}
               </Link>
@@ -385,6 +387,7 @@ function OverviewTab({ chart, doshaCount, yogas, md, ad }: { chart: DivisionalCh
 }
 
 function HousesTab({ chart, autoInsights, chartId }: { chart: DivisionalChart; autoInsights?: { houses?: Record<string, string> }; chartId: string }) {
+  const chartLink = useChartLink();
   const [expandedHouse, setExpandedHouse] = useState<number | null>(null);
   const planetsByHouse = new Map<number, PlanetPosition[]>();
   chart.planets.forEach(p => {
@@ -431,7 +434,7 @@ function HousesTab({ chart, autoInsights, chartId }: { chart: DivisionalChart; a
                           <p className="text-sm text-text-secondary">{autoInsights.houses[String(h)]}</p>
                         </div>
                       ) : (
-                        <Link to={`/app/chart/${chartId}/debate`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                        <Link to={chartLink(`/app/chart/${chartId}/debate`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
                           <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
                         </Link>
                       )}

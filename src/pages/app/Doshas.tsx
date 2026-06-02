@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, ChevronRight, FlaskConical, Check, X, Sparkles, MessageSquare } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import type { Dosha, DoshaCondition } from '@/lib/astro/types';
@@ -115,6 +116,7 @@ function CancellationArrow({ fromId, toId, containerRef }: {
 
 export default function Doshas() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const [filter, setFilter] = useState<'all' | 'present' | 'absent'>('all');
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -140,7 +142,7 @@ export default function Doshas() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
@@ -183,6 +185,7 @@ export default function Doshas() {
 }
 
 function DoshaCard({ d, id, isOpen, toggle, autoInsights }: { d: Dosha; id: string; isOpen: boolean; toggle: (name: string) => void; autoInsights?: { doshas?: Record<string, string> } }) {
+  const chartLink = useChartLink();
   const meta = DOSHA_LABEL[d.name];
   const state = doshaState(d);
   const sev = d.severity ? SEVERITY_BARS[d.severity] : null;
@@ -309,12 +312,12 @@ function DoshaCard({ d, id, isOpen, toggle, autoInsights }: { d: Dosha; id: stri
               <p className="text-sm text-text-secondary">{autoInsights.doshas[d.name]}</p>
             </div>
           ) : d.isPresent ? (
-            <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+            <Link to={chartLink(`/app/chart/${id}/debate`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
               <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
             </Link>
           ) : null}
 
-          <Link to={`/app/chart/${id}/lab`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+          <Link to={chartLink(`/app/chart/${id}/lab`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
             <FlaskConical className="h-3.5 w-3.5" /> Explore the planets in the Research Lab
           </Link>
         </div>

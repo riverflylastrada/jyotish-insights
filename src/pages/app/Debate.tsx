@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square, Trash2, Mic } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebateStore, type DebateTurn } from '@/stores/useDebateStore';
@@ -151,6 +152,7 @@ type GuruState = { status: 'idle' | 'thinking' | 'streaming' | 'done' | 'error';
 
 export default function Debate() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data: chart } = useKundli(id);
   const { question, setQuestion, followUp, setFollowUp, addToHistory, turns, addTurn, clearTurns } = useDebateStore();
   const [running, setRunning] = useState(false);
@@ -328,7 +330,7 @@ export default function Debate() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="flex items-center justify-between gap-2">
-        <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+        <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
           <ArrowLeft className="h-4 w-4" /> Back to chart
         </Link>
         <Link to={`/app/voice/${id}`} className="inline-flex items-center gap-1.5 rounded-sm border border-brand-gold/40 px-3 py-1.5 text-sm font-medium text-brand-gold hover:bg-brand-gold/10">

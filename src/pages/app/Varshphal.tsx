@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useKundli } from '@/hooks/useKundli';
@@ -33,6 +34,7 @@ function EmptyState({ label }: { label: string }) {
 
 export default function Varshphal() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const chartStyle = useChartStore((s) => s.chartStyle);
   const v = data?.varshphal;
@@ -70,7 +72,7 @@ export default function Varshphal() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
       <div className="mt-3 text-eyebrow text-brand-saffron">Tajik · Varshphal</div>

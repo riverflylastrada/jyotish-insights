@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useKundli } from '@/hooks/useKundli';
@@ -15,6 +16,7 @@ import type { DivisionalChart, VargaCode } from '@/lib/astro/types';
  */
 export default function VargaExplorer() {
   const { id = 'demo', varga: vargaParam } = useParams<{ id: string; varga: string }>();
+  const chartLink = useChartLink();
   const [searchParams] = useSearchParams();
   const { data, isLoading } = useKundli(id);
   const queryClient = useQueryClient();
@@ -70,7 +72,7 @@ export default function VargaExplorer() {
         ) : (
           <p className="text-text-secondary">Chart {varga} not found in this kundli.</p>
         )}
-        <Link to={`/app/chart/${id}/charts`} className="mt-6 inline-flex items-center gap-1 text-sm text-brand-maroon hover:underline">
+        <Link to={chartLink(`/app/chart/${id}/charts`)} className="mt-6 inline-flex items-center gap-1 text-sm text-brand-maroon hover:underline">
           <ArrowLeft className="h-4 w-4" /> Back to all vargas
         </Link>
       </div>
@@ -86,7 +88,7 @@ export default function VargaExplorer() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       {/* Header */}
       <div className="mb-6">
-        <Link to={`/app/chart/${id}/charts`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+        <Link to={chartLink(`/app/chart/${id}/charts`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
           <ArrowLeft className="h-4 w-4" /> All vargas
         </Link>
 
@@ -94,7 +96,7 @@ export default function VargaExplorer() {
         <div className="mt-3 flex items-center gap-3">
           {prevVarga && (
             <Link
-              to={`/app/chart/${id}/charts/${prevVarga}${selected ? `?planet=${selected}` : ''}`}
+              to={chartLink(`/app/chart/${id}/charts/${prevVarga}${selected ? `?planet=${selected}` : ''}`)}
               className="rounded-sm border border-hairline-subtle px-2 py-0.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
             >
               ← {prevVarga}
@@ -106,7 +108,7 @@ export default function VargaExplorer() {
           </div>
           {nextVarga && (
             <Link
-              to={`/app/chart/${id}/charts/${nextVarga}${selected ? `?planet=${selected}` : ''}`}
+              to={chartLink(`/app/chart/${id}/charts/${nextVarga}${selected ? `?planet=${selected}` : ''}`)}
               className="rounded-sm border border-hairline-subtle px-2 py-0.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
             >
               {nextVarga} →

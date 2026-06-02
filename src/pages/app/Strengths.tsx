@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { PLANET_LABELS, type PlanetName, type SubBalasData, type AvasthasData, type BaladiState, type JagradadiState, type DeeptadiState } from '@/lib/astro/types';
@@ -136,6 +137,7 @@ function EmptyState({ label }: { label: string }) {
 
 export default function Strengths() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const [tab, setTab] = useState<'shadbala' | 'bhava' | 'vargeeya' | 'vimsopaka' | 'avasthas'>('shadbala');
 
@@ -149,7 +151,7 @@ export default function Strengths() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
       <div className="mt-3 text-eyebrow text-brand-saffron">Strength & Bala</div>

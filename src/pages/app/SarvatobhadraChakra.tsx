@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, Info } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import type {
@@ -196,6 +197,7 @@ function DetailsPanel({ data }: { data: SarvatobhadraData }) {
 
 export default function SarvatobhadraChakra() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const [panel, setPanel] = useState<Panel>('grid');
 
@@ -211,7 +213,7 @@ export default function SarvatobhadraChakra() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
 

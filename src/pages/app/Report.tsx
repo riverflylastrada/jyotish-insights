@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, Download, Printer } from 'lucide-react';
 import { useState } from 'react';
 import dayjs from 'dayjs';
@@ -11,6 +12,7 @@ import { toast } from '@/components/ui/sonner';
 
 export default function Report() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const chartStyle = useChartStore((s) => s.chartStyle);
   const [downloading, setDownloading] = useState(false);
@@ -76,7 +78,7 @@ export default function Report() {
       {/* Toolbar — hidden on print */}
       <div className="no-print sticky top-0 z-20 border-b border-hairline-subtle bg-surface/90 backdrop-blur">
         <div className="mx-auto flex max-w-[210mm] items-center justify-between px-6 py-3">
-          <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+          <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
             <ArrowLeft className="h-4 w-4" /> Back to chart
           </Link>
           <div className="text-xs text-text-tertiary">Server-rendered · A4 portrait</div>

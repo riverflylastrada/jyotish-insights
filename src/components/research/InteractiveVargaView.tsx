@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowRight, MessageSquare, Sparkles } from 'lucide-react';
 import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type PlanetName, type VargaCode } from '@/lib/astro/types';
 import { VARGA_META, VARGA_CODES } from './vargaData';
@@ -81,6 +82,7 @@ export function InteractiveVargaView({
   currentVarga,
   autoInsights,
 }: InteractiveVargaViewProps) {
+  const chartLink = useChartLink();
   const ascSign = chart.ascendantSign;
 
   const planetsByHouse = new Map<number, { p: Graha; retro: boolean }[]>();
@@ -222,7 +224,7 @@ export function InteractiveVargaView({
                 <p className="text-sm text-text-secondary">{autoInsights.planets[selected].brief}</p>
               </div>
             ) : selected ? (
-              <Link to={`/app/chart/${chartId}/debate`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+              <Link to={chartLink(`/app/chart/${chartId}/debate`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
                 <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
               </Link>
             ) : null}
@@ -306,7 +308,7 @@ export function InteractiveVargaView({
                   {crossNavTargets.map((v) => (
                     <Link
                       key={v}
-                      to={`/app/chart/${chartId}/charts/${v}?planet=${selected}`}
+                      to={chartLink(`/app/chart/${chartId}/charts/${v}?planet=${selected}`)}
                       className="inline-flex items-center gap-1 rounded-sm border border-hairline-subtle px-2 py-1 text-xs text-text-secondary hover:border-brand-maroon/40 hover:text-brand-maroon transition-colors"
                     >
                       See in {v} <ArrowRight className="h-3 w-3" />
@@ -316,7 +318,7 @@ export function InteractiveVargaView({
               </div>
             )}
 
-            <Link to={`/app/chart/${chartId}/debate`} className="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-brand-maroon/30 bg-surface px-4 py-2 text-sm text-brand-maroon hover:bg-elevated">
+            <Link to={chartLink(`/app/chart/${chartId}/debate`)} className="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-brand-maroon/30 bg-surface px-4 py-2 text-sm text-brand-maroon hover:bg-elevated">
               <MessageSquare className="h-4 w-4" /> Ask the Gurus about {PLANET_LABELS[selected].full}
             </Link>
           </div>

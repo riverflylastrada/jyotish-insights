@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Sunrise, Sunset, Calendar as CalendarIcon, Clock, Sparkles, AlertTriangle, CheckCircle2, MapPin, Info } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useKundli } from '@/hooks/useKundli';
@@ -205,6 +206,7 @@ function computeMuhurtas(weekday: number, sunrise: string, sunset: string) {
 
 export default function Muhurta() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data } = useKundli(id);
 
   // Extract birth-chart lat/lon/tz as fallback
@@ -244,7 +246,7 @@ export default function Muhurta() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
       <div className="mt-3 text-eyebrow text-brand-saffron">Muhurta · Choosing the auspicious moment</div>

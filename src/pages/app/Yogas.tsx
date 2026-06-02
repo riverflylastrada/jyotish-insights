@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, Check, X, ChevronRight, FlaskConical, Sparkles, MessageSquare } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { PLANET_LABELS, type PlanetName, type Yoga } from '@/lib/astro/types';
@@ -28,6 +29,7 @@ function planetIn(text: string): PlanetName | null {
 
 export default function Yogas() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const [filter, setFilter] = useState<'all' | 'present' | 'absent'>('present');
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -57,7 +59,7 @@ export default function Yogas() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
@@ -156,12 +158,12 @@ export default function Yogas() {
                             <p className="text-sm text-text-secondary">{data.autoInsights.yogas[y.name]}</p>
                           </div>
                         ) : y.isPresent ? (
-                          <Link to={`/app/chart/${id}/debate`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                          <Link to={chartLink(`/app/chart/${id}/debate`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
                             <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
                           </Link>
                         ) : null}
 
-                        <Link to={`/app/chart/${id}/lab`} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
+                        <Link to={chartLink(`/app/chart/${id}/lab`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
                           <FlaskConical className="h-3.5 w-3.5" /> Explore the planets in the Research Lab
                         </Link>
                       </div>

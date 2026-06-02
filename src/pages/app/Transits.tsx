@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, Info, Compass, MapPin } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
 import { getAstroProvider } from '@/lib/astro/factory';
@@ -28,6 +29,7 @@ function DepthToggle({ depth, onSetDepth }: { depth: Depth; onSetDepth: (d: Dept
 
 export default function Transits() {
   const { id = 'demo' } = useParams();
+  const chartLink = useChartLink();
   const { data, isLoading } = useKundli(id);
   const [transits, setTransits] = useState<PlanetPosition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export default function Transits() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <Link to={`/app/chart/${id}`} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
+      <Link to={chartLink(`/app/chart/${id}`)} className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-primary">
         <ArrowLeft className="h-4 w-4" /> Back to chart
       </Link>
       <div className="mt-3 text-eyebrow text-brand-saffron flex items-center gap-1"><Compass className="h-3.5 w-3.5 text-brand-saffron" /> Gochara · Sky vs natal</div>
