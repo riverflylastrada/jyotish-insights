@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
           const userId = await userIdPromise;
           logAiUsage({
             user_id: userId, function: "guru-debate", mode, guru: null,
-            chart_id: chartId, question: null, model, provider: dbConfig?.endpoint ? "config" : "default",
+            chart_id: chartId, question: null, model, provider: provider ?? "unknown",
             prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
             language, success: false, error: `LLM ${r.status}`, latency_ms: Date.now() - callStart,
           });
@@ -256,7 +256,7 @@ Deno.serve(async (req) => {
         const ct = usage.completion_tokens ?? 0;
         logAiUsage({
           user_id: userId, function: "guru-debate", mode, guru: null,
-          chart_id: chartId, question: null, model, provider: dbConfig?.endpoint ? "config" : "default",
+          chart_id: chartId, question: null, model, provider: provider ?? "unknown",
           prompt_tokens: pt, completion_tokens: ct, total_tokens: usage.total_tokens ?? pt + ct,
           cost_usd: computeCost(model, pt, ct),
           language, success: true, error: null, latency_ms: Date.now() - callStart,
@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
       logAiUsage({
         user_id: userId, function: "guru-debate", mode, guru: guru ?? null,
         chart_id: chartId, question: question ?? null, model,
-        provider: dbConfig?.endpoint ? "config" : "default",
+        provider: provider ?? "unknown",
         prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
         language, success: false, error: "rate_limit_429", latency_ms: Date.now() - streamCallStart,
       });
@@ -367,7 +367,7 @@ Deno.serve(async (req) => {
       logAiUsage({
         user_id: userId, function: "guru-debate", mode, guru: guru ?? null,
         chart_id: chartId, question: question ?? null, model,
-        provider: dbConfig?.endpoint ? "config" : "default",
+        provider: provider ?? "unknown",
         prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
         language, success: false, error: `gateway_${resp.status}`, latency_ms: Date.now() - streamCallStart,
       });
@@ -405,7 +405,7 @@ Deno.serve(async (req) => {
         logAiUsage({
           user_id: userId, function: "guru-debate", mode, guru: guru ?? null,
           chart_id: chartId, question: question ?? null, model,
-          provider: dbConfig?.endpoint ? "config" : "default",
+          provider: provider ?? "unknown",
           prompt_tokens: pt, completion_tokens: ct, total_tokens: usageData?.total_tokens ?? pt + ct,
           cost_usd: computeCost(model, pt, ct),
           language, success: true, error: null, latency_ms: Date.now() - streamCallStart,
