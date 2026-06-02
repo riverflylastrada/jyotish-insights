@@ -103,7 +103,7 @@ function TransitResults({ data }: { data: TripatakiData }) {
       {/* Moon info */}
       <div className="rounded-md border border-brand-saffron/30 bg-brand-saffron/5 p-3">
         <span className="text-xs font-medium text-text-primary">
-          Natal Moon: {data.moonRashiName} (Rashi {data.moonRashi})
+          Natal Moon: {data.moonRashiName} (Rashi {data.moonRashi + 1})
         </span>
         <span className="ml-2 text-xs text-text-tertiary">
           — Nakshatra: {data.moonNakshatraName}

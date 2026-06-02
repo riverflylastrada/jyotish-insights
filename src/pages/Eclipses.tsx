@@ -112,16 +112,23 @@ function usePlaceSearch() {
       return;
     }
     if (!query || query.trim().length < 3) { setSuggestions([]); return; }
+    // Guard against out-of-order responses: abort the in-flight request and
+    // ignore its result when the query changes, so a slow earlier fetch can't
+    // overwrite suggestions for a newer query.
+    let cancelled = false;
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+        const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`, { signal: controller.signal });
         if (!r.ok) throw new Error();
         const data = await r.json();
-        setSuggestions(data.results || []);
-      } catch { /* ignore */ } finally { setIsSearching(false); }
+        if (!cancelled) setSuggestions(data.results || []);
+      } catch { /* ignore (includes AbortError on cleanup) */ } finally {
+        if (!cancelled) setIsSearching(false);
+      }
     }, 400);
-    return () => clearTimeout(timer);
+    return () => { cancelled = true; controller.abort(); clearTimeout(timer); };
   }, [query, selected]);
 
   const select = useCallback((s: PlaceResult) => {

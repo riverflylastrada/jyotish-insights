@@ -220,9 +220,11 @@ function isSolarEclipseVisible(jd: number, lat: number, lon: number): boolean {
   const nodeAngle2 = Math.abs(normPM180(sun - (rahu + 180)));
   const minNodeAngle = Math.min(nodeAngle, nodeAngle2);
 
-  // Generous visibility: if Sun is above horizon at max eclipse, and
-  // node distance < 15° (partial can be seen over wide area)
-  return sunAlt > -1 && minNodeAngle < 15;
+  // Generous visibility: if Sun is above horizon at max eclipse, and the node
+  // distance is within the same limit used to classify the eclipse. Using a
+  // stricter cutoff here (e.g. a hardcoded 15°) marks edge eclipses — classified
+  // up to SOLAR_NODE_LIMIT (15.4°) — invisible from every location.
+  return sunAlt > -1 && minNodeAngle <= SOLAR_NODE_LIMIT;
 }
 
 /**

@@ -46,13 +46,25 @@ Deno.serve(async (req) => {
 
     if (mode === "eclipses") {
       const { fromDate, lat, lon, ayanamsa, maxEclipses } = body;
-      if (typeof fromDate !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(fromDate)) {
+      const dateMatch = typeof fromDate === "string"
+        ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(fromDate)
+        : null;
+      const y = dateMatch ? Number(dateMatch[1]) : NaN;
+      const m = dateMatch ? Number(dateMatch[2]) : NaN;
+      const d = dateMatch ? Number(dateMatch[3]) : NaN;
+      // Reject impossible dates (e.g. 2026-99-99, 2026-02-30): a real calendar
+      // date round-trips through Date.UTC unchanged. A bad date would otherwise
+      // feed garbage into julianDay and the eclipse search.
+      const probe = dateMatch ? new Date(Date.UTC(y, m - 1, d)) : null;
+      const validDate = probe !== null &&
+        probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 &&
+        probe.getUTCDate() === d;
+      if (!validDate) {
         return new Response(
-          JSON.stringify({ error: "eclipses mode requires fromDate as YYYY-MM-DD" }),
+          JSON.stringify({ error: "eclipses mode requires fromDate as a valid YYYY-MM-DD date" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const [y, m, d] = fromDate.split("-").map(Number);
       const jd = julianDay(y, m, d, 0, 0, 0);
       const eclipses = computeEclipses(jd, lat ?? 0, lon ?? 0, ayanamsa ?? "lahiri", maxEclipses ?? 6);
       return new Response(
