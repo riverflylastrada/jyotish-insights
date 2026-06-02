@@ -70,15 +70,17 @@ function ConfirmBadge({ count }: { count: number }) {
 
 function HousesPanel({ data }: { data: SudarshanaData }) {
   return (
-    <div className="overflow-auto rounded-md border border-hairline-subtle">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto rounded-md border border-hairline-subtle">
+      {/* min-width keeps the 5 columns from squishing on narrow screens; the
+          wrapper scrolls horizontally on mobile instead of truncating. */}
+      <table className="w-full min-w-[560px] text-sm">
         <thead>
           <tr className="border-b border-hairline-subtle bg-elevated text-xs uppercase tracking-wide text-text-tertiary">
-            <th className="px-3 py-2 text-left">House</th>
-            <th className="px-3 py-2 text-left">Lagna ({data.lagnaSignName})</th>
-            <th className="px-3 py-2 text-left">Moon ({data.moonSignName})</th>
-            <th className="px-3 py-2 text-left">Sun ({data.sunSignName})</th>
-            <th className="px-3 py-2 text-center">Confirmed</th>
+            <th className="whitespace-nowrap px-3 py-2 text-left">House</th>
+            <th className="whitespace-nowrap px-3 py-2 text-left">Lagna ({data.lagnaSignName})</th>
+            <th className="whitespace-nowrap px-3 py-2 text-left">Moon ({data.moonSignName})</th>
+            <th className="whitespace-nowrap px-3 py-2 text-left">Sun ({data.sunSignName})</th>
+            <th className="whitespace-nowrap px-3 py-2 text-center">Confirmed</th>
           </tr>
         </thead>
         <tbody>
