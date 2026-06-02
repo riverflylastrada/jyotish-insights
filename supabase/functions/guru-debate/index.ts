@@ -9,6 +9,59 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ─── AI Usage tracking helpers ──────────────────────────────────────────────
+
+/** USD per 1 M tokens: [input, output] */
+const MODEL_PRICING: Record<string, [number, number]> = {
+  "anthropic/claude-sonnet-4":  [3, 15],
+  "claude-sonnet-4":           [3, 15],
+  "gpt-4o":                     [2.5, 10],
+  "openai/gpt-4o":              [2.5, 10],
+  "gpt-4o-mini":                [0.15, 0.6],
+  "openai/gpt-4o-mini":         [0.15, 0.6],
+  "gemini-2.5-flash":           [0.3, 2.5],
+  "google/gemini-2.5-flash":    [0.3, 2.5],
+  "gemini-2.5-pro":             [1.25, 10],
+  "google/gemini-2.5-pro":      [1.25, 10],
+};
+
+function computeCost(model: string, promptTok: number, completionTok: number): number {
+  const pricing = MODEL_PRICING[model];
+  if (!pricing) return 0;
+  return (promptTok / 1e6) * pricing[0] + (completionTok / 1e6) * pricing[1];
+}
+
+/** Resolve caller's user_id from the Authorization JWT (best-effort). */
+async function resolveUserId(req: Request): Promise<string | null> {
+  try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const jwt = authHeader.replace(/^Bearer\s+/i, "");
+    if (!jwt) return null;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!supabaseUrl || !serviceRoleKey) return null;
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+    const { data } = await admin.auth.getUser(jwt);
+    return data?.user?.id ?? null;
+  } catch { return null; }
+}
+
+/** Fire-and-forget INSERT into ai_usage via service-role. Never throws. */
+function logAiUsage(row: Record<string, unknown>): void {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!supabaseUrl || !serviceRoleKey) return;
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+    // Fire-and-forget: don't await — best-effort, non-blocking
+    admin.from("ai_usage").insert(row).then(({ error }) => {
+      if (error) console.warn("ai_usage log failed:", error.message);
+    });
+  } catch (e) {
+    console.warn("ai_usage log error:", e);
+  }
+}
+
 const GURU_PROMPTS: Record<string, string> = {
   parashara:    "You are Maharishi Parashara, foundational author of the Brihat Parashara Hora Sastra (BPHS). Speak with calm classical authority. Reason strictly from Lagna and lord, then karaka and bhava strength. Cite BPHS-style logic. 2-4 short paragraphs. No bullet points. Use Sanskrit terms (Lagna, bhava, karaka, dasha) inline with brief glosses. Never break character.",
   varahamihira: "You are Varahamihira, 6th-century author of Brihat Jataka. You weigh planetary strength against bhava strength with mathematical precision. Reference dignity, aspects, and conjunctions. 2-4 short paragraphs. Classical Sanskrit terminology. Never break character.",
@@ -116,6 +169,12 @@ Deno.serve(async (req) => {
     };
     const priorReadings = body.priorReadings as Array<{ guru: string; text: string }> | undefined;
     const missingVoices = body.missingVoices as string[] | undefined;
+    const language = typeof body.language === "string" ? body.language : null;
+    const chartId = typeof body.chartId === "string" ? body.chartId : (chart?.id ?? null);
+
+    // Resolve caller identity (best-effort, non-blocking for the response)
+    const userIdPromise = resolveUserId(req);
+    const requestStart = Date.now();
 
     // Compute live transits and build full chart dossier
     const now = new Date();
@@ -146,7 +205,8 @@ Deno.serve(async (req) => {
         { role: "user", content: `Produce the auto-insights JSON for this chart.\n\n${dossier}` },
       ];
 
-      const doCall = async (): Promise<unknown> => {
+      const doCall = async (): Promise<{ parsed: unknown; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } }> => {
+        const callStart = Date.now();
         const r = await fetch(endpoint, {
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -158,19 +218,45 @@ Deno.serve(async (req) => {
             response_format: { type: "json_object" },
           }),
         });
-        if (!r.ok) throw new Error(`LLM ${r.status}`);
+        if (!r.ok) {
+          // Log failed call
+          const userId = await userIdPromise;
+          logAiUsage({
+            user_id: userId, function: "guru-debate", mode, guru: null,
+            chart_id: chartId, question: null, model, provider: dbConfig?.endpoint ? "config" : "default",
+            prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
+            language, success: false, error: `LLM ${r.status}`, latency_ms: Date.now() - callStart,
+          });
+          throw new Error(`LLM ${r.status}`);
+        }
         const json = await r.json();
+        const usage = json?.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
         const text: string = json?.choices?.[0]?.message?.content ?? "";
         const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-        return JSON.parse(cleaned);
+
+        // Log successful call (fire-and-forget)
+        const userId = await userIdPromise;
+        const pt = usage.prompt_tokens ?? 0;
+        const ct = usage.completion_tokens ?? 0;
+        logAiUsage({
+          user_id: userId, function: "guru-debate", mode, guru: null,
+          chart_id: chartId, question: null, model, provider: dbConfig?.endpoint ? "config" : "default",
+          prompt_tokens: pt, completion_tokens: ct, total_tokens: usage.total_tokens ?? pt + ct,
+          cost_usd: computeCost(model, pt, ct),
+          language, success: true, error: null, latency_ms: Date.now() - callStart,
+        });
+
+        return { parsed: JSON.parse(cleaned), usage };
       };
 
       let parsed: unknown;
       try {
-        parsed = await doCall();
+        const result = await doCall();
+        parsed = result.parsed;
         if (!validateAutoInsightsJson(parsed)) {
           console.warn("auto-insights: schema mismatch on first attempt, retrying");
-          parsed = await doCall();
+          const retry = await doCall();
+          parsed = retry.parsed;
         }
       } catch (e) {
         console.error("auto-insights LLM call failed:", e);
@@ -233,27 +319,87 @@ Deno.serve(async (req) => {
       messages.push({ role: "user", content: userContent });
     }
 
+    const streamCallStart = Date.now();
     const resp = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         stream: true,
+        stream_options: { include_usage: true },
         max_tokens: 1800,
         messages: messages,
       }),
     });
 
     if (resp.status === 429) {
+      // Log rate-limited call
+      const userId = await userIdPromise;
+      logAiUsage({
+        user_id: userId, function: "guru-debate", mode, guru: guru ?? null,
+        chart_id: chartId, question: question ?? null, model,
+        provider: dbConfig?.endpoint ? "config" : "default",
+        prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
+        language, success: false, error: "rate_limit_429", latency_ms: Date.now() - streamCallStart,
+      });
       return new Response(JSON.stringify({ error: "AI provider rate limit — please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (!resp.ok) {
       const t = await resp.text();
       console.error("AI gateway error:", resp.status, t);
+      const userId = await userIdPromise;
+      logAiUsage({
+        user_id: userId, function: "guru-debate", mode, guru: guru ?? null,
+        chart_id: chartId, question: question ?? null, model,
+        provider: dbConfig?.endpoint ? "config" : "default",
+        prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
+        language, success: false, error: `gateway_${resp.status}`, latency_ms: Date.now() - streamCallStart,
+      });
       return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(resp.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    // Tee the SSE stream: pipe to client + scan for usage in the final chunk
+    const [clientStream, logStream] = resp.body!.tee();
+
+    // Best-effort: read logStream in background to extract usage from the final SSE chunk
+    (async () => {
+      try {
+        const reader = logStream.getReader();
+        const decoder = new TextDecoder();
+        let usageData: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
+        let buf = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          // Parse SSE lines looking for usage
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ") || line === "data: [DONE]") continue;
+            try {
+              const chunk = JSON.parse(line.slice(6));
+              if (chunk.usage) usageData = chunk.usage;
+            } catch { /* skip unparseable */ }
+          }
+        }
+        const userId = await userIdPromise;
+        const pt = usageData?.prompt_tokens ?? 0;
+        const ct = usageData?.completion_tokens ?? 0;
+        logAiUsage({
+          user_id: userId, function: "guru-debate", mode, guru: guru ?? null,
+          chart_id: chartId, question: question ?? null, model,
+          provider: dbConfig?.endpoint ? "config" : "default",
+          prompt_tokens: pt, completion_tokens: ct, total_tokens: usageData?.total_tokens ?? pt + ct,
+          cost_usd: computeCost(model, pt, ct),
+          language, success: true, error: null, latency_ms: Date.now() - streamCallStart,
+        });
+      } catch (e) {
+        console.warn("ai_usage stream log error:", e);
+      }
+    })();
+
+    return new Response(clientStream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
   } catch (e) {
     console.error("guru-debate error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
