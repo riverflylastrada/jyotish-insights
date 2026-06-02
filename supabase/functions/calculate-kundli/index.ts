@@ -46,7 +46,13 @@ Deno.serve(async (req) => {
 
     if (mode === "eclipses") {
       const { fromDate, lat, lon, ayanamsa, maxEclipses } = body;
-      const [y, m, d] = (fromDate as string).split("-").map(Number);
+      if (typeof fromDate !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(fromDate)) {
+        return new Response(
+          JSON.stringify({ error: "eclipses mode requires fromDate as YYYY-MM-DD" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const [y, m, d] = fromDate.split("-").map(Number);
       const jd = julianDay(y, m, d, 0, 0, 0);
       const eclipses = computeEclipses(jd, lat ?? 0, lon ?? 0, ayanamsa ?? "lahiri", maxEclipses ?? 6);
       return new Response(
