@@ -51,7 +51,7 @@ export interface PlanetPosition {
 }
 
 export type VargaCode =
-  | 'D1' | 'D2' | 'D3' | 'D4' | 'D7' | 'D9' | 'D10' | 'D12'
+  | 'D1' | 'D2' | 'D3' | 'D4' | 'D5' | 'D6' | 'D7' | 'D8' | 'D9' | 'D10' | 'D11' | 'D12'
   | 'D16' | 'D20' | 'D24' | 'D27' | 'D30' | 'D40' | 'D45' | 'D60'
   | 'D81' | 'D108' | 'D144';
 
@@ -363,7 +363,7 @@ export interface VarshphalData {
  * Bump this whenever the snapshot gains new data, and keep it in sync with
  * `snapshotVersion` stamped in supabase/functions/calculate-kundli/engine.ts.
  */
-export const CURRENT_SNAPSHOT_VERSION = 23;
+export const CURRENT_SNAPSHOT_VERSION = 24;
 
 export interface KundliData {
   id: string;

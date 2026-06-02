@@ -76,10 +76,37 @@ function vargaSign(code: string, origSign: number, degInSign: number): number {
       return wrap(origSign + offsets[part]);
     }
 
+    case 'D5': {
+      // D-5 Panchamsa — five unequal-ruler divisions of 6° each.
+      // Odd signs → Ar, Aq, Sg, Ge, Li; even signs → Ta, Vi, Pi, Cp, Sc.
+      // Ref: BPHS Ch. 7.8 — Panchamsa; validated vs PyJHora 4.8.6 panchamsa_chart().
+      const part = Math.floor(degInSign / 6);
+      const oddMap  = [1, 11, 9, 3, 7];  // Mesha, Kumbha, Dhanu, Mithuna, Tula
+      const evenMap = [2, 6, 12, 10, 8]; // Vrishabha, Kanya, Meena, Makara, Vrischika
+      return origSign % 2 === 1 ? oddMap[part] : evenMap[part];
+    }
+
+    case 'D6': {
+      // D-6 Shashthamsa — 6 equal arcs of 5°.
+      // Odd signs start from Aries (1); even signs start from Libra (7).
+      // Ref: BPHS Ch. 7.9 — Shashthamsa; validated vs PyJHora 4.8.6 shashthamsa_chart().
+      const part = Math.floor(degInSign / 5);
+      return origSign % 2 === 1 ? (part + 1) : (part + 7);
+    }
+
     case 'D7': {
       const part = Math.floor(degInSign / (30 / 7));
       const start = origSign % 2 === 1 ? origSign : wrap(origSign + 6);
       return wrap(start + part);
+    }
+
+    case 'D8': {
+      // D-8 Ashtamsa — 8 equal arcs of 3°45′.
+      // Movable signs → Aries; fixed → Sagittarius; dual → Leo.
+      // Ref: BPHS Ch. 7.10 — Ashtamsa; validated vs PyJHora 4.8.6 ashtamsa_chart().
+      const part = Math.floor(degInSign / 3.75);
+      const starts8 = [1, 9, 5]; // movable, fixed, dual
+      return wrap(starts8[quality(origSign)] + part);
     }
 
     case 'D9': {
@@ -92,6 +119,15 @@ function vargaSign(code: string, origSign: number, degInSign: number): number {
       const part = Math.floor(degInSign / 3);
       const start = origSign % 2 === 1 ? origSign : wrap(origSign + 8);
       return wrap(start + part);
+    }
+
+    case 'D11': {
+      // D-11 Rudramsa (Ekadasamsa) — 11 equal arcs of ≈2°43′38″.
+      // Start sign = (12 − origSign_0idx) mod 12, then count forward by part.
+      // Equivalent: wrap(14 − origSign + part).
+      // Ref: BPHS Ch. 7.11 — Rudramsa; validated vs PyJHora 4.8.6 rudramsa_chart().
+      const part = Math.floor(degInSign / (30 / 11));
+      return wrap(14 - origSign + part);
     }
 
     case 'D12': {
