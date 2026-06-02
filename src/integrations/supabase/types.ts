@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string | null
+          function: string | null
+          mode: string | null
+          guru: string | null
+          chart_id: string | null
+          question: string | null
+          model: string | null
+          provider: string | null
+          prompt_tokens: number
+          completion_tokens: number
+          total_tokens: number
+          cost_usd: number
+          language: string | null
+          success: boolean
+          error: string | null
+          latency_ms: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id?: string | null
+          function?: string | null
+          mode?: string | null
+          guru?: string | null
+          chart_id?: string | null
+          question?: string | null
+          model?: string | null
+          provider?: string | null
+          prompt_tokens?: number
+          completion_tokens?: number
+          total_tokens?: number
+          cost_usd?: number
+          language?: string | null
+          success?: boolean
+          error?: string | null
+          latency_ms?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string | null
+          function?: string | null
+          mode?: string | null
+          guru?: string | null
+          chart_id?: string | null
+          question?: string | null
+          model?: string | null
+          provider?: string | null
+          prompt_tokens?: number
+          completion_tokens?: number
+          total_tokens?: number
+          cost_usd?: number
+          language?: string | null
+          success?: boolean
+          error?: string | null
+          latency_ms?: number | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string
