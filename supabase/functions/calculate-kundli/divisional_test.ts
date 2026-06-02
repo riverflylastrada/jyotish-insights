@@ -9,131 +9,77 @@
  * chart_method=1). Values obtained via `charts.divisional_chart()` which
  * delegates to these named functions for standard factors.
  *
+ * Strategy: feed PyJHora's own D1 (rasi) positions into vargaSign() and assert
+ * the output matches PyJHora's divisional chart output. This isolates the
+ * division formula from ephemeris differences.
+ *
  * Run with: deno test supabase/functions/calculate-kundli/divisional_test.ts
  */
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { calculateKundli } from "./engine.ts";
-import type { BirthDetails } from "./engine.ts";
+import { vargaSign } from "./divisional.ts";
 
-// ─── Reference chart ────────────────────────────────────────────────────────
+// ─── PyJHora D1 (rasi) positions ─────────────────────────────────────────────
+// Source: PyJHora 4.8.6 charts.rasi_chart(jd, place) for the reference chart.
+// Julian Day 2445570.1493055555.
+// Format: { planet: [sign_1indexed, degreeInSign] }
 
-const REF_BIRTH: BirthDetails = {
-  fullName: "Parity Ref (Patan 1983)",
-  dateOfBirth: "1983-08-23",
-  timeOfBirth: "15:35",
-  placeOfBirth: {
-    name: "Patan",
-    latitude: 23.85,
-    longitude: 72.12,
-    timezone: "Asia/Kolkata",
-    timezoneOffset: 5.5,
-  },
-  ayanamsa: "lahiri",
-  houseSystem: "whole_sign",
-  gender: "male",
+const D1: Record<string, [number, number]> = {
+  ascendant: [9,  8.680197],
+  sun:       [5,  5.215551],
+  moon:      [11, 2.975166],
+  mars:      [4, 11.759671],
+  mercury:   [6,  2.171440],
+  jupiter:   [8,  7.510355],
+  venus:     [5,  8.013184],
+  saturn:    [7,  5.412116],
+  rahu:      [2, 28.294861],
+  ketu:      [8, 28.294861],
 };
 
 // ─── PyJHora expected varga signs (1-indexed) ───────────────────────────────
-// Source: PyJHora 4.8.6, charts.divisional_chart(jd, place, divisional_chart_factor=N)
-// Julian Day 2445570.1493055555
-// Format: { planet: expected_sign_1indexed }
-// Index in PyJHora result: [0]=Lagna, [1]=Sun, [2]=Moon, [3]=Mars,
-//   [4]=Mercury, [5]=Jupiter, [6]=Venus, [7]=Saturn, [8]=Rahu, [9]=Ketu
+// Source: PyJHora 4.8.6 charts.divisional_chart(jd, place, divisional_chart_factor=N)
 
 const EXPECTED_D5: Record<string, number> = {
-  ascendant: 11, // Kumbha
-  sun: 1,        // Mesha
-  moon: 1,       // Mesha
-  mars: 6,       // Kanya
-  mercury: 2,    // Vrishabha
-  jupiter: 6,    // Kanya
-  venus: 11,     // Kumbha
-  saturn: 1,     // Mesha
-  rahu: 8,       // Vrischika
-  ketu: 8,       // Vrischika
+  ascendant: 11, sun: 1, moon: 1, mars: 6, mercury: 2,
+  jupiter: 6, venus: 11, saturn: 1, rahu: 8, ketu: 8,
 };
 
 const EXPECTED_D6: Record<string, number> = {
-  ascendant: 2,  // Vrishabha
-  sun: 2,        // Vrishabha
-  moon: 1,       // Mesha
-  mars: 9,       // Dhanu
-  mercury: 7,    // Tula
-  jupiter: 8,    // Vrischika
-  venus: 2,      // Vrishabha
-  saturn: 2,     // Vrishabha
-  rahu: 12,      // Meena
-  ketu: 12,      // Meena
+  ascendant: 2, sun: 2, moon: 1, mars: 9, mercury: 7,
+  jupiter: 8, venus: 2, saturn: 2, rahu: 12, ketu: 12,
 };
 
 const EXPECTED_D8: Record<string, number> = {
-  ascendant: 7,  // Tula
-  sun: 10,       // Makara
-  moon: 9,       // Dhanu
-  mars: 4,       // Karka
-  mercury: 5,    // Simha
-  jupiter: 11,   // Kumbha
-  venus: 11,     // Kumbha
-  saturn: 2,     // Vrishabha
-  rahu: 4,       // Karka
-  ketu: 4,       // Karka
+  ascendant: 7, sun: 10, moon: 9, mars: 4, mercury: 5,
+  jupiter: 11, venus: 11, saturn: 2, rahu: 4, ketu: 4,
 };
 
 const EXPECTED_D11: Record<string, number> = {
-  ascendant: 8,  // Vrischika
-  sun: 10,       // Makara
-  moon: 4,       // Karka
-  mars: 2,       // Vrishabha
-  mercury: 8,    // Vrischika
-  jupiter: 8,    // Vrischika
-  venus: 11,     // Kumbha
-  saturn: 8,     // Vrischika
-  rahu: 10,      // Makara
-  ketu: 4,       // Karka
+  ascendant: 8, sun: 10, moon: 4, mars: 2, mercury: 8,
+  jupiter: 8, venus: 11, saturn: 8, rahu: 10, ketu: 4,
 };
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
-const chart = await calculateKundli(REF_BIRTH);
-
-function findDivChart(varga: string) {
-  const dc = chart.divisionalCharts?.find((c) => c.varga === varga);
-  if (!dc) throw new Error(`Divisional chart ${varga} not found in engine output`);
-  return dc;
-}
-
-function assertVargaSigns(
+function assertVargaParity(
   varga: string,
   expected: Record<string, number>,
 ) {
-  const dc = findDivChart(varga);
-
-  // Ascendant sign
-  Deno.test(`[Parity] ${varga} ascendant sign matches PyJHora`, () => {
-    assertEquals(
-      dc.ascendantSign,
-      expected.ascendant,
-      `${varga} ascendant: engine=${dc.ascendantSign}, PyJHora=${expected.ascendant}`,
-    );
-  });
-
-  // Planet signs
   for (const [planet, expectedSign] of Object.entries(expected)) {
-    if (planet === "ascendant") continue;
     Deno.test(`[Parity] ${varga} ${planet} sign matches PyJHora`, () => {
-      const p = dc.planets.find((pp) => pp.planet === planet);
-      if (!p) throw new Error(`${varga}: planet ${planet} not found`);
+      const [origSign, degInSign] = D1[planet];
+      const actual = vargaSign(varga, origSign, degInSign);
       assertEquals(
-        p.signNumber,
+        actual,
         expectedSign,
-        `${varga} ${planet}: engine=${p.signNumber}, PyJHora=${expectedSign}`,
+        `${varga} ${planet}: vargaSign(${varga}, ${origSign}, ${degInSign.toFixed(4)}) = ${actual}, PyJHora = ${expectedSign}`,
       );
     });
   }
 }
 
-assertVargaSigns("D5", EXPECTED_D5);
-assertVargaSigns("D6", EXPECTED_D6);
-assertVargaSigns("D8", EXPECTED_D8);
-assertVargaSigns("D11", EXPECTED_D11);
+assertVargaParity("D5", EXPECTED_D5);
+assertVargaParity("D6", EXPECTED_D6);
+assertVargaParity("D8", EXPECTED_D8);
+assertVargaParity("D11", EXPECTED_D11);

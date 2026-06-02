@@ -53,7 +53,7 @@ function element(sign: number): number { return (sign - 1) % 4; }
 function quality(sign: number): number { return (sign - 1) % 3; }
 
 /** Map a D1 planet position into a specific varga sign. */
-function vargaSign(code: string, origSign: number, degInSign: number): number {
+export function vargaSign(code: string, origSign: number, degInSign: number): number {
   const wrap = (s: number) => ((s - 1) % 12) + 1;
 
   switch (code) {
