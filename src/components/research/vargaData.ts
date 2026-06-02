@@ -53,6 +53,24 @@ export const VARGA_META: Record<VargaCode, VargaMeta> = {
     formula: 'Each sign divided into 4 equal arcs of 7°30′. Starting from the sign itself, then 4th, 7th, 10th signs.',
     cite: 'BPHS Ch. 7.6 — Chaturthamsa for property and fortune.',
   },
+  D5: {
+    code: 'D5',
+    name: 'Panchamsa',
+    purpose: 'Fame, power, authority, and spiritual merit.',
+    factor: 5,
+    arcDeg: '6°',
+    formula: 'Each sign divided into 5 equal arcs of 6°. Odd signs map to Ar → Aq → Sg → Ge → Li; even signs map to Ta → Vi → Pi → Cp → Sc.',
+    cite: 'BPHS Ch. 7.8 — Panchamsa for fame and authority.',
+  },
+  D6: {
+    code: 'D6',
+    name: 'Shashthamsa',
+    purpose: 'Health, disease, and enemies.',
+    factor: 6,
+    arcDeg: '5°',
+    formula: 'Each sign divided into 6 equal arcs of 5°. Odd signs start from Aries (1–6); even signs start from Libra (7–12).',
+    cite: 'BPHS Ch. 7.9 — Shashthamsa for health and disease.',
+  },
   D7: {
     code: 'D7',
     name: 'Saptamsa',
@@ -61,6 +79,15 @@ export const VARGA_META: Record<VargaCode, VargaMeta> = {
     arcDeg: '4°17′8.57″',
     formula: 'Each sign divided into 7 equal arcs of ≈4°17′. Odd signs start from the same sign; even signs start from the 7th sign.',
     cite: 'BPHS Ch. 7.7–8 — Saptamsa for children.',
+  },
+  D8: {
+    code: 'D8',
+    name: 'Ashtamsa',
+    purpose: 'Longevity, sudden events, and unexpected transformations.',
+    factor: 8,
+    arcDeg: '3°45′',
+    formula: 'Each sign divided into 8 equal arcs of 3°45′. Movable signs start from Aries; fixed from Sagittarius; dual from Leo.',
+    cite: 'BPHS Ch. 7.10 — Ashtamsa for longevity and sudden events.',
   },
   D9: {
     code: 'D9',
@@ -79,6 +106,15 @@ export const VARGA_META: Record<VargaCode, VargaMeta> = {
     arcDeg: '3°',
     formula: 'Each sign divided into 10 equal arcs of 3°. Odd signs start from the same sign; even signs start from the 9th sign.',
     cite: 'BPHS Ch. 7.13–14 — Dasamsa for karma and profession.',
+  },
+  D11: {
+    code: 'D11',
+    name: 'Rudramsa',
+    purpose: 'Gains, death of desires, and destruction/renewal.',
+    factor: 11,
+    arcDeg: '2°43′38″',
+    formula: 'Each sign divided into 11 equal arcs of ≈2°43′38″. Start sign = 12th from the sign (counting backwards), then count forward by division index.',
+    cite: 'BPHS Ch. 7.11 — Rudramsa (Ekadasamsa) for gains and destruction.',
   },
   D12: {
     code: 'D12',
@@ -192,7 +228,7 @@ export const VARGA_META: Record<VargaCode, VargaMeta> = {
 
 /** All varga codes in standard order. */
 export const VARGA_CODES: VargaCode[] = [
-  'D1', 'D2', 'D3', 'D4', 'D7', 'D9', 'D10', 'D12',
+  'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12',
   'D16', 'D20', 'D24', 'D27', 'D30', 'D40', 'D45', 'D60',
   'D81', 'D108', 'D144',
 ];

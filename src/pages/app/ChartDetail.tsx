@@ -251,6 +251,7 @@ export default function ChartDetail() {
           ['varshphal', 'Varshphal'],
           ['sarvatobhadra', 'Sarvatobhadra Chakra'],
           ['kalachakra-chakra', 'Kalachakra Chakra'],
+          ['tripataki', 'Tripataki Chakra'],
           ['sudarshana', 'Sudarshana Chakra'],
         ] },
         { heading: 'Output', items: [

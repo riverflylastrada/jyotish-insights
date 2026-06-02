@@ -60,6 +60,11 @@ own sandbox. Screenshot the look; port the styling into this repo by hand.
    `jhora.horoscope.transit.saham` for the reference chart (23 Aug 1983, 15:35
    IST, Patan) with ±0.5° tolerance — assert **PyJHora's actual values**, never
    the engine's own output.
+8. **Tripataki must stay O(1).** The `tripataki.ts` module places planets on
+   the classical Tripataki diamond layout by rashi and computes vedha-based
+   benefic/malefic verdicts in constant time (no time-scans, no per-day loops).
+   Layout and vedha lines validated against PyJHora 4.8.6
+   `jhora.ui.chakra.Tripataki` for the reference chart.
 
 ## Note on secrets
 

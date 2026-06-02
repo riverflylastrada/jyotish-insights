@@ -32,7 +32,7 @@ type Form = z.infer<typeof schema>;
 
 const stages = [
   'Computing planetary positions...',
-  'Drawing 19 divisional charts...',
+  'Drawing 23 divisional charts...',
   'Running Vimshottari Dasha...',
   'Detecting Yogas & Doshas...',
   'Consulting the Gurus...',
