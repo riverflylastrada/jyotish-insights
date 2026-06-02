@@ -45,6 +45,7 @@ import { computeAvasthas } from "./avasthas.ts";
 import { computeSaturnTransits } from "./saturn_transits.ts";
 import { computeSarvatobhadra } from "./sarvatobhadra.ts";
 import { computeKalachakraDirection } from "./kalachakra_direction.ts";
+import { computeSudarshana } from "./sudarshana.ts";
 
 // ─── BirthDetails shape (mirrors frontend) ─────────────────────────────────
 
@@ -381,6 +382,10 @@ export async function calculateKundli(details: BirthDetails) {
     ),
     kalachakraDirection: computeKalachakraDirection(
       d1Planets.map(p => ({ planet: p.planet, longitude: p.longitude })),
+    ),
+    sudarshana: computeSudarshana(
+      d1Planets.map(p => ({ planet: p.planet, longitude: p.longitude, signNumber: p.signNumber })),
+      ascSign,
     ),
     houseCusps: selectedSidCusps.length > 0
       ? selectedSidCusps.map((lon, i) => ({

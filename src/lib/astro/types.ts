@@ -398,6 +398,7 @@ export interface KundliData {
   saturnTransits?: SaturnTransitsData;
   sarvatobhadra?: SarvatobhadraData;
   kalachakraDirection?: KalachakraDirectionData;
+  sudarshana?: SudarshanaData;
   autoInsights?: {
     generatedAt: string;
     model: string;
@@ -492,6 +493,29 @@ export interface SarvatobhadraData {
   taraFromLagna: TaraGroupData[];
   jhoraTypes: JhoraTypeData[];
   vedha: VedhaData[];
+  citation: string;
+}
+
+// ─── Sudarshana Chakra ──────────────────────────────────────────────────────
+
+export type SudarshanaReference = 'lagna' | 'moon' | 'sun';
+
+export interface SudarshanaHouse {
+  house: number; // 1..12
+  lagnaPlanets: string[];
+  moonPlanets: string[];
+  sunPlanets: string[];
+  confirmedCount: number; // 0..3 — how many references place at least one planet here
+}
+
+export interface SudarshanaData {
+  lagnaSign: number;   // 1..12
+  moonSign: number;
+  sunSign: number;
+  lagnaSignName: string;
+  moonSignName: string;
+  sunSignName: string;
+  houses: SudarshanaHouse[];
   citation: string;
 }
 
