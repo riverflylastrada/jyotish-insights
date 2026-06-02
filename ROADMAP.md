@@ -580,18 +580,21 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 > gaps, prioritised by value. Spec + Devin prompts:
 > [jhora-features-batch2-spec.md](docs/jhora-features-batch2-spec.md). Each is
 > validated against PyJHora and edge-gated before deploy.
-- ⬜ **Sudarshana Chakra** — tri-wheel overlaying D1 from Lagna + Moon + Sun
-  (reuses the existing `chartBasis` rasi/moon/solar charts); a house is "confirmed"
-  when strong from all three. Mostly a UI feature.
-- ⬜ **South-Indian compatibility · 10 Porutham** — Dina/Gana/Mahendra/
-  Stree-Dheerga/Yoni/Rasi/Rajju/Vedha/Vasya/Nadi, alongside the existing
-  North-Indian 36-point Ashta Koota. **Market expansion** (South-Indian users).
-- ⬜ **Sahams (36 sensitive points)** — Tajik/Varshphal sensitive points (Punya,
-  Vidya, Yasas, …) on the annual chart; deepens the existing Varshphal feature.
-- 💡 Further PyJHora gaps: Graha Yuddha (planetary war), more predictive chakras
-  (Tripataki, Shoola-chakra, Kaala), a Festival/Vratha calendar (SEO top-of-funnel
-  like Panchang), full eclipse computation, and more divisional charts (D-5/6/8/11,
-  D-150, D-300).
+- ✅ **Sudarshana Chakra** — tri-wheel overlaying D1 from Lagna + Moon + Sun
+  ([SudarshanaChakra.tsx](src/pages/app/SudarshanaChakra.tsx)); a house is
+  "confirmed" when strong from all three. PyJHora-validated. Shipped at v23.
+- ✅ **South-Indian compatibility · 10 Porutham** — Dina/Gana/Mahendra/
+  Stree-Dheerga/Yoni/Rasi/Rajju/Vedha/Vasya/Nadi, as a tab on the Compatibility
+  page alongside the North-Indian 36-point Ashta Koota. Shipped at v23.
+- ✅ **Sahams (36 sensitive points)** — Tajik/Varshphal sensitive points (Punya,
+  Vidya, Yasas, …) on the Varshphal page. PyJHora parity to 0.001°. Shipped at v23.
+- ⬜ **Batch 3 (depth)** — spec + Devin prompts in
+  [jhora-features-batch3-spec.md](docs/jhora-features-batch3-spec.md): more
+  **divisional charts (D-5/6/8/11)** → reaches the 23+-varga target; an
+  **eclipse** computation + public SEO page; and the **Tripataki Chakra**.
+- 💡 Further PyJHora gaps: Graha Yuddha (planetary war, no clean PyJHora oracle),
+  more chakras (Shoola-chakra, Kaala), a Festival/Vratha calendar (SEO
+  top-of-funnel like Panchang), and the highest divisional charts (D-150, D-300).
 
 ### Additional classical systems
 - ✅ **More dasha systems** (target: 12+) — 12 systems now ship: Vimshottari,
