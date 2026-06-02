@@ -7,6 +7,7 @@ const PROVIDERS = [
   { value: 'google', label: 'Google AI Studio' },
   { value: 'openrouter', label: 'OpenRouter' },
   { value: 'openai', label: 'OpenAI' },
+  { value: 'azure', label: 'Azure OpenAI' },
   { value: 'custom', label: 'Custom' },
 ] as const;
 
@@ -26,6 +27,14 @@ const PROVIDER_DEFAULTS: Record<string, { model: string; endpoint: string; apiKe
     endpoint: 'https://api.openai.com/v1/chat/completions',
     apiKey: 'GOOGLE_AI_KEY',
   },
+  azure: {
+    // Endpoint must be the full deployment URL incl. ?api-version. Replace
+    // <resource> with your Azure resource name and <deployment> with your
+    // deployment name (see Azure Portal → your resource → Model deployments).
+    model: 'gpt-4o', // = your Azure DEPLOYMENT name (sent in the body)
+    endpoint: 'https://<resource>.openai.azure.com/openai/deployments/<deployment>/chat/completions?api-version=2024-10-21',
+    apiKey: 'AZURE_OPENAI_KEY',
+  },
   custom: {
     model: '',
     endpoint: '',
@@ -37,6 +46,7 @@ const MODEL_SUGGESTIONS: Record<string, string[]> = {
   google: ['gemini-2.5-flash', 'gemini-2.5-pro'],
   openrouter: ['google/gemini-2.5-flash', 'anthropic/claude-sonnet-4', 'openai/gpt-4o'],
   openai: ['gpt-4o', 'gpt-4o-mini'],
+  azure: ['gpt-4o', 'gpt-4.1', 'gpt-4o-mini'],
   custom: [],
 };
 
@@ -198,6 +208,12 @@ export default function AdminLlmConfig() {
             onChange={e => setConfig(c => ({ ...c, llm_endpoint: e.target.value }))}
             className="mt-1 w-full rounded-md border border-hairline-subtle bg-canvas px-3 py-2 font-mono text-xs text-text-primary focus:border-brand-saffron focus:outline-none focus:ring-1 focus:ring-brand-saffron"
           />
+          {config.llm_provider === 'azure' && (
+            <p className="mt-1 text-xs text-text-muted">
+              Azure: paste the full deployment URL — <span className="font-mono">https://&lt;resource&gt;.openai.azure.com/openai/deployments/&lt;deployment&gt;/chat/completions?api-version=2024-10-21</span>.
+              Set <strong>Model</strong> above to your deployment name.
+            </p>
+          )}
         </div>
 
         {/* API Key Setting */}

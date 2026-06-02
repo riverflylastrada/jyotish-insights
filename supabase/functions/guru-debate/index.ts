@@ -53,7 +53,22 @@ async function getLlmConfig() {
     endpoint: config['llm_endpoint'] || null,
     model: config['llm_model'] || null,
     apiKey: config['api_key'] || null,
+    provider: config['llm_provider'] || null,
   };
+}
+
+/**
+ * LLM auth headers. Azure OpenAI authenticates with an `api-key` header and a
+ * deployment-based endpoint URL (…/openai/deployments/<name>/chat/completions
+ * ?api-version=…, set in llm_endpoint) — unlike OpenAI/OpenRouter, which use
+ * `Authorization: Bearer`. Branch on the configured provider so one code path
+ * serves both. The `model` field stays in the body (Azure ignores it when the
+ * deployment is in the URL; OpenAI-compatible providers require it).
+ */
+function llmHeaders(provider: string | null, apiKey: string): Record<string, string> {
+  return provider === "azure"
+    ? { "api-key": apiKey, "Content-Type": "application/json" }
+    : { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 }
 
 const VERDICT_PROMPT = "You are the Acharya, presiding over a tribunal of gurus. You have just heard their readings on a single chart and question. FIRST, output a single paragraph beginning exactly with 'BOTTOM LINE:' that answers the question directly in 2-3 plain-language sentences a layperson can act on, naming the key timing. Then leave a blank line and deliver your full synthesis in 2-3 paragraphs: name the consensus, name the dissent, then one operative recommendation. Cite the gurus by surname when they made a key point. No bullet points. Calm, judicial tone.";
@@ -137,6 +152,7 @@ Deno.serve(async (req) => {
     const apiKey = dbConfig?.apiKey || Deno.env.get("GOOGLE_AI_KEY");
     const endpoint = dbConfig?.endpoint || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
     const model = dbConfig?.model || "gemini-2.5-flash";
+    const provider = dbConfig?.provider || null;
     if (!apiKey) throw new Error("No AI API key configured. Set it in Admin → API Keys or via: supabase secrets set GOOGLE_AI_KEY=<key>");
 
     // ─── AUTO-INSIGHTS mode: non-streaming JSON ───────────────────────────────────
@@ -149,7 +165,7 @@ Deno.serve(async (req) => {
       const doCall = async (): Promise<unknown> => {
         const r = await fetch(endpoint, {
           method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          headers: llmHeaders(provider, apiKey),
           body: JSON.stringify({
             model,
             stream: false,
@@ -235,7 +251,7 @@ Deno.serve(async (req) => {
 
     const resp = await fetch(endpoint, {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: llmHeaders(provider, apiKey),
       body: JSON.stringify({
         model,
         stream: true,
