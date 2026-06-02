@@ -44,6 +44,19 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
+/** Fire-and-forget INSERT into ai_usage via service-role. Never throws. */
+function logAiUsage(row: Record<string, unknown>): void {
+  try {
+    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return;
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    admin.from("ai_usage").insert(row).then(({ error }) => {
+      if (error) console.warn("ai_usage log failed:", error.message);
+    });
+  } catch (e) {
+    console.warn("ai_usage log error:", e);
+  }
+}
+
 function adminClient() {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 }
@@ -210,17 +223,40 @@ async function handleLogSession(req: Request, body: any): Promise<Response> {
   const chartId = typeof body.chartId === "string" && UUID_RE.test(body.chartId) ? body.chartId : null;
   const durationSeconds = Math.max(0, Math.round(Number(body.durationSeconds) || 0));
 
+  const lang = typeof body.language === "string" ? body.language : "hi";
   const { error } = await supabase.from("voice_sessions").insert({
     user_id: user.id,
     chart_id: chartId,
     guru_persona: guru,
-    language: typeof body.language === "string" ? body.language : "hi",
+    language: lang,
     duration_seconds: durationSeconds,
     conversation_id: typeof body.conversationId === "string" ? body.conversationId : null,
     transcript: body.transcript ?? null,
     ended_at: new Date().toISOString(),
   });
   if (error) return json({ error: error.message }, 400);
+
+  // Best-effort: log an ai_usage row for the voice session
+  const tokensUsed = Math.max(0, Math.round(Number(body.tokensUsed) || 0));
+  logAiUsage({
+    user_id: user.id,
+    function: "voice-session",
+    mode: "voice",
+    guru,
+    chart_id: chartId,
+    question: null,
+    model: null,
+    provider: "elevenlabs",
+    prompt_tokens: tokensUsed,
+    completion_tokens: 0,
+    total_tokens: tokensUsed,
+    cost_usd: 0,
+    language: lang,
+    success: true,
+    error: null,
+    latency_ms: durationSeconds * 1000,
+  });
+
   return json({ ok: true });
 }
 
