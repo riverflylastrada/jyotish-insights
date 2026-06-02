@@ -398,6 +398,7 @@ export interface KundliData {
   saturnTransits?: SaturnTransitsData;
   sarvatobhadra?: SarvatobhadraData;
   kalachakraDirection?: KalachakraDirectionData;
+  tripataki?: TripatakiData;
   sudarshana?: SudarshanaData;
   autoInsights?: {
     generatedAt: string;
@@ -541,6 +542,58 @@ export interface KalachakraDirectionData {
     direction: KalachakraDirection;
     deity: string;
   }>;
+  citation: string;
+}
+
+// ─── Tripataki Chakra ───────────────────────────────────────────────────────
+
+export type TripatakiVerdict = 'benefic' | 'malefic';
+
+export interface TripatakiPosition {
+  rashiIdx: number;
+  rashiName: string;
+  gridX: number;
+  gridY: number;
+  nakshatras: string[];
+  planets: string[];
+}
+
+export interface TripatakiLine {
+  from: [number, number];
+  to: [number, number];
+  fromRashi: number;
+  toRashi: number;
+}
+
+export interface TripatakiPlanetPlacement {
+  planet: string;
+  rashiIdx: number;
+  rashiName: string;
+  nakshatraIdx: number;
+  nakshatraName: string;
+  gridX: number;
+  gridY: number;
+}
+
+export interface TripatakiTransitResult {
+  planet: string;
+  rashiIdx: number;
+  rashiName: string;
+  nakshatraIdx: number;
+  nakshatraName: string;
+  hasVedha: boolean;
+  verdict: TripatakiVerdict;
+}
+
+export interface TripatakiData {
+  positions: TripatakiPosition[];
+  lines: TripatakiLine[];
+  natalPlacements: TripatakiPlanetPlacement[];
+  moonRashi: number;
+  moonRashiName: string;
+  moonNakshatraIdx: number;
+  moonNakshatraName: string;
+  transitResults: TripatakiTransitResult[];
   citation: string;
 }
 
