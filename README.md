@@ -133,6 +133,11 @@ API is required.
   AstroSage results, with per-Koota breakdown and remedial guidance.
 - **Remedies** — planet-specific gemstones, mantras, donations, fasts, and
   practices ranked by affliction.
+- **Lal Kitab remedies** — a dedicated, chart-driven page of house-based totke
+  (upay). For each of the 9 grahas in the house it occupies in D1, a 108-cell
+  static map gives the Lal Kitab effect and the traditional remedy, sourced
+  cell-by-cell from *Lal Kitab — Pt. Radhakrishna Shrimali* (Diamond Pocket
+  Books, 2013) with per-house citations. Deterministic; no LLM.
 - **Reports** — printable, citation-backed HTML/PDF dossier of the full chart.
 
 ### Platform
@@ -159,7 +164,8 @@ API is required.
 │  React SPA (Vite + TypeScript + Tailwind + shadcn/ui)        │
 │  • Pages: Dashboard, NewChart, ChartDetail, Dashas, Yogas,   │
 │    Doshas, Ashtakavarga, Transits, Compatibility, Debate,    │
-│    Voice, Remedies, Report, Library, Settings, Admin/*       │
+│    Voice, Remedies, Lal Kitab, Report, Library,              │
+│    Settings, Admin/*                                         │
 │  • State: Zustand stores + TanStack Query                    │
 │  • Astro provider abstraction (mock | vedicrishi | custom)   │
 └───────────────┬─────────────────────────────────────────────┘
@@ -338,7 +344,7 @@ src/
     app/           # Authenticated app: Dashboard, NewChart, ChartDetail,
                    #   Dashas, Doshas, Yogas, Ashtakavarga, Transits, Strengths,
                    #   KP, Jaimini, Varshphal, Muhurta, Compatibility, Debate,
-                   #   Remedies, Report, Library, Settings
+                   #   Remedies, Lal Kitab, Report, Library, Settings
     app/           # ... + VoiceGuruPage (/app/voice, /app/voice/:chartId)
     admin/         # AdminDashboard, AdminUsers, AdminApiKeys, AdminLlmConfig, AdminVoice
     Index.tsx      # Marketing landing page

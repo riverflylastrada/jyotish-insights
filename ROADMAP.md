@@ -64,6 +64,17 @@ Product gap: monetization.
 
 ## Recently shipped ✅
 
+- ✅ **Lal Kitab house-based remedies** ([lalKitab.ts](src/lib/astro/lalKitab.ts),
+  [LalKitab.tsx](src/pages/app/LalKitab.tsx), route `/app/chart/:id/lal-kitab`,
+  reached from ChartDetail → Output) — a dedicated, chart-driven Lal Kitab page.
+  For each of the 9 grahas in the house it occupies in D1, a **108-cell** static
+  map gives the Lal Kitab effect, the traditional totka (the book's house-specific
+  "Remedial Measures"), an optional caution, and a per-cell citation pinned to
+  **chapter + house**. Every cell sourced from *Lal Kitab — Pt. Radhakrishna
+  Shrimali* (Diamond Pocket Books, 2013); the few cross-referenced "treat
+  Saturn/Jupiter" remedies were expanded to concrete actions. Pure frontend,
+  deterministic — **zero LLM, no snapshot bump**. (PRs #118, #119.) Next layers
+  tracked under [Mid-term → Lal Kitab — depth](#lal-kitab--depth).
 - ✅ **Three JHora chakras — Saturn Transits, Sarvatobhadra, Kalachakra Chakra.**
   Mined from Jagannatha Hora and validated against it.
   **Saturn Transits** ([saturn_transits.ts](supabase/functions/calculate-kundli/saturn_transits.ts),
@@ -613,6 +624,27 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
   D-108 (Ashtottaramsa), and D-144 (Dwadas-Dwadasamsa) already ship (19 total);
   still planned: D-2 / D-3 / D-4 / D-8 scheme variants (Parashari, Kashinatha,
   Parivrittitraya, Somanatha, Krishnamurthy schemes).
+
+### Lal Kitab — depth
+> v1 = the planet-in-house totke page (see Recently shipped). The Shrimali
+> edition fully documents several more Lal Kitab systems; these are the
+> prioritised next layers — all static / deterministic (no LLM), each a small,
+> reviewable data + page PR on top of the v1 baseline.
+- ⬜ **Manglik-dosh remedy table** — the book's explicit *Ascendant × Mars-house*
+  grid → numbered trials (e.g. Aries + Mars-in-7 → trials 9 & 18). Self-contained
+  and the **strongest next addition**; pairs with the existing Mangal Dosha detector.
+- ⬜ **Rin / ancestral-debt detection** — Pitra-rin, Matra-rin, Stri-rin, plus
+  Kin's and Nature's debt, each with the book's planet-combination trigger,
+  symptom, and family-level remedy. Larger build: needs a detector over the D1
+  placements, not just a per-cell lookup.
+- ⬜ **Lal Kitab planet conditions** — blind / asleep / dormant / dharmi and
+  "sleeping-house" modifiers that decide whether a remedy actually applies; would
+  refine each cell's `nature` and add "remedy works / does not work" flags.
+- 💡 **Daywise & Varshphal totke** — the book's day-of-week remedy chapter and
+  the year-based (varshphalam) trials. Lower priority.
+- 💡 **Astrologer review pass** — the per-cell `nature` (Challenging / Mixed /
+  Supportive) is the one interpretive (non-verbatim) field; worth a domain
+  expert's eye against known charts.
 
 ### Features
 - ⬜ **Muhurta extensions** — core Muhurta (Choghadiya/Hora/Rahu Kaal/Gulika)
