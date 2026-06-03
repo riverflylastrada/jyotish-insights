@@ -252,10 +252,13 @@ function computeMuhurtas(weekday: number, sunrise: string, sunset: string) {
     },
   ];
 
-  const noon = sr + dayLen / 2;
+  // Abhijit Muhurta — 8th of 15 equal daytime muhurtas (Muhurta Chintamani)
+  const muhurtaLen15 = dayLen / 15;
+  const abhiStart = sr + 7 * muhurtaLen15;
+  const abhiEnd = abhiStart + muhurtaLen15;
   const auspicious: Slice[] = weekday === 3 ? [] : [{
-    from: minutesToTime(noon - 12),
-    to:   minutesToTime(noon + 12),
+    from: minutesToTime(abhiStart),
+    to:   minutesToTime(abhiEnd),
     label: 'Abhijit Muhurta',
     sub: 'अभिजित मुहूर्त — King of muhurtas, universally auspicious (skip on Wednesday)',
     tone: 'auspicious',

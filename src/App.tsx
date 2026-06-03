@@ -30,6 +30,7 @@ const Transits = lazy(() => import("./pages/app/Transits"));
 const Report = lazy(() => import("./pages/app/Report"));
 const Remedies = lazy(() => import("./pages/app/Remedies"));
 const Muhurta = lazy(() => import("./pages/app/Muhurta"));
+const MuhurtaFinder = lazy(() => import("./pages/app/MuhurtaFinder"));
 const Library = lazy(() => import("./pages/app/Library"));
 const Compatibility = lazy(() => import("./pages/app/Compatibility"));
 const Settings = lazy(() => import("./pages/app/Settings"));
@@ -106,6 +107,7 @@ const App = () => (
               <Route path="chart/:id/report" element={<Report />} />
               <Route path="chart/:id/remedies" element={<Remedies />} />
               <Route path="chart/:id/muhurta" element={<Muhurta />} />
+              <Route path="chart/:id/muhurta/finder" element={<MuhurtaFinder />} />
               <Route path="chart/:id/strengths" element={<Strengths />} />
               <Route path="chart/:id/kp" element={<Kp />} />
               <Route path="chart/:id/jaimini" element={<Jaimini />} />

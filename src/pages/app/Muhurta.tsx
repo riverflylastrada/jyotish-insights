@@ -146,12 +146,17 @@ function computeMuhurtas(weekday: number, sunrise: string, sunset: string) {
     },
   ];
 
-  // Abhijit Muhurta — ~24 min around solar noon, except Wednesday
-  const noon = sr + dayLen / 2;
+  // Abhijit Muhurta — the 8th of 15 equal daytime muhurtas (centred on solar noon).
+  // Classical definition: divide sunrise→sunset into 15 equal parts; the 8th
+  // (index 7) is Abhijit. On Wednesday (Budhavara) it is not auspicious.
+  // Citation: Muhurta Chintamani; validated against Drik Panchang.
+  const muhurtaLen15 = dayLen / 15;
+  const abhiStart = sr + 7 * muhurtaLen15;
+  const abhiEnd = abhiStart + muhurtaLen15;
   const abhi: Slice[] = weekday === 3 ? [] : [{
-    from: minutesToTime(noon - 12),
-    to:   minutesToTime(noon + 12),
-    label: 'Abhijit Muhurta',
+    from: minutesToTime(abhiStart),
+    to:   minutesToTime(abhiEnd),
+    label: 'Abhijit Muhurta · अभिजित मुहूर्त',
     sub: 'King of muhurtas — universally auspicious (skip on Wednesday)',
     tone: 'auspicious',
   }];
@@ -254,6 +259,13 @@ export default function Muhurta() {
       <p className="mt-2 max-w-2xl text-body text-text-secondary">
         Complete daily muhurta analysis: Choghadiya, planetary Horas, Rahu Kalam, Yamagandam, Gulika Kalam, Abhijit, and favourable-window picker — all computed from today's sunrise and sunset at your location.
       </p>
+
+      {/* Link to date-range finder */}
+      <Link to={chartLink(`/app/chart/${id}/muhurta/finder`)}
+        className="mt-3 inline-flex items-center gap-2 rounded-sm border border-brand-saffron/40 bg-elevated px-4 py-2 text-sm font-medium text-brand-saffron hover:bg-brand-saffron/10">
+        <Sparkles className="h-4 w-4" />
+        Find auspicious days · शुभ दिन खोजें
+      </Link>
 
       {/* Location badge */}
       <div className="mt-3 inline-flex items-center gap-1.5 rounded-sm bg-elevated px-3 py-1.5 text-xs text-text-secondary">
