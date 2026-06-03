@@ -7,6 +7,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { getAstroProvider } from '@/lib/astro/factory';
 import { computeSouthIndianMatch, type SouthIndianMatchResult } from '@/lib/astro/south_indian_match';
+import { computeGunMilan, getNakshatraIndex } from '@/lib/astro/gun_milan';
 
 interface SavedChart {
   id: string;
@@ -15,126 +16,10 @@ interface SavedChart {
   snapshot: any;
 }
 
-// 27 Nakshatras in order
-const NAKSHATRAS = [
-  "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra", "Punarvasu", "Pushya", "Ashlesha",
-  "Magha", "Purva Phalguni", "Uttara Phalguni", "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
-  "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
-];
-
-// Rashi Lords (1-based index matching signNumber)
-const RASHI_LORDS: Record<number, string> = {
-  1: 'mars',    // Aries
-  2: 'venus',   // Taurus
-  3: 'mercury', // Gemini
-  4: 'moon',    // Cancer
-  5: 'sun',     // Leo
-  6: 'mercury', // Virgo
-  7: 'venus',   // Libra
-  8: 'mars',    // Scorpio
-  9: 'jupiter', // Sagittarius
-  10: 'saturn', // Capricorn
-  11: 'saturn', // Aquarius
-  12: 'jupiter' // Pisces
-};
-
 const RASHI_NAMES = [
   "Mesha (Aries)", "Vrishabha (Taurus)", "Mithuna (Gemini)", "Karka (Cancer)", "Simha (Leo)", "Kanya (Virgo)",
   "Tula (Libra)", "Vrischika (Scorpio)", "Dhanu (Sagittarius)", "Makara (Capricorn)", "Kumbha (Aquarius)", "Meena (Pisces)"
 ];
-
-// Nadi: 1 = Adi, 2 = Madhya, 3 = Antya
-const NAKSHATRA_NADI: Record<string, number> = {
-  ashwini: 1, bharani: 2, krittika: 3, rohini: 3, mrigashira: 2, ardra: 1, punarvasu: 1, pushya: 2, ashlesha: 3,
-  magha: 3, purvaphalguni: 2, uttaraphalguni: 1, hasta: 1, chitra: 2, swati: 3, vishakha: 3, anuradha: 2, jyeshtha: 1,
-  mula: 1, purvaashadha: 2, uttaraashadha: 3, shravana: 3, dhanishta: 2, shatabhisha: 1, purvabhadrapada: 1, uttarabhadrapada: 2, revati: 3
-};
-
-// Gana: 1 = Deva, 2 = Manushya, 3 = Rakshasa
-const NAKSHATRA_GANA: Record<string, number> = {
-  ashwini: 1, bharani: 2, krittika: 3, rohini: 2, mrigashira: 1, ardra: 2, punarvasu: 1, pushya: 1, ashlesha: 3,
-  magha: 3, purvaphalguni: 2, uttaraphalguni: 2, hasta: 1, chitra: 2, swati: 1, vishakha: 3, anuradha: 1, jyeshtha: 3,
-  mula: 3, purvaashadha: 2, uttaraashadha: 2, shravana: 1, dhanishta: 3, shatabhisha: 3, purvabhadrapada: 2, uttarabhadrapada: 2, revati: 1
-};
-
-// Yoni (Animals)
-const NAKSHATRA_YONI: Record<string, string> = {
-  ashwini: "Horse", bharani: "Elephant", krittika: "Sheep", rohini: "Serpent", mrigashira: "Serpent",
-  ardra: "Dog", punarvasu: "Cat", pushya: "Sheep", ashlesha: "Cat", magha: "Rat",
-  purvaphalguni: "Rat", uttaraphalguni: "Cow", hasta: "Buffalo", chitra: "Tiger", swati: "Buffalo",
-  vishakha: "Tiger", anuradha: "Deer", jyeshtha: "Deer", mula: "Dog", purvaashadha: "Monkey",
-  uttaraashadha: "Mongoose", shravana: "Monkey", dhanishta: "Lion", shatabhisha: "Horse",
-  purvabhadrapada: "Lion", uttarabhadrapada: "Cow", revati: "Elephant"
-};
-
-// Yoni friendliness matrix (Same animal = 4, Friendly = 3, Neutral = 2, Unfriendly = 1, Enemy = 0)
-const YONI_FRIENDS: Record<string, string[]> = {
-  Horse: ["Elephant", "Monkey"],
-  Elephant: ["Horse", "Sheep", "Buffalo"],
-  Sheep: ["Elephant", "Cow", "Deer"],
-  Serpent: ["Cat", "Rat", "Deer"],
-  Dog: ["Cat", "Monkey"],
-  Cat: ["Serpent", "Dog", "Rat"],
-  Rat: ["Cat", "Serpent", "Monkey"],
-  Cow: ["Sheep", "Buffalo", "Deer"],
-  Buffalo: ["Elephant", "Cow", "Horse"],
-  Tiger: ["Lion"],
-  Deer: ["Sheep", "Serpent", "Cow"],
-  Monkey: ["Horse", "Dog", "Rat"],
-  Lion: ["Tiger"],
-  Mongoose: ["Deer", "Cat"]
-};
-
-const YONI_ENEMIES: Record<string, string> = {
-  Horse: "Buffalo",
-  Elephant: "Lion",
-  Sheep: "Monkey",
-  Serpent: "Mongoose",
-  Dog: "Deer",
-  Cat: "Rat",
-  Cow: "Tiger"
-};
-
-const YONI_UNFRIENDLY: Record<string, string[]> = {
-  Horse: ["Dog", "Cat", "Rat", "Tiger", "Lion", "Mongoose"],
-  Elephant: ["Dog", "Cat", "Rat", "Tiger", "Lion", "Mongoose"],
-  Sheep: ["Dog", "Cat", "Rat", "Tiger", "Lion", "Mongoose"],
-  Serpent: ["Dog", "Tiger", "Lion", "Mongoose"],
-  Dog: ["Horse", "Elephant", "Sheep", "Serpent", "Cow", "Buffalo", "Tiger", "Lion", "Mongoose"],
-  Cat: ["Horse", "Elephant", "Sheep", "Cow", "Buffalo", "Tiger", "Lion", "Mongoose"],
-  Rat: ["Horse", "Elephant", "Sheep", "Cow", "Buffalo", "Tiger", "Lion", "Mongoose"],
-  Cow: ["Dog", "Cat", "Rat", "Buffalo", "Tiger", "Mongoose"],
-  Buffalo: ["Dog", "Cat", "Rat", "Cow", "Tiger", "Mongoose"],
-  Tiger: ["Horse", "Elephant", "Sheep", "Serpent", "Dog", "Cat", "Rat", "Cow", "Buffalo", "Mongoose"],
-  Lion: ["Horse", "Elephant", "Sheep", "Serpent", "Dog", "Cat", "Rat", "Cow", "Buffalo", "Mongoose"],
-  Mongoose: ["Horse", "Elephant", "Sheep", "Serpent", "Dog", "Cat", "Rat", "Cow", "Buffalo", "Tiger", "Lion"]
-};
-
-
-// Planetary relationships
-const PLANET_RELATIONSHIPS: Record<string, { friends: string[], enemies: string[], neutrals: string[] }> = {
-  sun: { friends: ["moon", "mars", "jupiter"], enemies: ["venus", "saturn"], neutrals: ["mercury"] },
-  moon: { friends: ["sun", "mercury"], enemies: [], neutrals: ["mars", "jupiter", "venus", "saturn"] },
-  mars: { friends: ["sun", "moon", "jupiter"], enemies: ["mercury"], neutrals: ["venus", "saturn"] },
-  mercury: { friends: ["sun", "venus"], enemies: ["moon"], neutrals: ["mars", "jupiter", "saturn"] },
-  jupiter: { friends: ["sun", "moon", "mars"], enemies: ["mercury", "venus"], neutrals: ["saturn"] },
-  venus: { friends: ["mercury", "saturn"], enemies: ["sun", "moon"], neutrals: ["mars", "jupiter"] },
-  saturn: { friends: ["mercury", "venus"], enemies: ["sun", "moon", "mars"], neutrals: ["jupiter"] }
-};
-
-function normalizeName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '');
-}
-
-function getNakshatraIndex(nakName: string): number {
-  const norm = normalizeName(nakName);
-  for (let i = 0; i < NAKSHATRAS.length; i++) {
-    if (normalizeName(NAKSHATRAS[i]).includes(norm) || norm.includes(normalizeName(NAKSHATRAS[i]))) {
-      return i + 1;
-    }
-  }
-  return 1; // Default fallback
-}
 
 export default function Compatibility() {
   const [charts, setCharts] = useState<SavedChart[] | null>(null);
@@ -220,128 +105,12 @@ export default function Compatibility() {
     const bNakName = bMoon.nakshatra;
     const gRashiNum = gMoon.signNumber;
     const bRashiNum = bMoon.signNumber;
-
     const gNakIdx = getNakshatraIndex(gNakName);
     const bNakIdx = getNakshatraIndex(bNakName);
 
-    const gNorm = normalizeName(gNakName);
-    const bNorm = normalizeName(bNakName);
-
-    // Kootas Calculations
-    
-    // 1. Varna (1 Point)
-    // Brahmin (4), Kshatriya (3), Vaishya (2), Shudra (1)
-    const getVarna = (rashi: number) => {
-      if ([4, 8, 12].includes(rashi)) return { name: "Brahmin (Spiritual/Intuitive)", score: 4 };
-      if ([1, 5, 9].includes(rashi)) return { name: "Kshatriya (Noble/Leader)", score: 3 };
-      if ([2, 6, 10].includes(rashi)) return { name: "Vaishya (Merchant/Practical)", score: 2 };
-      return { name: "Shudra (Service/Creative)", score: 1 }; // [3, 7, 11]
-    };
-    const gVarna = getVarna(gRashiNum);
-    const bVarna = getVarna(bRashiNum);
-    const varnaPoints = gVarna.score >= bVarna.score ? 1 : 0;
-
-    // 2. Vasya (2 Points)
-    // 1 = Chatushpada, 2 = Manushya, 3 = Jalachara, 4 = Vanachara, 5 = Keeta
-    const getVasyaType = (rashi: number) => {
-      if ([1, 2, 9].includes(rashi)) return { name: "Chatushpada (Quadrupedal)", type: 1 };
-      if (rashi === 5) return { name: "Vanachara (Wild)", type: 4 };
-      if (rashi === 8) return { name: "Keeta (Insect)", type: 5 };
-      if ([4, 10, 12].includes(rashi)) return { name: "Jalachara (Water-dwelling)", type: 3 };
-      return { name: "Manushya (Human)", type: 2 }; // 3, 6, 7, 11
-    };
-    const gVasya = getVasyaType(gRashiNum);
-    const bVasya = getVasyaType(bRashiNum);
-    // Vasya matrix: Bride (rows) \ Groom (columns)
-    // 1 = Chatushpada, 2 = Manushya, 3 = Jalachara, 4 = Vanachara, 5 = Keeta
-    const VASYA_MATRIX: Record<number, Record<number, number>> = {
-      1: { 1: 2, 2: 1,   3: 1,   4: 1.5, 5: 1 }, // Row 1: Bride Chatushpada
-      2: { 1: 1, 2: 2,   3: 1.5, 4: 0,   5: 1 }, // Row 2: Bride Nara/Manushya
-      3: { 1: 1, 2: 1.5, 3: 2,   4: 1,   5: 1 }, // Row 3: Bride Jalachara
-      4: { 1: 0, 2: 0,   3: 0,   4: 2,   5: 0 }, // Row 4: Bride Vanachara
-      5: { 1: 1, 2: 1,   3: 1,   4: 0,   5: 2 }  // Row 5: Bride Keeta
-    };
-
-    const vasyaPoints = VASYA_MATRIX[bVasya.type]?.[gVasya.type] ?? 0;
-
-    // 3. Tara (3 Points)
-    // Distance from groom to bride and vice versa
-    const t1 = (bNakIdx - gNakIdx + 27) % 9;
-    const t2 = (gNakIdx - bNakIdx + 27) % 9;
-    const auspiciousTara = [0, 1, 3, 5, 7, 8]; // Janma (0), Sampat (1), Kshema (3), Sadhaka (5), Mitra (7), Adhimitra (8)
-    const gTaraOk = auspiciousTara.includes(t1);
-    const bTaraOk = auspiciousTara.includes(t2);
-    let taraPoints = 0;
-    if (gTaraOk && bTaraOk) taraPoints = 3;
-    else if (gTaraOk || bTaraOk) taraPoints = 1.5;
-
-    // 4. Yoni (4 Points)
-    const gYoni = NAKSHATRA_YONI[gNorm] || "Serpent";
-    const bYoni = NAKSHATRA_YONI[bNorm] || "Serpent";
-    let yoniPoints = 1;
-    if (gYoni === bYoni) {
-      yoniPoints = 4;
-    } else if (YONI_ENEMIES[gYoni] === bYoni || YONI_ENEMIES[bYoni] === gYoni) {
-      yoniPoints = 0;
-    } else if (YONI_FRIENDS[gYoni]?.includes(bYoni) || YONI_FRIENDS[bYoni]?.includes(gYoni)) {
-      yoniPoints = 3;
-    } else if (YONI_UNFRIENDLY[gYoni]?.includes(bYoni) || YONI_UNFRIENDLY[bYoni]?.includes(gYoni)) {
-      yoniPoints = 1;
-    } else {
-      yoniPoints = 2; // Neutral
-    }
-
-    // 5. Graha Maitri (5 Points)
-    const gLord = RASHI_LORDS[gRashiNum] || 'moon';
-    const bLord = RASHI_LORDS[bRashiNum] || 'moon';
-    let grahaPoints = 0;
-    if (gLord === bLord) {
-      grahaPoints = 5;
-    } else {
-      const gRel = PLANET_RELATIONSHIPS[gLord];
-      const bRel = PLANET_RELATIONSHIPS[bLord];
-      const gIsFriend = gRel?.friends.includes(bLord);
-      const bIsFriend = bRel?.friends.includes(gLord);
-      const gIsEnemy = gRel?.enemies.includes(bLord);
-      const bIsEnemy = bRel?.enemies.includes(gLord);
-
-      if (gIsFriend && bIsFriend) grahaPoints = 5;
-      else if ((gIsFriend && !gIsEnemy && !bIsEnemy) || (bIsFriend && !gIsEnemy && !bIsEnemy)) grahaPoints = 4;
-      else if (!gIsEnemy && !bIsEnemy) grahaPoints = 3;
-      else if ((gIsFriend && bIsEnemy) || (bIsFriend && gIsEnemy)) grahaPoints = 1;
-      else grahaPoints = 0;
-    }
-
-    // 6. Gana (6 Points)
-    // Deva = 1, Manushya = 2, Rakshasa = 3
-    const gGana = NAKSHATRA_GANA[gNorm] || 2;
-    const bGana = NAKSHATRA_GANA[bNorm] || 2;
-    const getGanaName = (g: number) => g === 1 ? "Deva (Divine/Compassionate)" : g === 2 ? "Manushya (Human/Empathetic)" : "Rakshasa (Bold/Assertive)";
-    let ganaPoints = 0;
-    if (gGana === bGana) ganaPoints = 6;
-    else if ((gGana === 1 && bGana === 2) || (gGana === 2 && bGana === 1)) ganaPoints = 5;
-    else if ((gGana === 1 && bGana === 3) || (gGana === 3 && bGana === 1)) ganaPoints = 1;
-    else ganaPoints = 0; // Manushya + Rakshasa
-
-    // 7. Bhakoot (7 Points)
-    // Distance in signs (1-based, from 1 to 12)
-    const diff = (bRashiNum - gRashiNum + 12) % 12;
-    const bDist = diff + 1;
-    
-    // Inauspicious Bhakoot in 1-based counting: 2/12 (Dwirdwadashe), 5/9 (Navapancham), 6/8 (Shadashtak)
-    const inauspiciousBhakoot = [2, 12, 5, 9, 6, 8];
-    const isBhakootOk = !inauspiciousBhakoot.includes(bDist);
-    const bhakootPoints = isBhakootOk ? 7 : 0;
-
-    // 8. Nadi (8 Points)
-    // 1 = Adi, 2 = Madhya, 3 = Antya
-    const gNadi = NAKSHATRA_NADI[gNorm] || 1;
-    const bNadi = NAKSHATRA_NADI[bNorm] || 2;
-    const getNadiName = (n: number) => n === 1 ? "Adi (Vata - nervous energy)" : n === 2 ? "Madhya (Pitta - fire energy)" : "Antya (Kapha - heavy/grounded energy)";
-    const nadiPoints = gNadi !== bNadi ? 8 : 0;
-
-    const total = varnaPoints + vasyaPoints + taraPoints + yoniPoints + grahaPoints + ganaPoints + bhakootPoints + nadiPoints;
-
+    // ── 8-Koota scoring: delegated to shared gun_milan module (no rule drift) ──
+    const milan = computeGunMilan(gNakName, gRashiNum, bNakName, bRashiNum);
+    const { total } = milan;
     let category = "Poor";
     let color = "text-semantic-negative bg-semantic-negative/10 border-semantic-negative/30";
     if (total >= 28) {
@@ -361,16 +130,26 @@ export default function Compatibility() {
       total,
       category,
       color,
-      breakdown: [
-        { name: "Varna (Work & Ego)", max: 1, scored: varnaPoints, desc: `Groom: ${gVarna.name} · Bride: ${bVarna.name}. Matches intellectual and societal values.`, status: varnaPoints === 1 ? "Perfect Match" : "Imbalanced" },
-        { name: "Vasya (Influence & Control)", max: 2, scored: vasyaPoints, desc: `Groom: ${gVasya.name} · Bride: ${bVasya.name}. Defines mutual attraction and control dynamic.`, status: vasyaPoints === 2 ? "Excellent" : vasyaPoints > 0 ? "Neutral" : "Averse" },
-        { name: "Tara (Destiny & Compatibility)", max: 3, scored: taraPoints, desc: `Relationship longevity and cosmic alignment of birth stars.`, status: taraPoints === 3 ? "Highly Auspicious" : taraPoints > 0 ? "Fair" : "Challenging" },
-        { name: "Yoni (Physical & Intimate)", max: 4, scored: yoniPoints, desc: `Groom: ${gYoni} · Bride: ${bYoni}. Depicts sexual compatibility, passion, and innate nature.`, status: yoniPoints === 4 ? "Perfect Yoni Match" : yoniPoints === 3 ? "Friendly" : yoniPoints === 2 ? "Neutral" : "Enmity" },
-        { name: "Graha Maitri (Mental Friendship)", max: 5, scored: grahaPoints, desc: `Groom's lord (${gLord}) & Bride's lord (${bLord}). Evaluates emotional, intellectual, and life outlook alignment.`, status: grahaPoints === 5 ? "Best Friends" : grahaPoints >= 3 ? "Good Harmony" : "Conflict/Disharmony" },
-        { name: "Gana (Temperament & Behavior)", max: 6, scored: ganaPoints, desc: `Groom: ${getGanaName(gGana)} · Bride: ${getGanaName(bGana)}. Mental compatibility, patience, and lifestyle.`, status: ganaPoints === 6 ? "Perfect Harmony" : ganaPoints === 5 ? "Compatible" : ganaPoints === 1 ? "Incompatible" : "Gana Dosha" },
-        { name: "Bhakoot (Family & Fortune)", max: 7, scored: bhakootPoints, desc: `Rashi distance: ${bDist} houses apart. Direct influence on prosperity, offspring, and long-term peace.`, status: bhakootPoints === 7 ? "Blessed" : "Bhakoot Dosha" },
-        { name: "Nadi (Physical & Genetic Health)", max: 8, scored: nadiPoints, desc: `Groom: ${getNadiName(gNadi)} · Bride: ${getNadiName(bNadi)}. Represents physical health, nerve energy, and genetic compatibility.`, status: nadiPoints === 8 ? "Perfect Health Match" : "Nadi Dosha (Genetic Warning)" }
-      ]
+      breakdown: milan.kootas.map(k => {
+        const s = k.scored;
+        const statusMap: Record<string, string> = {
+          Varna:         s === 1 ? "Perfect Match" : "Imbalanced",
+          Vasya:         s === 2 ? "Excellent" : s > 0 ? "Neutral" : "Averse",
+          Tara:          s === 3 ? "Highly Auspicious" : s > 0 ? "Fair" : "Challenging",
+          Yoni:          s === 4 ? "Perfect Yoni Match" : s === 3 ? "Friendly" : s === 2 ? "Neutral" : "Enmity",
+          "Graha Maitri": s === 5 ? "Best Friends" : s >= 3 ? "Good Harmony" : "Conflict/Disharmony",
+          Gana:          s === 6 ? "Perfect Harmony" : s === 5 ? "Compatible" : s === 1 ? "Incompatible" : "Gana Dosha",
+          Bhakoot:       s === 7 ? "Blessed" : "Bhakoot Dosha",
+          Nadi:          s === 8 ? "Perfect Health Match" : "Nadi Dosha (Genetic Warning)",
+        };
+        return {
+          name: k.name + " (" + k.nameHi + ")",
+          max: k.max,
+          scored: k.scored,
+          desc: k.description,
+          status: statusMap[k.name] ?? "",
+        };
+      }),
     });
 
     // South Indian 10 Porutham

@@ -16,6 +16,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildChartDossier } from "../guru-debate/dossier.ts";
 import { calculateKundli, calculateTransits, type BirthDetails } from "../calculate-kundli/engine.ts";
+import { computeGunMilan, type GunMilanResult } from "../calculate-kundli/gun_milan.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -134,11 +135,47 @@ Deno.serve(async (req) => {
       }
 
       case "check_compatibility": {
-        // No gun-milan / Ashtakoota engine exists yet — do not fabricate a score.
-        return json({
-          ok: false,
-          summary: "Compatibility (gun-milan) is not yet supported in voice. I can read a single chart in depth, but I cannot compute a match score right now.",
-        });
+        // Compute 36-point Ashtakoota (Guna Milan) for two partners.
+        const boyDetails: BirthDetails | undefined = body.boyBirthDetails ?? body.partnerA;
+        const girlDetails: BirthDetails | undefined = body.girlBirthDetails ?? body.partnerB;
+        if (!boyDetails || !girlDetails) {
+          return json({
+            ok: false,
+            summary: "I need the birth details (date, time, place) for both partners to compute compatibility.",
+          });
+        }
+        const boyChart = await calculateKundli(boyDetails as BirthDetails);
+        const girlChart = await calculateKundli(girlDetails as BirthDetails);
+
+        const moonOf = (chart: any) => {
+          const d1 = chart.divisionalCharts?.find((c: any) => c.varga === "D1");
+          return d1?.planets?.find((p: any) => p.planet === "moon");
+        };
+        const boyMoon = moonOf(boyChart);
+        const girlMoon = moonOf(girlChart);
+        if (!boyMoon?.nakshatra || !girlMoon?.nakshatra) {
+          return json({
+            ok: false,
+            summary: "Could not determine the Moon nakshatra for one or both partners. Please check the birth details.",
+          });
+        }
+
+        const result: GunMilanResult = computeGunMilan(
+          boyMoon.nakshatra, boyMoon.signNumber,
+          girlMoon.nakshatra, girlMoon.signNumber,
+        );
+
+        const lowKootas = result.kootas
+          .filter(k => k.scored === 0 && k.max >= 5)
+          .map(k => k.name);
+        const concern = lowKootas.length > 0
+          ? ` ${lowKootas.join(" and ")} ${lowKootas.length === 1 ? "is" : "are"} the main concern${lowKootas.length === 1 ? "" : "s"}.`
+          : "";
+
+        const summary =
+          `${result.total} out of 36 gunas match — ${result.verdict.toLowerCase()}.${concern}`;
+
+        return json({ ok: true, summary, data: result });
       }
 
       default:
