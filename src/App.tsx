@@ -29,6 +29,7 @@ const Ashtakavarga = lazy(() => import("./pages/app/Ashtakavarga"));
 const Transits = lazy(() => import("./pages/app/Transits"));
 const Report = lazy(() => import("./pages/app/Report"));
 const Remedies = lazy(() => import("./pages/app/Remedies"));
+const LalKitab = lazy(() => import("./pages/app/LalKitab"));
 const Muhurta = lazy(() => import("./pages/app/Muhurta"));
 const MuhurtaFinder = lazy(() => import("./pages/app/MuhurtaFinder"));
 const Library = lazy(() => import("./pages/app/Library"));
@@ -106,6 +107,7 @@ const App = () => (
               <Route path="chart/:id/debate" element={<Debate />} />
               <Route path="chart/:id/report" element={<Report />} />
               <Route path="chart/:id/remedies" element={<Remedies />} />
+              <Route path="chart/:id/lal-kitab" element={<LalKitab />} />
               <Route path="chart/:id/muhurta" element={<Muhurta />} />
               <Route path="chart/:id/muhurta/finder" element={<MuhurtaFinder />} />
               <Route path="chart/:id/strengths" element={<Strengths />} />

@@ -256,6 +256,7 @@ export default function ChartDetail() {
         ] },
         { heading: 'Output', items: [
           ['remedies', 'Remedies'],
+          ['lal-kitab', 'Lal Kitab'],
           ['muhurta', 'Muhurta'],
           ['report', 'Report'],
         ] },
