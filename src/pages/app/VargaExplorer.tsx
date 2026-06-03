@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useChartLink } from '@/hooks/useChartLink';
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useKundli } from '@/hooks/useKundli';
 import { InteractiveVargaView, PLANETS, type Depth, type Graha } from '@/components/research/InteractiveVargaView';
-import { VARGA_META, VARGA_CODES } from '@/components/research/vargaData';
+import { VARGA_META, VARGA_CODES, VARGA_SCHEME_OPTIONS } from '@/components/research/vargaData';
 import { CURRENT_SNAPSHOT_VERSION } from '@/lib/astro/types';
-import type { DivisionalChart, VargaCode } from '@/lib/astro/types';
+import type { DivisionalChart, DivisionalScheme, VargaCode } from '@/lib/astro/types';
+import { recomputeDivisionalChart } from '@/lib/astro/vargaSchemes';
 
 /**
  * Focused interactive explorer for a single varga chart.
@@ -30,6 +31,10 @@ export default function VargaExplorer() {
 
   const [selected, setSelected] = useState<Graha | null>(initialPlanet);
   const [depth, setDepth] = useState<Depth>('explain');
+  const [scheme, setScheme] = useState<DivisionalScheme>('parashari');
+
+  // Reset scheme to parashari when switching vargas
+  useEffect(() => { setScheme('parashari'); }, [varga]);
 
   // Sync selected planet when navigating between vargas with ?planet=
   useEffect(() => {
@@ -79,6 +84,21 @@ export default function VargaExplorer() {
     );
   }
 
+  // Available scheme options for this varga
+  const schemeOptions = VARGA_SCHEME_OPTIONS[varga];
+  const activeScheme = schemeOptions?.find(s => s.key === scheme);
+
+  // Recompute chart if alternate scheme selected
+  const d1Chart = data.divisionalCharts.find(c => c.varga === 'D1');
+  const d1Asc = d1Chart
+    ? { signNumber: d1Chart.ascendantSign, signDegree: d1Chart.planets.find(p => p.planet === 'ascendant')?.signDegree ?? 0 }
+    : { signNumber: 1, signDegree: 0 };
+
+  const activeChart: DivisionalChart = useMemo(() => {
+    if (scheme === 'parashari' || !d1Chart || !schemeOptions) return chart;
+    return recomputeDivisionalChart(varga, d1Chart, d1Asc, scheme, chart);
+  }, [chart, d1Chart, d1Asc, scheme, varga, schemeOptions]);
+
   // Quick nav: previous / next varga
   const vargaIdx = VARGA_CODES.indexOf(varga);
   const prevVarga = vargaIdx > 0 ? VARGA_CODES[vargaIdx - 1] : null;
@@ -122,10 +142,40 @@ export default function VargaExplorer() {
             {meta.purpose}
           </p>
         )}
+
+        {/* Scheme selector (D-2, D-3, D-4, D-8 only) */}
+        {schemeOptions && schemeOptions.length > 1 && (
+          <div className="mt-4 rounded-md border border-hairline-subtle bg-surface p-3">
+            <div className="text-xs font-medium text-text-tertiary mb-2">
+              Calculation Scheme / गणना पद्धति
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {schemeOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setScheme(opt.key)}
+                  className={`rounded-sm px-3 py-1.5 text-xs font-medium transition-colors ${
+                    scheme === opt.key
+                      ? 'bg-brand-maroon text-primary-foreground'
+                      : 'border border-hairline-subtle text-text-secondary hover:text-text-primary hover:border-border-default'
+                  }`}
+                >
+                  {opt.en}
+                </button>
+              ))}
+            </div>
+            {activeScheme && scheme !== 'parashari' && (
+              <p className="mt-2 text-xs text-text-tertiary">
+                <span className="font-medium">{activeScheme.cite}:</span>{' '}
+                {activeScheme.formula}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <InteractiveVargaView
-        chart={chart}
+        chart={activeChart}
         chartId={id}
         selected={selected}
         onSelectPlanet={setSelected}

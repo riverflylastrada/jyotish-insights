@@ -55,6 +55,14 @@ export type VargaCode =
   | 'D16' | 'D20' | 'D24' | 'D27' | 'D30' | 'D40' | 'D45' | 'D60'
   | 'D81' | 'D108' | 'D144';
 
+/** Calculation scheme for divisional charts (D-2/3/4/8 support alternate schemes). */
+export type DivisionalScheme =
+  | 'parashari'
+  | 'kashinatha'
+  | 'parivrittitraya'
+  | 'somanatha'
+  | 'krishnamurthy';
+
 export interface DivisionalChart {
   varga: VargaCode;
   vargaName: string;

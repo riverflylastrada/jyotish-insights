@@ -1,4 +1,4 @@
-import type { VargaCode } from '@/lib/astro/types';
+import type { VargaCode, DivisionalScheme } from '@/lib/astro/types';
 
 /** One-line varga purpose + division formula for Math Proof, cited to BPHS. */
 export interface VargaMeta {
@@ -15,6 +15,41 @@ export interface VargaMeta {
   /** Classical source citation. */
   cite: string;
 }
+
+/** Metadata for a divisional scheme variant. */
+export interface SchemeMeta {
+  key: DivisionalScheme;
+  en: string;
+  hi: string;
+  cite: string;
+  formula: string;
+}
+
+/** Available schemes per varga code (only vargas with alternates are listed). */
+export const VARGA_SCHEME_OPTIONS: Partial<Record<VargaCode, SchemeMeta[]>> = {
+  D2: [
+    { key: 'parashari', en: 'Parashari (BPHS)', hi: 'पाराशरी', cite: 'BPHS Ch. 7.2–3', formula: 'Odd signs: 0–15° → Leo (Sun hora), 15–30° → Cancer (Moon hora). Even signs: reversed.' },
+    { key: 'kashinatha', en: 'Kashinatha', hi: 'काशीनाथ', cite: 'Jataka Parijata', formula: 'Hora lord = sign lord (odd 1st half) or 7th sign lord (odd 2nd half). Result = own sign of hora lord.' },
+    { key: 'parivrittitraya', en: 'Parivritti-dwaya', hi: 'परिवृत्ति-द्वय', cite: 'Parivritti tradition', formula: 'Cyclic count: ((sign−1)×2 + part) mod 12 + 1. All 24 horas map uniquely to 12 signs (each sign appears twice).' },
+    { key: 'krishnamurthy', en: 'Krishnamurthy (KP)', hi: 'कृष्णमूर्ति', cite: 'KP Reader 1', formula: '0–15° always → Leo (Sun hora); 15–30° always → Cancer (Moon hora), regardless of odd/even sign.' },
+  ],
+  D3: [
+    { key: 'parashari', en: 'Parashari (BPHS)', hi: 'पाराशरी', cite: 'BPHS Ch. 7.4–5', formula: '1st decanate = same sign; 2nd = 5th from it; 3rd = 9th from it (trine-based).' },
+    { key: 'parivrittitraya', en: 'Parivritti-traya', hi: 'परिवृत्ति-त्रय', cite: 'Parivritti-traya tradition', formula: 'Cyclic count: ((sign−1)×3 + part) mod 12 + 1. All 36 decanates map sequentially.' },
+    { key: 'somanatha', en: 'Somanatha', hi: 'सोमनाथ', cite: 'Saravali / Somanatha', formula: '1st = same sign; 2nd = 12th from sign (1 back); 3rd = 11th from sign (2 back).' },
+    { key: 'krishnamurthy', en: 'Krishnamurthy (KP)', hi: 'कृष्णमूर्ति', cite: 'KP Reader 1', formula: 'Same as Parashari: 1st/5th/9th trine formula.' },
+  ],
+  D4: [
+    { key: 'parashari', en: 'Parashari (BPHS)', hi: 'पाराशरी', cite: 'BPHS Ch. 7.6', formula: 'Starting from the sign, then 4th, 7th, 10th signs (kendra offsets: 0/3/6/9).' },
+    { key: 'parivrittitraya', en: 'Parivritti', hi: 'परिवृत्ति', cite: 'Parivritti tradition', formula: 'Cyclic count: ((sign−1)×4 + part) mod 12 + 1. All 48 quarters map sequentially.' },
+    { key: 'krishnamurthy', en: 'Krishnamurthy (KP)', hi: 'कृष्णमूर्ति', cite: 'KP Reader 1', formula: 'Same as Parashari: kendra offsets 0/3/6/9.' },
+  ],
+  D8: [
+    { key: 'parashari', en: 'Parashari (BPHS)', hi: 'पाराशरी', cite: 'BPHS Ch. 7.10', formula: 'Movable → Aries start; fixed → Sagittarius; dual → Leo; count 8 arcs of 3°45′.' },
+    { key: 'parivrittitraya', en: 'Parivritti', hi: 'परिवृत्ति', cite: 'Parivritti tradition', formula: 'Cyclic count: ((sign−1)×8 + part) mod 12 + 1. All 96 octants map sequentially.' },
+    { key: 'krishnamurthy', en: 'Krishnamurthy (KP)', hi: 'कृष्णमूर्ति', cite: 'KP Reader 1', formula: 'Same as Parashari: quality-based start (movable/fixed/dual).' },
+  ],
+};
 
 export const VARGA_META: Record<VargaCode, VargaMeta> = {
   D1: {
