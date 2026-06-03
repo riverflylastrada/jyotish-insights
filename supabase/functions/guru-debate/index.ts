@@ -25,10 +25,49 @@ const MODEL_PRICING: Record<string, [number, number]> = {
   "google/gemini-2.5-pro":      [1.25, 10],
 };
 
-function computeCost(model: string, promptTok: number, completionTok: number): number {
-  const pricing = MODEL_PRICING[model];
+function computeCost(
+  pricingMap: Record<string, [number, number]>,
+  model: string,
+  promptTok: number,
+  completionTok: number,
+): number {
+  const pricing = pricingMap[model];
   if (!pricing) return 0;
   return (promptTok / 1e6) * pricing[0] + (completionTok / 1e6) * pricing[1];
+}
+
+/**
+ * Load pricing overrides from app_settings (category = 'llm_pricing').
+ * Returns a map of model → [inputRate, outputRate]. On any failure returns
+ * an empty object so the caller falls back to MODEL_PRICING defaults.
+ */
+async function loadPricing(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+): Promise<Record<string, [number, number]>> {
+  const loaded: Record<string, [number, number]> = {};
+  try {
+    const client = createClient(supabaseUrl, serviceRoleKey);
+    const { data } = await client
+      .from("app_settings")
+      .select("key, value")
+      .eq("category", "llm_pricing");
+    if (!data) return loaded;
+    for (const row of data) {
+      try {
+        const key = String((row as Record<string, unknown>).key ?? "");
+        const val = String((row as Record<string, unknown>).value ?? "");
+        const model = key.replace(/^pricing:/, "");
+        const parsed = JSON.parse(val) as { in: number; out: number };
+        if (typeof parsed.in === "number" && typeof parsed.out === "number") {
+          loaded[model] = [parsed.in, parsed.out];
+        }
+      } catch { /* skip malformed row */ }
+    }
+  } catch (e) {
+    console.warn("loadPricing failed, using defaults:", e);
+  }
+  return loaded;
 }
 
 /** Resolve caller's user_id from the Authorization JWT (best-effort). */
@@ -214,6 +253,15 @@ Deno.serve(async (req) => {
     const provider = dbConfig?.provider || null;
     if (!apiKey) throw new Error("No AI API key configured. Set it in Admin → API Keys or via: supabase secrets set GOOGLE_AI_KEY=<key>");
 
+    // Start pricing load concurrently — NOT awaited on critical path.
+    // Resolved only in fire-and-forget logging blocks where cost is computed.
+    const pricingUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const pricingKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const pricingPromise: Promise<Record<string, [number, number]>> =
+      (pricingUrl && pricingKey)
+        ? loadPricing(pricingUrl, pricingKey)
+        : Promise.resolve({});
+
     // ─── AUTO-INSIGHTS mode: non-streaming JSON ───────────────────────────────────
     if (mode === "auto-insights") {
       const aiMessages = [
@@ -252,13 +300,15 @@ Deno.serve(async (req) => {
 
         // Log successful call (fire-and-forget)
         const userId = await userIdPromise;
+        const dbPricing = await pricingPromise.catch(() => ({}));
+        const effectivePricing = { ...MODEL_PRICING, ...dbPricing };
         const pt = usage.prompt_tokens ?? 0;
         const ct = usage.completion_tokens ?? 0;
         logAiUsage({
           user_id: userId, function: "guru-debate", mode, guru: null,
           chart_id: chartId, question: null, model, provider: provider ?? "unknown",
           prompt_tokens: pt, completion_tokens: ct, total_tokens: usage.total_tokens ?? pt + ct,
-          cost_usd: computeCost(model, pt, ct),
+          cost_usd: computeCost(effectivePricing, model, pt, ct),
           language, success: true, error: null, latency_ms: Date.now() - callStart,
         });
 
@@ -400,6 +450,8 @@ Deno.serve(async (req) => {
           }
         }
         const userId = await userIdPromise;
+        const dbPricing = await pricingPromise.catch(() => ({}));
+        const effectivePricing = { ...MODEL_PRICING, ...dbPricing };
         const pt = usageData?.prompt_tokens ?? 0;
         const ct = usageData?.completion_tokens ?? 0;
         logAiUsage({
@@ -407,7 +459,7 @@ Deno.serve(async (req) => {
           chart_id: chartId, question: question ?? null, model,
           provider: provider ?? "unknown",
           prompt_tokens: pt, completion_tokens: ct, total_tokens: usageData?.total_tokens ?? pt + ct,
-          cost_usd: computeCost(model, pt, ct),
+          cost_usd: computeCost(effectivePricing, model, pt, ct),
           language, success: true, error: null, latency_ms: Date.now() - streamCallStart,
         });
       } catch (e) {

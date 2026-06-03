@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Save, Bot } from 'lucide-react';
+import { Loader2, Save, Bot, Plus, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
 const PROVIDERS = [
@@ -57,6 +57,12 @@ interface LlmConfig {
   llm_api_key_setting: string;
 }
 
+interface PricingRow {
+  model: string;
+  inputRate: number;
+  outputRate: number;
+}
+
 export default function AdminLlmConfig() {
   const [config, setConfig] = useState<LlmConfig>({
     llm_provider: 'google',
@@ -68,6 +74,29 @@ export default function AdminLlmConfig() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [pricingRows, setPricingRows] = useState<PricingRow[]>([]);
+  const [savingPricing, setSavingPricing] = useState(false);
+  const [newModel, setNewModel] = useState('');
+  const [newIn, setNewIn] = useState('');
+  const [newOut, setNewOut] = useState('');
+
+  const loadPricing = useCallback(async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('key, value')
+      .eq('category', 'llm_pricing');
+    const rows: PricingRow[] = [];
+    for (const row of data ?? []) {
+      try {
+        const model = (row.key as string).replace(/^pricing:/, '');
+        const parsed = JSON.parse(row.value as string) as { in: number; out: number };
+        rows.push({ model, inputRate: parsed.in, outputRate: parsed.out });
+      } catch { /* skip malformed */ }
+    }
+    rows.sort((a, b) => a.model.localeCompare(b.model));
+    setPricingRows(rows);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -91,9 +120,10 @@ export default function AdminLlmConfig() {
       });
 
       setApiKeyOptions((keysRes.data ?? []).map(r => r.key));
+      await loadPricing();
       setLoading(false);
     })();
-  }, []);
+  }, [loadPricing]);
 
   function onProviderChange(provider: string) {
     const defaults = PROVIDER_DEFAULTS[provider] ?? PROVIDER_DEFAULTS.custom;
@@ -126,6 +156,71 @@ export default function AdminLlmConfig() {
     }
     toast.success('LLM configuration saved');
     setSaving(false);
+  }
+
+  function updatePricingRow(index: number, field: 'inputRate' | 'outputRate', raw: string) {
+    const val = parseFloat(raw);
+    if (raw !== '' && (isNaN(val) || val < 0)) return;
+    setPricingRows(prev => prev.map((r, i) => i === index ? { ...r, [field]: raw === '' ? 0 : val } : r));
+  }
+
+  function removePricingRow(index: number) {
+    const row = pricingRows[index];
+    setPricingRows(prev => prev.filter((_, i) => i !== index));
+    supabase.from('app_settings').delete().eq('key', `pricing:${row.model}`).then(({ error: err }) => {
+      if (err) toast.error(`Failed to delete pricing for ${row.model}`);
+      else toast.success(`Removed pricing for ${row.model}`);
+    });
+  }
+
+  function addPricingRow() {
+    const model = newModel.trim();
+    if (!model) { toast.error('Model name is required'); return; }
+    const inVal = parseFloat(newIn);
+    const outVal = parseFloat(newOut);
+    if (isNaN(inVal) || inVal < 0 || isNaN(outVal) || outVal < 0) {
+      toast.error('Rates must be non-negative numbers');
+      return;
+    }
+    if (pricingRows.some(r => r.model === model)) {
+      toast.error(`Model "${model}" already exists`);
+      return;
+    }
+    setPricingRows(prev => [...prev, { model, inputRate: inVal, outputRate: outVal }].sort((a, b) => a.model.localeCompare(b.model)));
+    setNewModel('');
+    setNewIn('');
+    setNewOut('');
+  }
+
+  async function savePricing() {
+    setSavingPricing(true);
+    for (const row of pricingRows) {
+      if (row.inputRate < 0 || row.outputRate < 0) {
+        toast.error(`Rates must be non-negative for ${row.model}`);
+        setSavingPricing(false);
+        return;
+      }
+      const { error: err } = await supabase
+        .from('app_settings')
+        .upsert(
+          {
+            key: `pricing:${row.model}`,
+            value: JSON.stringify({ in: row.inputRate, out: row.outputRate }),
+            category: 'llm_pricing',
+            label: row.model,
+            description: 'USD per 1M tokens [input, output]',
+            is_secret: false,
+          },
+          { onConflict: 'key' },
+        );
+      if (err) {
+        toast.error(`Failed to save pricing for ${row.model}: ${err.message}`);
+        setSavingPricing(false);
+        return;
+      }
+    }
+    toast.success('Model pricing saved');
+    setSavingPricing(false);
   }
 
   if (loading) return <div className="flex items-center justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-brand-saffron" /></div>;
@@ -237,6 +332,107 @@ export default function AdminLlmConfig() {
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save Configuration
+        </button>
+      </div>
+
+      {/* ─── Model Pricing ─────────────────────────────────────────────── */}
+      <div className="mt-10">
+        <h2 className="font-display text-h3 text-text-primary">Model Pricing</h2>
+        <p className="mt-1 text-xs text-text-muted">
+          Used to compute logged AI cost. Takes effect immediately — no deploy.
+        </p>
+
+        <div className="mt-4 overflow-x-auto rounded-md border border-hairline-subtle bg-surface shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-hairline-subtle text-left text-xs uppercase tracking-wider text-text-muted">
+                <th className="px-4 py-3">Model</th>
+                <th className="px-4 py-3 text-right">$ / 1M In</th>
+                <th className="px-4 py-3 text-right">$ / 1M Out</th>
+                <th className="px-4 py-3 w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {pricingRows.map((row, i) => (
+                <tr key={row.model} className="border-b border-hairline-subtle last:border-0">
+                  <td className="px-4 py-2 font-mono text-xs text-text-primary">{row.model}</td>
+                  <td className="px-4 py-2 text-right">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={row.inputRate}
+                      onChange={e => updatePricingRow(i, 'inputRate', e.target.value)}
+                      className="w-24 rounded border border-hairline-subtle bg-canvas px-2 py-1 text-right font-mono text-xs text-text-primary focus:border-brand-saffron focus:outline-none"
+                    />
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={row.outputRate}
+                      onChange={e => updatePricingRow(i, 'outputRate', e.target.value)}
+                      className="w-24 rounded border border-hairline-subtle bg-canvas px-2 py-1 text-right font-mono text-xs text-text-primary focus:border-brand-saffron focus:outline-none"
+                    />
+                  </td>
+                  <td className="px-4 py-2 text-center">
+                    <button onClick={() => removePricingRow(i)} className="text-text-muted hover:text-semantic-negative" title="Remove">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {/* Add model row */}
+              <tr className="border-t border-hairline-subtle bg-elevated/30">
+                <td className="px-4 py-2">
+                  <input
+                    type="text"
+                    placeholder="model-name"
+                    value={newModel}
+                    onChange={e => setNewModel(e.target.value)}
+                    className="w-full rounded border border-hairline-subtle bg-canvas px-2 py-1 font-mono text-xs text-text-primary placeholder:text-text-muted focus:border-brand-saffron focus:outline-none"
+                  />
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    value={newIn}
+                    onChange={e => setNewIn(e.target.value)}
+                    className="w-24 rounded border border-hairline-subtle bg-canvas px-2 py-1 text-right font-mono text-xs text-text-primary placeholder:text-text-muted focus:border-brand-saffron focus:outline-none"
+                  />
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    value={newOut}
+                    onChange={e => setNewOut(e.target.value)}
+                    className="w-24 rounded border border-hairline-subtle bg-canvas px-2 py-1 text-right font-mono text-xs text-text-primary placeholder:text-text-muted focus:border-brand-saffron focus:outline-none"
+                  />
+                </td>
+                <td className="px-4 py-2 text-center">
+                  <button onClick={addPricingRow} className="text-text-muted hover:text-semantic-positive" title="Add model">
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          onClick={savePricing}
+          disabled={savingPricing}
+          className="mt-4 inline-flex items-center gap-2 rounded-md bg-brand-saffron px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-saffron-hover disabled:opacity-50"
+        >
+          {savingPricing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save Pricing
         </button>
       </div>
     </div>

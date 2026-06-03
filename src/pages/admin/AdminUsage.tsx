@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   Loader2, DollarSign, Cpu, MessageSquare, Users,
   Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+  Download, AlertTriangle,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ interface Profile {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const USD_TO_INR = 85;
+const USD_TO_INR_DEFAULT = 85;
 
 function fmtCost(usd: number): string {
   if (usd === 0) return '$0.00';
@@ -61,11 +62,20 @@ function truncate(s: string, len: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+function escapeCsvField(value: string): string {
+  if (/[,"\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
 export default function AdminUsage() {
   const [rows, setRows] = useState<AiUsageRow[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usdToInr, setUsdToInr] = useState(USD_TO_INR_DEFAULT);
+  const [monthlyBudgetUsd, setMonthlyBudgetUsd] = useState<number | null>(null);
 
   // Recent table filters
   const [search, setSearch] = useState('');
@@ -82,13 +92,24 @@ export default function AdminUsage() {
 
   useEffect(() => {
     (async () => {
-      const [usageRes, profilesRes] = await Promise.all([
+      const [usageRes, profilesRes, settingsRes] = await Promise.all([
         supabase.from('ai_usage').select('*').order('created_at', { ascending: false }).limit(10000),
         supabase.from('profiles').select('user_id, display_name'),
+        supabase.from('app_settings').select('key, value').in('key', ['inr_per_usd', 'monthly_budget_usd']),
       ]);
       if (usageRes.error) { setError(usageRes.error.message); setLoading(false); return; }
       setRows((usageRes.data ?? []) as AiUsageRow[]);
       setProfiles((profilesRes.data ?? []) as Profile[]);
+      for (const s of settingsRes.data ?? []) {
+        if (s.key === 'inr_per_usd' && s.value) {
+          const v = parseFloat(s.value as string);
+          if (Number.isFinite(v) && v > 0) setUsdToInr(v);
+        }
+        if (s.key === 'monthly_budget_usd' && s.value) {
+          const v = parseFloat(s.value as string);
+          if (Number.isFinite(v) && v > 0) setMonthlyBudgetUsd(v);
+        }
+      }
       setLoading(false);
     })();
   }, []);
@@ -110,6 +131,13 @@ export default function AdminUsage() {
     const distinctUsers = new Set(filtered.map(r => r.user_id).filter(Boolean)).size;
     return { totalCost, totalTokens, totalQuestions, distinctUsers };
   };
+
+  // Month-to-date cost for budget banner
+  const mtdCost = useMemo(() => {
+    const now = new Date();
+    const firstOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+    return rows.filter(r => r.created_at >= firstOfMonth).reduce((s, r) => s + Number(r.cost_usd), 0);
+  }, [rows]);
 
   const stats7 = useMemo(() => computeStats('7d'), [rows]);
   const stats30 = useMemo(() => computeStats('30d'), [rows]);
@@ -214,7 +242,7 @@ export default function AdminUsage() {
 
   function renderSummaryCards(label: string, s: { totalCost: number; totalTokens: number; totalQuestions: number; distinctUsers: number }) {
     const cards = [
-      { name: 'Cost', value: `${fmtCost(s.totalCost)} / ₹${(s.totalCost * USD_TO_INR).toFixed(2)}`, icon: DollarSign, color: 'text-brand-maroon' },
+      { name: 'Cost', value: `${fmtCost(s.totalCost)} / ₹${(s.totalCost * usdToInr).toFixed(2)}`, icon: DollarSign, color: 'text-brand-maroon' },
       { name: 'Tokens', value: s.totalTokens.toLocaleString(), icon: Cpu, color: 'text-brand-saffron' },
       { name: 'Questions', value: s.totalQuestions.toLocaleString(), icon: MessageSquare, color: 'text-semantic-positive' },
       { name: 'Users', value: s.distinctUsers.toLocaleString(), icon: Users, color: 'text-semantic-info' },
@@ -237,12 +265,57 @@ export default function AdminUsage() {
     );
   }
 
+  function downloadCsv() {
+    const header = ['created_at', 'user', 'function', 'mode', 'guru', 'model', 'provider', 'prompt_tokens', 'completion_tokens', 'total_tokens', 'cost_usd', 'language', 'success', 'latency_ms', 'question'];
+    const csvRows = [header.join(',')];
+    for (const r of recentRows) {
+      const user = r.user_id ? (profileMap.get(r.user_id) ?? r.user_id) : '';
+      const fields = [
+        r.created_at,
+        user,
+        r.function ?? '',
+        r.mode ?? '',
+        r.guru ?? '',
+        r.model ?? '',
+        r.provider ?? '',
+        String(r.prompt_tokens),
+        String(r.completion_tokens),
+        String(r.total_tokens),
+        String(r.cost_usd),
+        r.language ?? '',
+        String(r.success),
+        r.latency_ms != null ? String(r.latency_ms) : '',
+        r.question ?? '',
+      ];
+      csvRows.push(fields.map(escapeCsvField).join(','));
+    }
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ai-usage-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <h1 className="font-display text-h2 text-text-primary">AI Usage &amp; Costs</h1>
       <p className="mt-1 text-sm text-text-muted">
         Per-user question &amp; token tracking, cost analytics, and recent queries.
       </p>
+
+      {/* Budget banner */}
+      {monthlyBudgetUsd !== null && mtdCost > monthlyBudgetUsd && (
+        <div className="mt-4 flex items-center gap-2 rounded-md border border-semantic-warning/30 bg-semantic-warning/5 px-4 py-2 text-sm text-semantic-warning">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span>
+            Month-to-date cost <strong>{fmtCost(mtdCost)}</strong> exceeds budget of <strong>{fmtCost(monthlyBudgetUsd)}</strong>.
+          </span>
+        </div>
+      )}
 
       {/* Privacy note */}
       <div className="mt-4 rounded-md border border-brand-saffron/30 bg-brand-saffron/5 px-4 py-2 text-xs text-text-secondary">
@@ -377,6 +450,13 @@ export default function AdminUsage() {
               </button>
             ))}
           </div>
+          <button
+            onClick={downloadCsv}
+            className="inline-flex items-center gap-1.5 rounded-md border border-hairline-subtle bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-elevated"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </button>
         </div>
         <div className="mt-3 overflow-x-auto rounded-md border border-hairline-subtle bg-surface shadow-sm">
           <table className="w-full text-sm">
