@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useChartLink } from '@/hooks/useChartLink';
-import { ArrowLeft, Loader2, Check, X, ChevronRight, FlaskConical, Sparkles, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, Check, X, ChevronRight, FlaskConical, Sparkles } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
+import { FocusedGuruAnswer } from '@/components/research/FocusedGuruAnswer';
 import { PLANET_LABELS, type PlanetName, type Yoga } from '@/lib/astro/types';
 
 const CATEGORY_LABELS: Record<Yoga['category'], string> = {
@@ -158,9 +159,7 @@ export default function Yogas() {
                             <p className="text-sm text-text-secondary">{data.autoInsights.yogas[y.name]}</p>
                           </div>
                         ) : y.isPresent ? (
-                          <Link to={chartLink(`/app/chart/${id}/debate`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
-                            <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
-                          </Link>
+                          <FocusedGuruAnswer chartId={id} topic="yoga" subject={y.name} variant="link" />
                         ) : null}
 
                         <Link to={chartLink(`/app/chart/${id}/lab`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">

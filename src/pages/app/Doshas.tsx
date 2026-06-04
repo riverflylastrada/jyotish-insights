@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useChartLink } from '@/hooks/useChartLink';
-import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, ChevronRight, FlaskConical, Check, X, Sparkles, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, ChevronRight, FlaskConical, Check, X, Sparkles } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
+import { FocusedGuruAnswer } from '@/components/research/FocusedGuruAnswer';
 import type { Dosha, DoshaCondition } from '@/lib/astro/types';
 
 const DOSHA_LABEL: Record<Dosha['name'], { title: string; deva: string; classical: string }> = {
@@ -312,9 +313,7 @@ function DoshaCard({ d, id, isOpen, toggle, autoInsights }: { d: Dosha; id: stri
               <p className="text-sm text-text-secondary">{autoInsights.doshas[d.name]}</p>
             </div>
           ) : d.isPresent ? (
-            <Link to={chartLink(`/app/chart/${id}/debate`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
-              <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
-            </Link>
+            <FocusedGuruAnswer chartId={id} topic="dosha" subject={d.name} variant="link" />
           ) : null}
 
           <Link to={chartLink(`/app/chart/${id}/lab`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">

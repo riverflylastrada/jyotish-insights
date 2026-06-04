@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useChartLink } from '@/hooks/useChartLink';
-import { ArrowRight, MessageSquare, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type PlanetName, type VargaCode } from '@/lib/astro/types';
 import { VARGA_META, VARGA_CODES } from './vargaData';
 import { PLANET_IN_HOUSE, type HouseNumber } from '@/lib/astro/planetInHouse';
+import { FocusedGuruAnswer } from './FocusedGuruAnswer';
 
 /**
  * Shared interactive chart component used by both the D1 ResearchLab and
@@ -215,7 +216,7 @@ export function InteractiveVargaView({
               <span className="font-deva text-sm text-text-tertiary">{PLANET_LABELS[selected].deva}</span>
             </div>
 
-            {/* Auto-insight brief */}
+            {/* Auto-insight brief — the free teaser; its full reading expands below. */}
             {selected && autoInsights?.planets?.[selected] ? (
               <div className="rounded-sm border border-brand-gold/20 bg-brand-gold/5 p-3">
                 <div className="flex items-center gap-1.5 text-xs text-brand-gold font-medium mb-1">
@@ -223,10 +224,6 @@ export function InteractiveVargaView({
                 </div>
                 <p className="text-sm text-text-secondary">{autoInsights.planets[selected].brief}</p>
               </div>
-            ) : selected ? (
-              <Link to={chartLink(`/app/chart/${chartId}/debate`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
-                <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
-              </Link>
             ) : null}
 
             {/* Explain layer */}
@@ -318,9 +315,13 @@ export function InteractiveVargaView({
               </div>
             )}
 
-            <Link to={chartLink(`/app/chart/${chartId}/debate`)} className="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-brand-maroon/30 bg-surface px-4 py-2 text-sm text-brand-maroon hover:bg-elevated">
-              <MessageSquare className="h-4 w-4" /> Ask the Gurus about {PLANET_LABELS[selected].full}
-            </Link>
+            <FocusedGuruAnswer
+              key={selected}
+              chartId={chartId}
+              topic="planet"
+              subject={PLANET_LABELS[selected].full}
+              cachedFull={autoInsights?.planets?.[selected]?.full}
+            />
           </div>
         )}
       </aside>
