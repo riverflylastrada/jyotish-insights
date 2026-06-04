@@ -79,7 +79,14 @@ Deno.serve(async (req) => {
           // Inject chart id if not present
           snapshot.id = chart.id;
 
-          const events = detectUpcomingEvents(snapshot, 30);
+          // Look ahead a full year. The detectors track only slow movers
+          // (Saturn/Jupiter/Rahu/Ketu sign changes, Sade Sati, eclipses) plus
+          // dasha transitions — events that are months apart — so a 30-day
+          // window left almost every chart with nothing. A 365-day horizon
+          // guarantees a meaningful feed (e.g. Jupiter changes sign within any
+          // year); the upsert dedupes on (chart_id, event_key) so re-runs don't
+          // duplicate. The Notifications page already sorts/groups by date.
+          const events = detectUpcomingEvents(snapshot, 365);
 
           // Filter by category preferences
           const filtered = categories.includes('all')
