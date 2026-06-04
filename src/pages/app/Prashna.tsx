@@ -7,6 +7,7 @@ import { getAstroProvider } from '@/lib/astro/factory';
 import { KundliChart } from '@/components/kundli/KundliChart';
 import { useChartStore } from '@/stores/useChartStore';
 import { toast } from '@/components/ui/sonner';
+import { supabase } from '@/integrations/supabase/client';
 import type { KundliData, KpData, BirthDetails } from '@/lib/astro/types';
 
 // ─── Guru definitions (same as Debate.tsx) ─────────────────────────────────
@@ -42,11 +43,17 @@ async function streamFromEdge(
   payload: Record<string, unknown>,
   onDelta: (chunk: string) => void,
 ): Promise<StreamResult> {
+  // Prefer the signed-in user's access token so the edge can attribute this call
+  // to a real user in ai_usage; fall back to the anon key when logged out.
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
   const resp = await fetch(DEBATE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, ...payload }),
   });
