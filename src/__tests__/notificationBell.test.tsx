@@ -22,6 +22,10 @@ vi.mock('@/hooks/usePlanGate', () => ({
   usePlanGate: () => true,
 }));
 
+vi.mock('@/hooks/useVoiceGuruEnabled', () => ({
+  useVoiceGuruEnabled: () => ({ enabled: false, isLoading: false }),
+}));
+
 vi.mock('@/components/chart/StaleSnapshotBanner', () => ({
   StaleSnapshotBanner: () => null,
 }));

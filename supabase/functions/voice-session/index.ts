@@ -99,6 +99,15 @@ async function getVoiceConfig(): Promise<Record<string, string>> {
 // ───────────────────────────── get-signed-url ─────────────────────────────
 
 async function handleGetSignedUrl(req: Request, body: any): Promise<Response> {
+  // Cost gate: never mint a (paid) ElevenLabs token while the feature is gated
+  // off. Admin → Voice flips `voice_guru_enabled`; anything but "true" (incl.
+  // missing) means Coming Soon. This is the hard guarantee — even a direct POST
+  // cannot incur cost while disabled.
+  const cfg = await getVoiceConfig();
+  if (cfg["voice_guru_enabled"] !== "true") {
+    return json({ error: "Voice Guru is coming soon — we're finalising it." }, 403);
+  }
+
   const xiKey = await getSecret("ELEVENLABS_API_KEY");
   if (!xiKey) return json({ error: "Voice is not configured (set the ElevenLabs API key in Admin → API Keys)." }, 503);
 
@@ -107,7 +116,6 @@ async function handleGetSignedUrl(req: Request, body: any): Promise<Response> {
   if (!persona) return json({ error: `Unknown guru "${guruId}".` }, 400);
   if (!persona.available) return json({ error: `Guru "${guruId}" is not available yet.` }, 403);
 
-  const cfg = await getVoiceConfig();
   const agentId = cfg["elevenlabs_agent_id"];
   if (!agentId) return json({ error: "Voice agent is not configured (missing agent id)." }, 503);
   const voiceId = cfg[`elevenlabs_voice_id_${guruId}`] || "";
@@ -288,6 +296,17 @@ async function handleGetUsage(req: Request): Promise<Response> {
   });
 }
 
+// ───────────────────────────── status ─────────────────────────────
+
+/**
+ * Public availability of Voice Guru (Admin → Voice toggle). No auth, no PII —
+ * just whether the feature is live, so the frontend can show "Coming soon".
+ */
+async function handleStatus(): Promise<Response> {
+  const cfg = await getVoiceConfig();
+  return json({ enabled: cfg["voice_guru_enabled"] === "true" });
+}
+
 // ───────────────────────────── entry ─────────────────────────────
 
 Deno.serve(async (req) => {
@@ -300,6 +319,7 @@ Deno.serve(async (req) => {
       case "get-signed-url": return await handleGetSignedUrl(req, body);
       case "log-session":    return await handleLogSession(req, body);
       case "get-usage":      return await handleGetUsage(req);
+      case "status":         return await handleStatus();
       default:               return json({ error: `Unknown mode "${body.mode}".` }, 400);
     }
   } catch (e) {

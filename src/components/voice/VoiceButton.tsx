@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { GuruSelector } from '@/components/voice/GuruSelector';
 import { useVoiceStore } from '@/stores/useVoiceStore';
 import { DEFAULT_VOICE_GURU, type VoiceGuruId } from '@/config/guruVoices';
+import { useVoiceGuruEnabled } from '@/hooks/useVoiceGuruEnabled';
 
 interface VoiceButtonProps {
   chartId: string | null;
@@ -23,6 +24,7 @@ export function VoiceButton({ chartId, defaultGuru, variant = 'floating', classN
   const [pickerOpen, setPickerOpen] = useState(false);
   const openWith = useVoiceStore((s) => s.openWith);
   const reduce = useReducedMotion();
+  const { enabled, isLoading } = useVoiceGuruEnabled();
 
   const launch = (guru: VoiceGuruId) => {
     setPickerOpen(false);
@@ -35,6 +37,28 @@ export function VoiceButton({ chartId, defaultGuru, variant = 'floating', classN
   };
 
   const label = 'Ask Guruji · गुरुजी से पूछें';
+
+  // Coming soon: render a disabled affordance; no session can be opened.
+  if (isLoading) return null;
+  if (!enabled) {
+    return variant === 'inline' ? (
+      <button
+        type="button"
+        disabled
+        title="Voice Guru · coming soon"
+        className={`inline-flex cursor-not-allowed items-center gap-2 rounded-sm bg-elevated px-4 py-2 text-sm font-medium text-text-tertiary ${className}`}
+      >
+        <Mic className="h-4 w-4" /> Ask Guruji · Coming soon
+      </button>
+    ) : (
+      <div
+        title="Voice Guru · coming soon"
+        className={`flex h-14 w-14 items-center justify-center rounded-full bg-elevated text-text-tertiary shadow-lg ${className}`}
+      >
+        <Mic className="h-6 w-6" />
+      </div>
+    );
+  }
 
   return (
     <>

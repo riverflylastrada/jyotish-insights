@@ -6,6 +6,7 @@ import { useSession } from '@/hooks/useSession';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useTransitAlerts } from '@/hooks/useTransitAlerts';
 import { usePlanGate } from '@/hooks/usePlanGate';
+import { useVoiceGuruEnabled } from '@/hooks/useVoiceGuruEnabled';
 import { toast } from '@/components/ui/sonner';
 import { StaleSnapshotBanner } from '@/components/chart/StaleSnapshotBanner';
 import { AutoInsightsLoader } from '@/components/chart/AutoInsightsLoader';
@@ -36,6 +37,7 @@ export function AppLayout() {
   const { isAdmin } = useAdmin();
   const { unreadCount } = useTransitAlerts();
   const alertsGated = usePlanGate('transit_alerts');
+  const { enabled: voiceEnabled } = useVoiceGuruEnabled();
   const chartActive = CHART_PREFIXES.some((p) => pathname.startsWith(p));
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -105,7 +107,7 @@ export function AppLayout() {
                 isActive ? 'bg-elevated text-text-primary' : 'text-text-tertiary hover:text-text-primary'
               )}>
               <Mic className="h-4 w-4" />
-              <NavBadge>NEW</NavBadge>
+              <NavBadge>{voiceEnabled ? 'NEW' : 'SOON'}</NavBadge>
               <span className="hidden sm:inline">Voice</span>
             </NavLink>
             </div>

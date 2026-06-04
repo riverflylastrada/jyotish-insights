@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Star, MessageCirclePlus } from 'lucide-react';
+import { Star, MessageCirclePlus, Loader2 } from 'lucide-react';
 import { GuruSelector } from '@/components/voice/GuruSelector';
 import { useVoiceStore } from '@/stores/useVoiceStore';
 import { useDefaultChart } from '@/hooks/useDefaultChart';
+import { useVoiceGuruEnabled } from '@/hooks/useVoiceGuruEnabled';
 import type { VoiceGuruId } from '@/config/guruVoices';
 
 /**
@@ -20,6 +21,27 @@ export default function VoiceGuruPage() {
   const openWith = useVoiceStore((s) => s.openWith);
   const { data: resolved, isLoading } = useDefaultChart();
   const [startFresh, setStartFresh] = useState(false);
+  const { enabled, isLoading: flagLoading } = useVoiceGuruEnabled();
+
+  if (flagLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-saffron" />
+      </div>
+    );
+  }
+  if (!enabled) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
+        <span className="text-eyebrow uppercase tracking-wider text-brand-gold">Voice AI Guru</span>
+        <h1 className="mt-2 font-display text-h2 text-text-primary">Talk to a Guruji — coming soon</h1>
+        <p className="mx-auto mt-3 max-w-xl text-sm text-text-muted">
+          We're putting the finishing touches on the live voice consultation — speak with an AI Jyotishi
+          who already knows your chart. It will be available here shortly.
+        </p>
+      </div>
+    );
+  }
 
   // An explicit :chartId always wins. Otherwise use the resolved default/latest
   // chart, unless the user chose to start fresh.

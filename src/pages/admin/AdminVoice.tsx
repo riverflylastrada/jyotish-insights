@@ -49,6 +49,7 @@ export default function AdminVoice() {
   async function save() {
     setSaving(true);
     const keys = [
+      'voice_guru_enabled',
       ...BASE_KEYS.map((k) => k.key),
       ...VOICE_GURUS.flatMap((g) => [
         `elevenlabs_voice_id_${g.id}`,
@@ -122,6 +123,33 @@ export default function AdminVoice() {
           </div>
         </div>
       )}
+
+      {/* Public availability toggle */}
+      <div className="mt-8 flex flex-col gap-3 rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-display text-h3 text-text-primary">Public availability</h2>
+          <p className="mt-1 max-w-xl text-xs text-text-muted">
+            When off, Voice Guru shows <span className="font-medium">“Coming soon”</span> everywhere and no
+            session can start — so no ElevenLabs cost is incurred. Turn on only once the agent is finalised.
+            Remember to click <span className="font-medium">Save Configuration</span> below to apply.
+          </p>
+        </div>
+        <label className="inline-flex cursor-pointer items-center gap-3 self-start sm:self-center">
+          <span className={`text-sm font-medium ${values['voice_guru_enabled'] === 'true' ? 'text-semantic-positive' : 'text-text-tertiary'}`}>
+            {values['voice_guru_enabled'] === 'true' ? 'On — live' : 'Off — coming soon'}
+          </span>
+          <span className="relative inline-block h-6 w-11 shrink-0">
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              checked={values['voice_guru_enabled'] === 'true'}
+              onChange={(e) => setValues((v) => ({ ...v, voice_guru_enabled: e.target.checked ? 'true' : 'false' }))}
+            />
+            <span className="absolute inset-0 rounded-full bg-hairline-subtle transition-colors peer-checked:bg-brand-saffron" />
+            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+          </span>
+        </label>
+      </div>
 
       {/* Config editor */}
       <div className="mt-8 space-y-5 rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
