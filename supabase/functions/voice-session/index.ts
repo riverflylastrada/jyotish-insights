@@ -48,8 +48,15 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 function logAiUsage(row: Record<string, unknown>): void {
   try {
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return;
+    // A usage log must never reject a write: null out non-uuid chart_id/user_id
+    // (uuid columns can't take e.g. a "demo"/unsaved chart id).
+    const safe: Record<string, unknown> = { ...row };
+    for (const k of ["chart_id", "user_id"]) {
+      const v = safe[k];
+      if (typeof v !== "string" || !UUID_RE.test(v)) safe[k] = null;
+    }
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    admin.from("ai_usage").insert(row).then(({ error }) => {
+    admin.from("ai_usage").insert(safe).then(({ error }) => {
       if (error) console.warn("ai_usage log failed:", error.message);
     });
   } catch (e) {

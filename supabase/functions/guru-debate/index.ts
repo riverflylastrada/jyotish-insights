@@ -85,15 +85,25 @@ async function resolveUserId(req: Request): Promise<string | null> {
   } catch { return null; }
 }
 
+const AI_USAGE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Fire-and-forget INSERT into ai_usage via service-role. Never throws. */
 function logAiUsage(row: Record<string, unknown>): void {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     if (!supabaseUrl || !serviceRoleKey) return;
+    // A usage log must never reject a write. chart_id/user_id are uuid columns
+    // that can't take non-uuid values (e.g. a "demo"/unsaved chart id), so null
+    // out anything that isn't a uuid before inserting.
+    const safe: Record<string, unknown> = { ...row };
+    for (const k of ["chart_id", "user_id"]) {
+      const v = safe[k];
+      if (typeof v !== "string" || !AI_USAGE_UUID_RE.test(v)) safe[k] = null;
+    }
     const admin = createClient(supabaseUrl, serviceRoleKey);
     // Fire-and-forget: don't await — best-effort, non-blocking
-    admin.from("ai_usage").insert(row).then(({ error }) => {
+    admin.from("ai_usage").insert(safe).then(({ error }) => {
       if (error) console.warn("ai_usage log failed:", error.message);
     });
   } catch (e) {
