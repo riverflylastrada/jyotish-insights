@@ -40,6 +40,48 @@ Deno.serve(async (req) => {
   });
 
   try {
+    // ── TEMP diagnostic: POST {diagnose:true} returns a per-user breakdown
+    //    (charts / snapshots / existing alerts / what the detector finds) so we
+    //    can see why a user's feed is empty. Does not scan or insert. Remove
+    //    once the cause is identified.
+    let reqBody: Record<string, unknown> = {};
+    try { reqBody = await req.json(); } catch { /* no / invalid body */ }
+    if (reqBody?.diagnose) {
+      const { data: profs } = await sb
+        .from("profiles")
+        .select("user_id, display_name, transit_alerts_enabled, transit_alerts_categories");
+      const rows: unknown[] = [];
+      for (const p of profs ?? []) {
+        const { data: charts } = await sb.from("charts").select("id, snapshot").eq("user_id", p.user_id);
+        const list = charts ?? [];
+        const first = list.find((c) => !!c.snapshot);
+        let detected: unknown = null;
+        if (first) {
+          try {
+            const snap = typeof first.snapshot === "string" ? JSON.parse(first.snapshot) : first.snapshot;
+            snap.id = first.id;
+            const evs = detectUpcomingEvents(snap, 365);
+            detected = { count: evs.length, sample: evs.slice(0, 3).map((e) => e.title) };
+          } catch (e) { detected = { error: e instanceof Error ? e.message : String(e) }; }
+        }
+        const { count } = await sb
+          .from("transit_alerts").select("id", { count: "exact", head: true }).eq("user_id", p.user_id);
+        rows.push({
+          name: p.display_name ?? null,
+          uid8: String(p.user_id ?? "").slice(0, 8),
+          enabled: p.transit_alerts_enabled,
+          categories: p.transit_alerts_categories,
+          charts: list.length,
+          withSnapshot: list.filter((c) => !!c.snapshot).length,
+          alerts: count ?? 0,
+          detected,
+        });
+      }
+      return new Response(JSON.stringify({ diagnose: rows }, null, 2), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Fetch users with alerts enabled
     const { data: profiles, error: profErr } = await sb
       .from("profiles")
