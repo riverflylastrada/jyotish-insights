@@ -6,6 +6,7 @@ import { useChartStore } from '@/stores/useChartStore';
 import { KundliChart, KundliFrame } from '@/components/kundli/KundliChart';
 import { PLANET_LABELS, SIGN_NAMES, SIGN_NAMES_DEVA, type DivisionalChart, type Dosha, type PlanetPosition } from '@/lib/astro/types';
 import { Download, Share2, RefreshCcw, Save, MessageSquare, Loader2, Sparkles, ArrowRight } from 'lucide-react';
+import { FocusedGuruAnswer } from '@/components/research/FocusedGuruAnswer';
 import dayjs from 'dayjs';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -436,9 +437,7 @@ function HousesTab({ chart, autoInsights, chartId }: { chart: DivisionalChart; a
                           <p className="text-sm text-text-secondary">{autoInsights.houses[String(h)]}</p>
                         </div>
                       ) : (
-                        <Link to={chartLink(`/app/chart/${chartId}/debate`)} className="inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
-                          <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
-                        </Link>
+                        <FocusedGuruAnswer chartId={chartId} topic="house" subject={`House ${h}`} variant="link" />
                       )}
                     </td>
                   </tr>

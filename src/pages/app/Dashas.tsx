@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useChartLink } from '@/hooks/useChartLink';
-import { ArrowLeft, Loader2, Sparkles, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { useKundli } from '@/hooks/useKundli';
+import { FocusedGuruAnswer } from '@/components/research/FocusedGuruAnswer';
 import { DashaTimeline, type SelectedPeriodInfo } from '@/components/dashas/DashaTimeline';
 import { DashaFocusPanel } from '@/components/dashas/DashaFocusPanel';
 import type { DashaSystem, DivisionalChart } from '@/lib/astro/types';
@@ -455,9 +456,9 @@ export default function Dashas() {
                   </div>
                 );
                 return (
-                  <Link to={chartLink(`/app/chart/${id}/debate`)} className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand-maroon hover:underline">
-                    <MessageSquare className="h-3.5 w-3.5" /> Tap to ask a Guru &rarr;
-                  </Link>
+                  <div className="mt-3">
+                    <FocusedGuruAnswer chartId={id} topic="dasha" subject={selectedPeriod.label} variant="link" />
+                  </div>
                 );
               })()}
             </div>
