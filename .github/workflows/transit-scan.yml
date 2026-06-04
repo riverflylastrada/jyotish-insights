@@ -1,0 +1,38 @@
+name: Transit scan (daily alerts)
+
+# Populates the `transit_alerts` table by invoking the `transit-scan` edge
+# function. Nothing else runs the scan — the bell/Notifications only READ this
+# table — so without this workflow it stays empty and no alerts ever appear.
+#
+# `transit-scan` is verify_jwt = false (see supabase/config.toml), so a plain
+# POST triggers it; no token travels in the request. The function authenticates
+# to the DB with its own SUPABASE_SERVICE_ROLE_KEY (set in the Supabase project)
+# and writes alerts for every user with transit_alerts_enabled = true.
+#
+# Reuses the existing SUPABASE_PROJECT_REF secret — no new secret required.
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # daily at 02:00 UTC
+  workflow_dispatch: {} # manual "Run workflow" to backfill / test on demand
+
+jobs:
+  scan:
+    # Only the canonical repo runs the scan — skip the push-mirror fork so it
+    # doesn't double-scan (or fail for lack of the secret).
+    if: github.repository == 'Viewofmind/jyotish-insights'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke transit-scan
+        env:
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::SUPABASE_PROJECT_REF secret is not set — cannot resolve the function URL." >&2
+            exit 1
+          fi
+          URL="https://${PROJECT_REF}.supabase.co/functions/v1/transit-scan"
+          echo "POST $URL"
+          # -f: non-2xx is a failure; print the {scanned,inserted,errors} summary.
+          curl -fsS -X POST "$URL" -H 'Content-Type: application/json' -d '{}' | tee /tmp/scan.json
+          echo

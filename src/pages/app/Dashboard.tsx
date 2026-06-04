@@ -20,6 +20,7 @@ import { getAstroProvider } from '@/lib/astro/factory';
 import { PLANET_LABELS, CURRENT_SNAPSHOT_VERSION, type PlanetPosition, type KundliData } from '@/lib/astro/types';
 import { toast } from '@/components/ui/sonner';
 import { useCurrentLocation } from '@/hooks/useCurrentLocation';
+import { useDefaultChart } from '@/hooks/useDefaultChart';
 
 interface Profile {
   id: string;
@@ -41,6 +42,11 @@ export default function Dashboard() {
   const [loadingTransits, setLoadingTransits] = useState(true);
   const [computedSnapshots, setComputedSnapshots] = useState<Record<string, KundliData>>({});
   const [attemptedComputes, setAttemptedComputes] = useState<Record<string, boolean>>({});
+  // Resolves the user's explicit default chart (profiles.default_chart_id), with
+  // a newest-chart fallback. Used to seed the Active Profile so the dashboard
+  // honours the default the user picked in Library instead of always jumping to
+  // the newest kundli.
+  const { data: resolvedDefault, isLoading: defaultLoading } = useDefaultChart();
 
   // Load saved profiles from Library
   useEffect(() => {
@@ -59,15 +65,26 @@ export default function Dashboard() {
           snapshot: p.snapshot as unknown as KundliData | null
         })));
 
-        if (data && data.length > 0) {
-          setSelectedProfileId(data[0].id);
-        }
+        // Initial Active Profile is seeded by the effect below (honours the
+        // user's default chart); don't force the newest one here.
       } catch (e: any) {
         toast.error("Failed to load dashboard profiles: " + e.message);
       }
     }
     loadProfiles();
   }, []);
+
+  // Seed the Active Profile once the saved list and the resolved default have
+  // both loaded: pick the user's explicit default (Library → "Set as default"),
+  // falling back to the newest chart only when no default is set. Runs once —
+  // a manual switch via the dropdown sets selectedProfileId and is preserved.
+  useEffect(() => {
+    if (!profiles || profiles.length === 0) return;
+    if (selectedProfileId) return;
+    if (defaultLoading) return; // wait, so we don't lock in the newest first
+    const def = resolvedDefault?.chartId;
+    setSelectedProfileId(def && profiles.some((p) => p.id === def) ? def : profiles[0].id);
+  }, [profiles, resolvedDefault, defaultLoading, selectedProfileId]);
 
   // Fetch user's current location for transit computation
   const { location: currentLocation, isFromProfile: transitUsingProfile } = useCurrentLocation(23.0225, 72.5714, 'Asia/Kolkata');
