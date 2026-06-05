@@ -32,6 +32,7 @@ interface AiUsageRow {
 interface Profile {
   user_id: string;
   display_name: string | null;
+  email?: string | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -94,12 +95,15 @@ export default function AdminUsage() {
     (async () => {
       const [usageRes, profilesRes, settingsRes] = await Promise.all([
         supabase.from('ai_usage').select('*').order('created_at', { ascending: false }).limit(10000),
-        supabase.from('profiles').select('user_id, display_name'),
+        // Resolve names for ALL users via the admin-gated RPC. A direct
+        // `profiles` select is blocked by RLS to the admin's OWN row, which left
+        // every other user showing a raw user_id in the tables below.
+        supabase.rpc('admin_get_users'),
         supabase.from('app_settings').select('key, value').in('key', ['inr_per_usd', 'monthly_budget_usd']),
       ]);
       if (usageRes.error) { setError(usageRes.error.message); setLoading(false); return; }
       setRows((usageRes.data ?? []) as AiUsageRow[]);
-      setProfiles((profilesRes.data ?? []) as Profile[]);
+      setProfiles((profilesRes.data ?? []) as unknown as Profile[]);
       for (const s of settingsRes.data ?? []) {
         if (s.key === 'inr_per_usd' && s.value) {
           const v = parseFloat(s.value as string);
@@ -116,7 +120,12 @@ export default function AdminUsage() {
 
   const profileMap = useMemo(() => {
     const m = new Map<string, string>();
-    for (const p of profiles) if (p.display_name) m.set(p.user_id, p.display_name);
+    // Prefer the display name; fall back to email so a user without a name set
+    // still reads as a person, not a raw UUID.
+    for (const p of profiles) {
+      const label = p.display_name || p.email || null;
+      if (label) m.set(p.user_id, label);
+    }
     return m;
   }, [profiles]);
 
