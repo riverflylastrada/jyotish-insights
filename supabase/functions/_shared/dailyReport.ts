@@ -80,6 +80,26 @@ export function assembleReport(opts: {
   };
 }
 
+/** Compact prompt input for the daily LLM guidance line (~120 tokens). */
+export function buildGuidanceInput(p: ReportPayload, snapshot: any): string {
+  const asc = snapshot?.ascendant?.signName ?? "unknown";
+  const d1 = snapshot?.divisionalCharts?.find((d: any) => d.varga === "D1");
+  const moon = d1?.planets?.find((pl: any) => pl.planet === "moon");
+  const moonStr = moon ? `${moon.signName} (${moon.nakshatra})` : "unknown";
+  const d = p.dasha;
+  const dashaStr = d?.maha
+    ? `Mahadasha ${cap(d.maha.planet)}${d.maha.end ? ` to ${d.maha.end}` : ""}` +
+      (d.antar ? `, Antardasha ${cap(d.antar.planet)}${d.antar.end ? ` to ${d.antar.end}` : ""}` : "")
+    : "unknown";
+  const transitStr = p.transits.length ? p.transits.map((t) => t.title).join("; ") : "none";
+  return [
+    `Lagna: ${asc}. Moon: ${moonStr}.`,
+    `Today (${p.dateLabel}): ${p.panchang.tithi}, ${p.panchang.vara}, Nakshatra ${p.panchang.nakshatra}, Yoga ${p.panchang.yoga}.`,
+    `Current dasha: ${dashaStr}.`,
+    `Notable transits in the next 7 days: ${transitStr}.`,
+  ].join("\n");
+}
+
 // ─── Rendering ─────────────────────────────────────────────────────────────────
 const esc = (s: unknown): string =>
   String(s ?? "").replace(/[&<>"']/g, (c) =>

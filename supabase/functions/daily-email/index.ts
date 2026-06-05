@@ -18,8 +18,9 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { computeDayPanchang } from "../_shared/dailyPanchang.ts";
-import { assembleReport, buildEmailHtml, buildSubject } from "../_shared/dailyReport.ts";
+import { assembleReport, buildEmailHtml, buildSubject, buildGuidanceInput } from "../_shared/dailyReport.ts";
 import { loadEmailConfig, isEmailConfigured, sendDailyEmail } from "../_shared/email.ts";
+import { generateDailyGuidance, logAiUsage } from "../_shared/llm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,12 +98,14 @@ Deno.serve(async (req) => {
     .from("app_settings").select("key, value")
     .in("key", [
       "listmonk_url", "listmonk_api_user", "listmonk_api_token",
-      "listmonk_list_id", "listmonk_tx_template_id", "daily_email_morning_hour",
+      "listmonk_list_id", "listmonk_tx_template_id",
+      "daily_email_morning_hour", "daily_email_llm_budget_usd",
     ]);
   const settings = new Map((settingsRows ?? []).map((r): [string, string] => [r.key as string, (r.value ?? "") as string]));
   const get = (k: string) => settings.get(k) ?? "";
   const emailCfg = loadEmailConfig(get);
   const morningHour = (() => { const n = parseInt(get("daily_email_morning_hour") || "7", 10); return Number.isFinite(n) ? n : 7; })();
+  const llmBudget = (() => { const n = parseFloat(get("daily_email_llm_budget_usd") || "0"); return Number.isFinite(n) ? n : 0; })();
 
   // ── Shared helpers ───────────────────────────────────────────────────────────
   const parseSnapshot = (raw: unknown, id: string) => {
@@ -122,8 +125,8 @@ Deno.serve(async (req) => {
     return c?.snapshot ? c : null;
   }
 
-  /** Build subject + HTML for a user from their profile + resolved chart row. */
-  function buildForUser(p: ProfileRow, chart: any) {
+  /** Build the deterministic report payload for a user from their resolved chart. */
+  function buildPayload(p: ProfileRow, chart: any) {
     const snapshot = parseSnapshot(chart.snapshot, chart.id);
     const bd = chart.birth_details ?? snapshot.birthDetails ?? {};
     const place = bd.placeOfBirth ?? {};
@@ -135,7 +138,40 @@ Deno.serve(async (req) => {
     const fullName: string = snapshot.birthDetails?.fullName || p.display_name || "";
     const name = fullName.trim().split(/\s+/)[0] ?? "";
     const payload = assembleReport({ name, dateLabel: dateLabel(tz, scanNow), panchang, snapshot });
-    return { html: buildEmailHtml(payload), subject: buildSubject(payload), name };
+    return { payload, snapshot, name };
+  }
+
+  /**
+   * Best-effort daily guidance line. On success mutates payload.guidance and logs
+   * to ai_usage; returns the call cost (for the run budget tally) + whether used.
+   * Any failure / not-configured leaves the email deterministic-only.
+   */
+  async function maybeGuidance(
+    payload: ReturnType<typeof assembleReport>, snapshot: any,
+    userId: string, chartId: string, allow: boolean,
+  ): Promise<{ cost: number; used: boolean }> {
+    if (!allow) return { cost: 0, used: false };
+    const started = Date.now();
+    const g = await generateDailyGuidance(buildGuidanceInput(payload, snapshot));
+    if (g.text) {
+      payload.guidance = g.text;
+      logAiUsage({
+        function: "daily-email", mode: "daily", user_id: userId, chart_id: chartId,
+        model: g.model, provider: g.provider,
+        prompt_tokens: g.usage?.prompt_tokens ?? 0, completion_tokens: g.usage?.completion_tokens ?? 0,
+        total_tokens: g.usage?.total_tokens ?? 0, cost_usd: g.cost ?? 0,
+        language: "en", success: true, latency_ms: Date.now() - started,
+      });
+      return { cost: g.cost ?? 0, used: true };
+    }
+    if (g.error && g.error !== "llm not configured") {
+      logAiUsage({
+        function: "daily-email", mode: "daily", user_id: userId, chart_id: chartId,
+        model: g.model, provider: g.provider, cost_usd: 0,
+        success: false, error: g.error.slice(0, 300), latency_ms: Date.now() - started,
+      });
+    }
+    return { cost: 0, used: false };
   }
 
   const cols = "user_id, display_name, current_timezone, current_lat, current_lon, default_chart_id";
@@ -158,12 +194,16 @@ Deno.serve(async (req) => {
     const chart = await resolveChart(target.id, (p as ProfileRow).default_chart_id);
     if (!chart) return json({ error: "User has no chart with a snapshot" }, 404);
 
-    const { html, subject, name } = buildForUser(p as ProfileRow, chart);
+    const { payload, snapshot, name } = buildPayload(p as ProfileRow, chart);
+    // Preview always attempts the guidance line (ignores budget) so you can see it.
+    const g = await maybeGuidance(payload, snapshot, target.id, chart.id, true);
+    const html = buildEmailHtml(payload);
+    const subject = buildSubject(payload);
     let sent: unknown = null;
     if (wantSend && isEmailConfigured(emailCfg)) {
       sent = await sendDailyEmail(emailCfg, { email: target.email, name, subject, html });
     }
-    return json({ dryRun: true, email: target.email, subject, sent, emailConfigured: isEmailConfigured(emailCfg), html });
+    return json({ dryRun: true, email: target.email, subject, llmUsed: g.used, sent, emailConfigured: isEmailConfigured(emailCfg), html });
   }
 
   // ── Normal hourly run ────────────────────────────────────────────────────────
@@ -171,7 +211,17 @@ Deno.serve(async (req) => {
   if (profErr) return json({ error: profErr.message }, 500);
 
   const targetHour = forceHour ?? morningHour;
-  let due = 0, sent = 0, skipped = 0, failed = 0, noChart = 0;
+  let due = 0, sent = 0, skipped = 0, failed = 0, noChart = 0, llmSent = 0;
+
+  // Global daily LLM budget: sum today's daily-email spend once, then tally this
+  // run's spend as we go so we stop calling the model when the cap is reached.
+  let runSpend = 0;
+  if (llmBudget > 0) {
+    const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0);
+    const { data: spendRows } = await sb.from("ai_usage").select("cost_usd")
+      .eq("function", "daily-email").gte("created_at", dayStart.toISOString());
+    runSpend = (spendRows ?? []).reduce((s, r) => s + Number((r as any).cost_usd ?? 0), 0);
+  }
 
   for (const p of (profiles ?? []) as ProfileRow[]) {
     // Cheap due-check on current_timezone (or IST). Birth-tz fallback for users
@@ -202,17 +252,23 @@ Deno.serve(async (req) => {
       const email = userRes?.user?.email;
       if (!email) { await mark({ status: "failed", error: "no email on auth user" }); failed++; continue; }
 
-      const { html, subject, name } = buildForUser(p, chart);
+      const { payload, snapshot, name } = buildPayload(p, chart);
+      const allowLlm = llmBudget > 0 && runSpend < llmBudget;
+      const g = await maybeGuidance(payload, snapshot, p.user_id, chart.id, allowLlm);
+      runSpend += g.cost;
+      if (g.used) llmSent++;
+      const html = buildEmailHtml(payload);
+      const subject = buildSubject(payload);
 
       if (!isEmailConfigured(emailCfg)) {
-        await mark({ status: "failed", error: "listmonk not configured" }); failed++; continue;
+        await mark({ status: "failed", error: "listmonk not configured", llm_used: g.used }); failed++; continue;
       }
       const r = await sendDailyEmail(emailCfg, { email, name, subject, html });
       if (r.ok) {
-        await mark({ status: "sent", sent_at: new Date().toISOString(), listmonk_message_id: r.messageId ?? null });
+        await mark({ status: "sent", sent_at: new Date().toISOString(), listmonk_message_id: r.messageId ?? null, llm_used: g.used });
         sent++;
       } else {
-        await mark({ status: "failed", error: (r.error ?? "send failed").slice(0, 500) });
+        await mark({ status: "failed", error: (r.error ?? "send failed").slice(0, 500), llm_used: g.used });
         failed++;
       }
     } catch (e) {
@@ -221,5 +277,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ ok: true, hour: targetHour, due, sent, skipped, failed, noChart });
+  return json({ ok: true, hour: targetHour, due, sent, skipped, failed, noChart, llmSent });
 });
