@@ -36,7 +36,7 @@ jobs:
       - name: Deno tests (engine + dossier)
         run: deno test supabase/functions/calculate-kundli/ supabase/functions/guru-debate/
       - name: Deno type-check entrypoints
-        run: deno check supabase/functions/calculate-kundli/engine.ts supabase/functions/guru-debate/index.ts supabase/functions/voice-session/index.ts supabase/functions/voice-tools/index.ts
+        run: deno check supabase/functions/calculate-kundli/engine.ts supabase/functions/guru-debate/index.ts supabase/functions/voice-session/index.ts supabase/functions/voice-tools/index.ts supabase/functions/daily-email/index.ts
 
   # Deploy the Supabase backend on every push to main, so backend changes
   # actually reach production. The frontend already auto-deploys (DigitalOcean,
