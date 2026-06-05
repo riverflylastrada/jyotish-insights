@@ -1,0 +1,39 @@
+name: Daily kundli email
+
+# Invokes the `daily-email` edge function every hour. The function sends a
+# personalised "morning kundli report" to each opted-in user (email_daily_enabled)
+# whose LOCAL clock hour matches the configured morning hour, so an hourly cadence
+# is required to cover every timezone. One email per user per local day is enforced
+# server-side (daily_email_sends unique key).
+#
+# `daily-email` is verify_jwt = false (see supabase/config.toml), so a plain POST
+# triggers it; no token travels in the request. The function authenticates to the
+# DB with its own SUPABASE_SERVICE_ROLE_KEY and delivers via listmonk.
+#
+# Reuses the existing SUPABASE_PROJECT_REF secret — no new secret required.
+
+on:
+  schedule:
+    - cron: '5 * * * *' # hourly at :05 (clears top-of-hour clock skew)
+  workflow_dispatch: {} # manual "Run workflow" to test on demand
+
+jobs:
+  send:
+    # Only the canonical repo runs the job — skip the push-mirror fork so it
+    # doesn't double-send (or fail for lack of the secret).
+    if: github.repository == 'Viewofmind/jyotish-insights'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke daily-email
+        env:
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::SUPABASE_PROJECT_REF secret is not set — cannot resolve the function URL." >&2
+            exit 1
+          fi
+          URL="https://${PROJECT_REF}.supabase.co/functions/v1/daily-email"
+          echo "POST $URL"
+          # -f: non-2xx is a failure; print the {due,sent,skipped,failed} summary.
+          curl -fsS -X POST "$URL" -H 'Content-Type: application/json' -d '{}' | tee /tmp/daily-email.json
+          echo

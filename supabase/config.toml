@@ -19,6 +19,11 @@ verify_jwt = false
 # Called by ElevenLabs servers (no Supabase JWT) — secured by the
 # X-Webhook-Secret shared-secret header inside the function instead.
 verify_jwt = false
+
+[functions.daily-email]
+# Invoked hourly by .github/workflows/daily-email.yml (no Supabase JWT);
+# authenticates to the DB with its own service-role key.
+verify_jwt = false
 # Schedule: daily at 02:00 UTC via Supabase cron (pg_cron):
 #   select cron.schedule('transit-scan-daily', '0 2 * * *',
 #     $$select net.http_post(
