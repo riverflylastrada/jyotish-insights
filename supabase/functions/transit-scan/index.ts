@@ -103,6 +103,13 @@ Deno.serve(async (req) => {
     let totalInserted = 0;
     let totalErrors = 0;
 
+    // One shared ephemeris cache + one reference time for the WHOLE scan. Because
+    // tropicalPositions(jd) is chart-independent, this computes each day's planet
+    // set once for the entire run instead of once per chart — keeping a many-chart
+    // scan under the edge worker's CPU limit. (See ScanContext in transit_events.)
+    const scanNow = new Date();
+    const ephemerisCache = new Map();
+
     for (const profile of profiles) {
       const { data: charts, error: chartErr } = await sb
         .from("charts")
@@ -132,7 +139,7 @@ Deno.serve(async (req) => {
           // guarantees a meaningful feed (e.g. Jupiter changes sign within any
           // year); the upsert dedupes on (chart_id, event_key) so re-runs don't
           // duplicate. The Notifications page already sorts/groups by date.
-          const events = detectUpcomingEvents(snapshot, 365);
+          const events = detectUpcomingEvents(snapshot, 365, { now: scanNow, ephemerisCache });
 
           // Filter by category preferences
           const filtered = categories.includes('all')

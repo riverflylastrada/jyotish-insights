@@ -468,16 +468,32 @@ function ordinal(n: number): string {
 
 // ─── Main Export ────────────────────────────────────────────────────────────
 
+/**
+ * Optional shared state for scanning many charts in one pass (e.g. transit-scan).
+ * tropicalPositions(jd) is chart-independent here, so passing ONE cache across all
+ * charts makes the ephemeris cost O(unique jds) for the whole scan instead of
+ * O(charts × jds) — each day's planet set is computed once no matter how many
+ * charts are scanned. `now` MUST be shared too: otherwise each chart's jd grid
+ * differs by the per-call clock delta and the cache never hits across charts.
+ */
+export interface ScanContext {
+  now?: Date;
+  ephemerisCache?: Map<number, ReturnType<typeof tropicalPositions>>;
+}
+
 export function detectUpcomingEvents(
   chart: KundliSnapshot,
   lookAheadDays = 30,
+  ctx?: ScanContext,
 ): TransitEvent[] {
   // Memoize the ephemeris for the span of this scan (see tropicalAt). Save and
   // restore any outer cache so a nested call can never clobber an in-flight one.
+  // A caller scanning many charts passes a shared cache + a shared `now` via ctx
+  // so the ephemeris is computed once per jd for the entire scan, not per chart.
   const prevCache = activeCache;
-  activeCache = new Map();
+  activeCache = ctx?.ephemerisCache ?? new Map();
   try {
-    const now = new Date();
+    const now = ctx?.now ?? new Date();
     const end = new Date(now.getTime() + lookAheadDays * 86_400_000);
     const startJd = dateToJd(now);
     const endJd = dateToJd(end);
