@@ -103,10 +103,34 @@ function getNatalMoonSign(chart: KundliSnapshot): number {
   return moon?.signNumber ?? 0;
 }
 
+// ─── Per-scan ephemeris cache ─────────────────────────────────────────────────
+// tropicalPositions(jd) is chart-independent here — it's always called with fixed
+// lat/lon = 0 and nodeType 'true', and the detectors read only planet longitudes
+// (never the ascendant, which would need the birth place). Yet a single
+// detectUpcomingEvents run invokes seven detectors over overlapping jd grids and
+// siderealPosAt recomputes the FULL planet set on every call even though each call
+// reads one planet — e.g. the sign-ingress detector asks for all four major planets
+// at the same jd (4 calls → 4 full VSOP87 computes). Memoizing tropicalPositions by
+// jd for the duration of one scan collapses that to a single compute per unique jd.
+// Pure memoization (identical input → identical output), so detected events are
+// byte-identical to the un-cached path. (Same idea as the Saturn lifetime-scan
+// memoization, #96, which the roadmap flags as the remedy for WORKER_RESOURCE_LIMIT.)
+type RawPositions = ReturnType<typeof tropicalPositions>;
+let activeCache: Map<number, RawPositions> | null = null;
+
+function tropicalAt(jd: number): RawPositions {
+  if (!activeCache) return tropicalPositions(jd, 0, 0, 'true');
+  const hit = activeCache.get(jd);
+  if (hit) return hit;
+  const computed = tropicalPositions(jd, 0, 0, 'true');
+  activeCache.set(jd, computed);
+  return computed;
+}
+
 function siderealPosAt(
   planet: string, jd: number, ayaKey: AyanamsaKey,
 ): { sign: number; longitude: number } {
-  const trop = tropicalPositions(jd, 0, 0, 'true');
+  const trop = tropicalAt(jd);
   const tropLon = (trop as unknown as Record<string, number>)[planet];
   if (tropLon === undefined) return { sign: 0, longitude: 0 };
   const aya = ayanamsa(ayaKey, jd);
@@ -341,7 +365,7 @@ function detectEclipseActivations(
     if (!isNewMoon && !isFullMoon) continue;
 
     // Check proximity to Rahu/Ketu
-    const trop = tropicalPositions(jd, 0, 0, 'true');
+    const trop = tropicalAt(jd);
     const rahuSid = toSidereal(trop.rahu, aya);
     let rahuDiff = Math.abs(norm360(sunSid - rahuSid));
     if (rahuDiff > 180) rahuDiff = 360 - rahuDiff;
@@ -448,23 +472,31 @@ export function detectUpcomingEvents(
   chart: KundliSnapshot,
   lookAheadDays = 30,
 ): TransitEvent[] {
-  const now = new Date();
-  const end = new Date(now.getTime() + lookAheadDays * 86_400_000);
-  const startJd = dateToJd(now);
-  const endJd = dateToJd(end);
-  const ayaKey = chart.birthDetails.ayanamsa ?? 'lahiri';
+  // Memoize the ephemeris for the span of this scan (see tropicalAt). Save and
+  // restore any outer cache so a nested call can never clobber an in-flight one.
+  const prevCache = activeCache;
+  activeCache = new Map();
+  try {
+    const now = new Date();
+    const end = new Date(now.getTime() + lookAheadDays * 86_400_000);
+    const startJd = dateToJd(now);
+    const endJd = dateToJd(end);
+    const ayaKey = chart.birthDetails.ayanamsa ?? 'lahiri';
 
-  const events: TransitEvent[] = [
-    ...detectSadeSatiEvents(chart, startJd, endJd, ayaKey),
-    ...detectAshtamaShani(chart, startJd, endJd, ayaKey),
-    ...detectSignIngresses(chart, startJd, endJd, ayaKey),
-    ...detectGuruBala(chart, startJd, endJd, ayaKey),
-    ...detectRetrogrades(chart, startJd, endJd, ayaKey),
-    ...detectEclipseActivations(chart, startJd, endJd, ayaKey),
-    ...detectDashaTransitions(chart, now, end),
-  ];
+    const events: TransitEvent[] = [
+      ...detectSadeSatiEvents(chart, startJd, endJd, ayaKey),
+      ...detectAshtamaShani(chart, startJd, endJd, ayaKey),
+      ...detectSignIngresses(chart, startJd, endJd, ayaKey),
+      ...detectGuruBala(chart, startJd, endJd, ayaKey),
+      ...detectRetrogrades(chart, startJd, endJd, ayaKey),
+      ...detectEclipseActivations(chart, startJd, endJd, ayaKey),
+      ...detectDashaTransitions(chart, now, end),
+    ];
 
-  // Sort by start date
-  events.sort((a, b) => new Date(a.starts).getTime() - new Date(b.starts).getTime());
-  return events;
+    // Sort by start date
+    events.sort((a, b) => new Date(a.starts).getTime() - new Date(b.starts).getTime());
+    return events;
+  } finally {
+    activeCache = prevCache;
+  }
 }
