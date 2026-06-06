@@ -36,6 +36,24 @@ function slugify(s: string): string {
     .replace(/^-|-$/g, "");
 }
 
+/**
+ * Defensive YAML guard before committing. Titles/descriptions frequently contain
+ * a colon (e.g. "Navamsa Chart: Meaning…"), which is invalid YAML when unquoted
+ * and fails the Astro content build. Wrap the title/description values in double
+ * quotes if they contain YAML-risky chars and aren't already quoted. Belt-and-
+ * suspenders to the system-prompt rule, so a forgetful draft can't break the site.
+ */
+function safeFrontmatter(md: string): string {
+  const m = md.match(/^(---\r?\n)([\s\S]*?)(\r?\n---)/);
+  if (!m) return md;
+  const fixed = m[2].replace(/^(title|description):[ \t]*(.*\S)[ \t]*$/gm, (full, key, val) => {
+    if (/^(".*"|'.*')$/.test(val)) return full;            // already quoted
+    if (!/[:#]/.test(val)) return full;                    // no YAML-risky char
+    return `${key}: "${val.replace(/"/g, '\\"')}"`;        // quote it
+  });
+  return m[1] + fixed + m[3] + md.slice(m[0].length);
+}
+
 // deno-lint-ignore no-explicit-any
 async function getSetting(sb: any, key: string, fallback = ""): Promise<string> {
   try {
@@ -68,8 +86,8 @@ const SYSTEM_PROMPT = `You are a senior Vedic astrology (Jyotish) writer produci
 Output ONE complete Markdown file: YAML frontmatter delimited by --- lines, then the article body. Output NOTHING else — no code fences, no preamble, no commentary.
 
 FRONTMATTER — use exactly these keys:
-- title: compelling, includes the primary keyword; SEO modifiers like ": Meaning, Effects & Remedies" are good. Keep it natural.
-- description: <= 160 characters, keyword-rich, plain (no quotes inside).
+- title: compelling, includes the primary keyword; SEO modifiers like ": Meaning, Effects & Remedies" are good. ALWAYS wrap the title value in double quotes — it usually contains a colon, and an unquoted colon is invalid YAML that breaks the build.
+- description: <= 160 characters, keyword-rich; ALWAYS wrap the value in double quotes and use no double quotes inside it.
 - kicker: the human category label (e.g. "Doshas", "Dashas", "Guides", "Houses").
 - category: EXACTLY the category you are given (one of: nakshatras, dashas, yogas, doshas, planets, houses, guides, compatibility).
 - tags: array of 3-6 short lowercase tags.
@@ -133,7 +151,7 @@ Deno.serve(async (req) => {
 
     const markdown = r.text.replace(/^```(?:markdown|md)?\s*/i, "").replace(/\s*```$/i, "").trim();
     return json({
-      ok: true, markdown, suggestedSlug: slugify(topic), category,
+      ok: true, markdown, suggestedSlug: slugify(primaryKeyword), category,
       model: r.model, tokens: r.usage?.total_tokens ?? 0, cost: r.cost ?? 0,
     });
   }
@@ -193,7 +211,7 @@ Deno.serve(async (req) => {
   if (action === "publish") {
     const category = String(body.category ?? "").trim();
     const slug = slugify(String(body.slug ?? ""));
-    const markdown = String(body.markdown ?? "");
+    const markdown = safeFrontmatter(String(body.markdown ?? ""));
     if (!CATEGORIES.includes(category)) return json({ error: "invalid category" }, 400);
     if (!slug) return json({ error: "slug is required" }, 400);
     if (markdown.length < 50) return json({ error: "markdown is empty" }, 400);
