@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Key, Bot, ArrowLeft, Mic, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, Key, Bot, ArrowLeft, Mic, BarChart3, FileText } from 'lucide-react';
 
 const adminNav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -9,6 +9,7 @@ const adminNav = [
   { to: '/admin/llm-config', label: 'LLM Config', icon: Bot },
   { to: '/admin/voice', label: 'Voice', icon: Mic },
   { to: '/admin/usage', label: 'AI Usage', icon: BarChart3 },
+  { to: '/admin/learn-content', label: 'Learn Content', icon: FileText },
 ];
 
 export function AdminLayout() {

@@ -105,48 +105,61 @@ export interface GuidanceResult {
   error?: string;
 }
 
-/** One compact, non-streaming guidance call. Best-effort: returns text|null + cost. */
-export async function generateDailyGuidance(userContent: string): Promise<GuidanceResult> {
+/**
+ * One non-streaming chat completion against the app's configured LLM
+ * (provider/endpoint/key from `llm_config`). Best-effort: returns text|null plus
+ * token usage and computed cost. `opts.model` overrides the configured model —
+ * e.g. a stronger model for long-form content than the cheap daily-email default.
+ */
+export async function generateText(
+  systemPrompt: string,
+  userPrompt: string,
+  opts: { maxTokens?: number; temperature?: number; model?: string; timeoutMs?: number } = {},
+): Promise<GuidanceResult> {
   const cfg = await getLlmConfig();
-  if (!cfg?.endpoint || !cfg?.model || !cfg?.apiKey) return { text: null, error: "llm not configured" };
+  if (!cfg?.endpoint || !cfg?.apiKey) return { text: null, error: "llm not configured" };
+  const model = opts.model || cfg.model;
+  if (!model) return { text: null, error: "llm not configured" };
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const dbPricing = url && key ? await loadPricing(url, key).catch(() => ({})) : {};
   const pricing = { ...MODEL_PRICING, ...dbPricing };
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 15_000);
+  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 30_000);
   try {
     const r = await fetch(cfg.endpoint, {
       method: "POST",
       headers: llmHeaders(cfg.provider, cfg.apiKey),
       body: JSON.stringify({
-        model: cfg.model,
+        model,
         stream: false,
-        max_tokens: 200,
-        temperature: 0.7,
+        max_tokens: opts.maxTokens ?? 1024,
+        temperature: opts.temperature ?? 0.7,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
       }),
       signal: ctrl.signal,
     });
-    if (!r.ok) return { text: null, error: `LLM ${r.status}`, model: cfg.model, provider: cfg.provider ?? "unknown" };
+    if (!r.ok) {
+      const detail = await r.text().catch(() => "");
+      return { text: null, error: `LLM ${r.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`, model, provider: cfg.provider ?? "unknown" };
+    }
     const json = await r.json();
     const usage = json?.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
     const raw: string = json?.choices?.[0]?.message?.content ?? "";
     const pt = usage.prompt_tokens ?? 0;
     const ct = usage.completion_tokens ?? 0;
-    return {
-      text: raw.trim() || null,
-      usage,
-      model: cfg.model,
-      provider: cfg.provider ?? "unknown",
-      cost: computeCost(pricing, cfg.model, pt, ct),
-    };
+    return { text: raw.trim() || null, usage, model, provider: cfg.provider ?? "unknown", cost: computeCost(pricing, model, pt, ct) };
   } catch (e) {
-    return { text: null, error: e instanceof Error ? e.message : String(e), model: cfg.model ?? undefined, provider: cfg.provider ?? "unknown" };
+    return { text: null, error: e instanceof Error ? e.message : String(e), model, provider: cfg.provider ?? "unknown" };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Compact daily guidance line — thin wrapper over generateText. */
+export function generateDailyGuidance(userContent: string): Promise<GuidanceResult> {
+  return generateText(SYSTEM_PROMPT, userContent, { maxTokens: 200, temperature: 0.7, timeoutMs: 15_000 });
 }

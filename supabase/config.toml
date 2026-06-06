@@ -24,6 +24,11 @@ verify_jwt = false
 # Invoked hourly by .github/workflows/daily-email.yml (no Supabase JWT);
 # authenticates to the DB with its own service-role key.
 verify_jwt = false
+
+[functions.learn-content]
+# Admin-only authoring pipeline (gateway requires a valid JWT; the function
+# additionally checks profiles.role = 'admin').
+verify_jwt = true
 # Schedule: daily at 02:00 UTC via Supabase cron (pg_cron):
 #   select cron.schedule('transit-scan-daily', '0 2 * * *',
 #     $$select net.http_post(
