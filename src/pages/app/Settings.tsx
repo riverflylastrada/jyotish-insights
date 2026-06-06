@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, Save, MapPin, X, Bell } from 'lucide-react';
+import { Loader2, Save, MapPin, X, Bell, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { useSession } from '@/hooks/useSession';
@@ -17,6 +17,7 @@ type Prefs = {
   current_timezone: string | null;
   transit_alerts_enabled: boolean;
   transit_alerts_categories: string[];
+  email_daily_enabled: boolean;
 };
 
 const DEFAULTS: Prefs = {
@@ -30,6 +31,7 @@ const DEFAULTS: Prefs = {
   current_timezone: null,
   transit_alerts_enabled: true,
   transit_alerts_categories: ['all'],
+  email_daily_enabled: false,
 };
 
 const EVENT_CATEGORIES = [
@@ -45,6 +47,7 @@ const EVENT_CATEGORIES = [
 export default function Settings() {
   const { user } = useSession();
   const alertsGated = usePlanGate('transit_alerts');
+  const dailyEmailGated = usePlanGate('daily_email');
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -61,7 +64,7 @@ export default function Settings() {
     (async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name,ayanamsa,chart_style,house_system,current_place_name,current_lat,current_lon,current_timezone,transit_alerts_enabled,transit_alerts_categories')
+        .select('display_name,ayanamsa,chart_style,house_system,current_place_name,current_lat,current_lon,current_timezone,transit_alerts_enabled,transit_alerts_categories,email_daily_enabled')
         .eq('user_id', user.id)
         .maybeSingle();
       if (error) { toast.error(error.message); setPrefs(DEFAULTS); return; }
@@ -366,6 +369,28 @@ export default function Settings() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Daily email section */}
+        {dailyEmailGated && (
+          <div className="border-t border-hairline-subtle pt-5">
+            <div className="flex items-center gap-2 text-eyebrow mb-3 text-text-tertiary">
+              <Mail className="h-4 w-4" />
+              Daily email
+            </div>
+            <p className="mb-3 text-xs text-text-tertiary">
+              A short personalised reading each morning in your local time — today's Panchang,
+              your current dasha, and any notable transits, drawn from your default chart.
+              We use your name, email and chart to generate it. Unsubscribe anytime from the
+              link in the email footer.
+            </p>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={prefs.email_daily_enabled}
+                onChange={(e) => setPrefs({ ...prefs, email_daily_enabled: e.target.checked })}
+                className="h-4 w-4 rounded border-hairline-subtle accent-brand-saffron" />
+              <span className="text-sm text-text-primary">Email me a daily reading</span>
+            </label>
           </div>
         )}
 

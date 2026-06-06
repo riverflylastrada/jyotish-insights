@@ -162,6 +162,7 @@ export type Database = {
           role: string
           transit_alerts_enabled: boolean
           transit_alerts_categories: string[]
+          email_daily_enabled: boolean
           updated_at: string
           user_id: string
         }
@@ -180,6 +181,7 @@ export type Database = {
           role?: string
           transit_alerts_enabled?: boolean
           transit_alerts_categories?: string[]
+          email_daily_enabled?: boolean
           updated_at?: string
           user_id: string
         }
@@ -198,6 +200,7 @@ export type Database = {
           role?: string
           transit_alerts_enabled?: boolean
           transit_alerts_categories?: string[]
+          email_daily_enabled?: boolean
           updated_at?: string
           user_id?: string
         }
