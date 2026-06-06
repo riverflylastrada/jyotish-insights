@@ -1,18 +1,22 @@
 /**
  * Supabase Edge Function: learn-content
  *
- * Admin-only authoring pipeline for the learn.acharyajyotish.com SEO site.
- *   action 'generate' → drafts a complete Markdown article (frontmatter + body)
- *                       in the learn content schema/style via the configured LLM.
- *   action 'publish'  → commits the (admin-reviewed) Markdown to the learn repo via
- *                       the GitHub Contents API; deploy_on_push then auto-deploys.
+ * Admin-only authoring panel backend for the learn.acharyajyotish.com SEO site.
+ * Actions (POST { action, ... }):
+ *   'generate' → draft a complete Markdown article via the configured LLM.
+ *   'list'     → list every learn article (category/slug/title/chars) from the repo.
+ *   'get'      → fetch one article's Markdown (for editing) + its blob SHA.
+ *   'publish'  → commit (create or update) an article to the learn repo.
+ *   'delete'   → delete an article from the learn repo.
+ * GitHub writes/reads go through the Contents/Git APIs; deploy_on_push then
+ * auto-deploys the static site.
  *
  * Gated to admins: requires a valid Supabase JWT (verify_jwt = true) AND
  * profiles.role = 'admin'. The GitHub token + repo live in app_settings.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import { encodeBase64, decodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import { generateText } from "../_shared/llm.ts";
 
 const corsHeaders = {
@@ -39,6 +43,25 @@ async function getSetting(sb: any, key: string, fallback = ""): Promise<string> 
     return (data?.value as string) || fallback;
   } catch { return fallback; }
 }
+
+// deno-lint-ignore no-explicit-any
+async function githubCtx(sb: any) {
+  const token = await getSetting(sb, "github_content_token");
+  const repo = await getSetting(sb, "github_content_repo", "Viewofmind/learn-acharyajyotish");
+  const branch = await getSetting(sb, "github_content_branch", "main");
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "User-Agent": "acharya-jyotish-learn-content",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  return { token, repo, branch, headers };
+}
+
+const decodeContent = (b64: string) =>
+  new TextDecoder().decode(decodeBase64(b64.replace(/\s/g, "")));
+
+const LEARN_FILE_RE = /^src\/content\/learn\/([^/]+)\/(.+)\.mdx?$/;
 
 const SYSTEM_PROMPT = `You are a senior Vedic astrology (Jyotish) writer producing ONE SEO article for learn.acharyajyotish.com, the knowledge site of the Acharya Jyotish platform.
 
@@ -108,20 +131,65 @@ Deno.serve(async (req) => {
     const r = await generateText(SYSTEM_PROMPT, userPrompt, { maxTokens: 4000, temperature: 0.6, model, timeoutMs: 90_000 });
     if (!r.text) return json({ error: r.error ?? "generation failed" }, 502);
 
-    // Strip any stray code fences the model may add despite instructions.
     const markdown = r.text.replace(/^```(?:markdown|md)?\s*/i, "").replace(/\s*```$/i, "").trim();
     return json({
-      ok: true,
-      markdown,
-      suggestedSlug: slugify(topic),
-      category,
-      model: r.model,
-      tokens: r.usage?.total_tokens ?? 0,
-      cost: r.cost ?? 0,
+      ok: true, markdown, suggestedSlug: slugify(topic), category,
+      model: r.model, tokens: r.usage?.total_tokens ?? 0, cost: r.cost ?? 0,
     });
   }
 
-  // ── Publish to the learn repo via GitHub Contents API ────────────────────────
+  // ── List every learn article from the repo ───────────────────────────────────
+  if (action === "list") {
+    const { token, repo, branch, headers } = await githubCtx(sb);
+    if (!token) return json({ error: "github_content_token is not set in Admin → API Keys" }, 400);
+    const treeRes = await fetch(
+      `https://api.github.com/repos/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, { headers });
+    if (!treeRes.ok) {
+      const t = await treeRes.text().catch(() => "");
+      return json({ error: `GitHub tree read failed (${treeRes.status}): ${t.slice(0, 200)}` }, 502);
+    }
+    const tree = await treeRes.json();
+    // deno-lint-ignore no-explicit-any
+    const blobs = (tree.tree ?? []).filter((t: any) => t.type === "blob" && LEARN_FILE_RE.test(t.path));
+    // deno-lint-ignore no-explicit-any
+    const items = await Promise.all(blobs.map(async (b: any) => {
+      const m = String(b.path).match(LEARN_FILE_RE);
+      const category = m?.[1] ?? "";
+      const slug = m?.[2] ?? "";
+      let title = slug;
+      let publishedAt = "";
+      try {
+        const cr = await fetch(`https://api.github.com/repos/${repo}/contents/${b.path}?ref=${encodeURIComponent(branch)}`, { headers });
+        if (cr.ok) {
+          const md = decodeContent(String((await cr.json()).content ?? ""));
+          const tm = md.match(/^title:\s*["']?(.+?)["']?\s*$/m);
+          if (tm) title = tm[1].replace(/["']$/, "").trim();
+          const pm = md.match(/^publishedAt:\s*(.+)$/m);
+          if (pm) publishedAt = pm[1].trim();
+        }
+      } catch { /* fall back to slug as title */ }
+      return { category, slug, path: b.path, chars: b.size ?? 0, title, publishedAt };
+    }));
+    items.sort((a, b) => a.category.localeCompare(b.category) || a.slug.localeCompare(b.slug));
+    return json({ ok: true, items });
+  }
+
+  // ── Get one article's Markdown (for editing) ─────────────────────────────────
+  if (action === "get") {
+    const category = String(body.category ?? "").trim();
+    const slug = slugify(String(body.slug ?? ""));
+    if (!CATEGORIES.includes(category) || !slug) return json({ error: "category + slug required" }, 400);
+    const { token, repo, branch, headers } = await githubCtx(sb);
+    if (!token) return json({ error: "github_content_token is not set" }, 400);
+    const path = `src/content/learn/${category}/${slug}.md`;
+    const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`, { headers });
+    if (r.status === 404) return json({ error: "not found" }, 404);
+    if (!r.ok) { const t = await r.text().catch(() => ""); return json({ error: `GitHub read failed (${r.status}): ${t.slice(0, 200)}` }, 502); }
+    const j = await r.json();
+    return json({ ok: true, markdown: decodeContent(String(j.content ?? "")), sha: j.sha, path });
+  }
+
+  // ── Publish (create or update) to the learn repo ─────────────────────────────
   if (action === "publish") {
     const category = String(body.category ?? "").trim();
     const slug = slugify(String(body.slug ?? ""));
@@ -130,35 +198,23 @@ Deno.serve(async (req) => {
     if (!slug) return json({ error: "slug is required" }, 400);
     if (markdown.length < 50) return json({ error: "markdown is empty" }, 400);
 
-    const token = await getSetting(sb, "github_content_token");
-    const repo = await getSetting(sb, "github_content_repo", "Viewofmind/learn-acharyajyotish");
-    const branch = await getSetting(sb, "github_content_branch", "main");
+    const { token, repo, branch, headers } = await githubCtx(sb);
     if (!token) return json({ error: "github_content_token is not set in Admin → API Keys" }, 400);
-
     const path = `src/content/learn/${category}/${slug}.md`;
-    const ghHeaders = {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "User-Agent": "acharya-jyotish-learn-content",
-      "X-GitHub-Api-Version": "2022-11-28",
-    };
     const apiBase = `https://api.github.com/repos/${repo}/contents/${path}`;
 
     try {
-      // If the file already exists, we need its SHA to update it.
       let sha: string | undefined;
-      const existing = await fetch(`${apiBase}?ref=${encodeURIComponent(branch)}`, { headers: ghHeaders });
-      if (existing.ok) {
-        const ej = await existing.json();
-        sha = ej?.sha;
-      } else if (existing.status !== 404) {
+      const existing = await fetch(`${apiBase}?ref=${encodeURIComponent(branch)}`, { headers });
+      if (existing.ok) sha = (await existing.json())?.sha;
+      else if (existing.status !== 404) {
         const t = await existing.text().catch(() => "");
         return json({ error: `GitHub read failed (${existing.status}): ${t.slice(0, 200)}` }, 502);
       }
 
       const put = await fetch(apiBase, {
         method: "PUT",
-        headers: { ...ghHeaders, "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           message: `${sha ? "content: update" : "content: add"} learn/${category}/${slug}`,
           content: encodeBase64(new TextEncoder().encode(markdown)),
@@ -166,15 +222,10 @@ Deno.serve(async (req) => {
           ...(sha ? { sha } : {}),
         }),
       });
-      if (!put.ok) {
-        const t = await put.text().catch(() => "");
-        return json({ error: `GitHub write failed (${put.status}): ${t.slice(0, 200)}` }, 502);
-      }
+      if (!put.ok) { const t = await put.text().catch(() => ""); return json({ error: `GitHub write failed (${put.status}): ${t.slice(0, 200)}` }, 502); }
       const pj = await put.json();
       return json({
-        ok: true,
-        updated: !!sha,
-        path,
+        ok: true, updated: !!sha, path,
         url: `https://learn.acharyajyotish.com/learn/${category}/${slug}/`,
         commitUrl: pj?.commit?.html_url ?? null,
       });
@@ -183,5 +234,28 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ error: "unknown action — use 'generate' or 'publish'" }, 400);
+  // ── Delete an article from the learn repo ────────────────────────────────────
+  if (action === "delete") {
+    const category = String(body.category ?? "").trim();
+    const slug = slugify(String(body.slug ?? ""));
+    if (!CATEGORIES.includes(category) || !slug) return json({ error: "category + slug required" }, 400);
+    const { token, repo, branch, headers } = await githubCtx(sb);
+    if (!token) return json({ error: "github_content_token is not set" }, 400);
+    const path = `src/content/learn/${category}/${slug}.md`;
+    const apiBase = `https://api.github.com/repos/${repo}/contents/${path}`;
+
+    const existing = await fetch(`${apiBase}?ref=${encodeURIComponent(branch)}`, { headers });
+    if (existing.status === 404) return json({ error: "not found" }, 404);
+    if (!existing.ok) return json({ error: `GitHub read failed (${existing.status})` }, 502);
+    const sha = (await existing.json())?.sha;
+    const del = await fetch(apiBase, {
+      method: "DELETE",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ message: `content: delete learn/${category}/${slug}`, sha, branch }),
+    });
+    if (!del.ok) { const t = await del.text().catch(() => ""); return json({ error: `GitHub delete failed (${del.status}): ${t.slice(0, 200)}` }, 502); }
+    return json({ ok: true, path });
+  }
+
+  return json({ error: "unknown action — use generate | list | get | publish | delete" }, 400);
 });
