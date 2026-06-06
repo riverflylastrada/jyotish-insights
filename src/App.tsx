@@ -52,6 +52,7 @@ const AdminApiKeys = lazy(() => import("./pages/admin/AdminApiKeys"));
 const AdminLlmConfig = lazy(() => import("./pages/admin/AdminLlmConfig"));
 const AdminVoice = lazy(() => import("./pages/admin/AdminVoice"));
 const AdminUsage = lazy(() => import("./pages/admin/AdminUsage"));
+const AdminLearnContent = lazy(() => import("./pages/admin/AdminLearnContent"));
 const VoiceGuruPage = lazy(() => import("./pages/app/VoiceGuruPage"));
 const Mundane = lazy(() => import("./pages/Mundane"));
 const Panchang = lazy(() => import("./pages/Panchang"));
@@ -131,6 +132,7 @@ const App = () => (
               <Route path="llm-config" element={<AdminLlmConfig />} />
               <Route path="voice" element={<AdminVoice />} />
               <Route path="usage" element={<AdminUsage />} />
+              <Route path="learn-content" element={<AdminLearnContent />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
