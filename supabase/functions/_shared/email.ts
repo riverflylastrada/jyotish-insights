@@ -78,8 +78,12 @@ export async function sendDailyEmail(
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: authHeader(c) },
       body: JSON.stringify({
+        // listmonk takes the subject as a top-level field (transactional templates
+        // have no subject input in the UI); also expose it in `data` for templates
+        // that prefer to reference {{ .Tx.Data.subject }}.
         subscriber_email: msg.email,
         template_id: c.txTemplateId,
+        subject: msg.subject,
         data: { subject: msg.subject, body: msg.html, name: msg.name },
         content_type: "html",
       }),
