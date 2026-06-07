@@ -33,7 +33,7 @@ export function useAutoInsights(chartId: string | undefined) {
     (async () => {
       try {
         const resp = await supabase.functions.invoke('guru-debate', {
-          body: { mode: 'auto-insights', question: 'auto-insights', chart: data },
+          body: { mode: 'auto-insights', question: 'auto-insights', chart: data, turnId: crypto.randomUUID(), turnKind: 'auto' },
         });
         const insights = resp.data;
         if (resp.error || !insights || insights.error) return;

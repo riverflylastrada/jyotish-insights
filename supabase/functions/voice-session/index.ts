@@ -18,6 +18,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildChartDossier } from "../guru-debate/dossier.ts";
 import { GROUNDING_INSTRUCTION } from "../guru-debate/grounding.ts";
 import { calculateKundli, calculateTransits } from "../calculate-kundli/engine.ts";
+import { checkWeeklyCap } from "../_shared/usageCap.ts";
 import {
   VOICE_PERSONAS,
   VOICE_DELIVERY_RULES,
@@ -127,6 +128,17 @@ async function handleGetSignedUrl(req: Request, body: any): Promise<Response> {
   if (!agentId) return json({ error: "Voice agent is not configured (missing agent id)." }, 503);
   const voiceId = cfg[`elevenlabs_voice_id_${guruId}`] || "";
   const language = body.language || cfg["elevenlabs_default_language"] || "hi";
+
+  // Weekly usage cap: a voice session counts toward the shared per-user limit.
+  // Enforced before minting a (paid) token. Best-effort: allows on infra failure
+  // or when the caller can't be attributed to a user.
+  {
+    const { data: { user: capUser } } = await userClient(req).auth.getUser();
+    const cap = await checkWeeklyCap(capUser?.id ?? null, "voice", null);
+    if (!cap.allowed) {
+      return json({ error: cap.message, capReason: cap.reason, capExceeded: true }, 429);
+    }
+  }
 
   // Resolve the chart. Primary: caller passes the full KundliData (works for
   // demo / unsaved / shared charts, mirrors guru-debate). Fallback: load by
@@ -270,6 +282,7 @@ async function handleLogSession(req: Request, body: any): Promise<Response> {
     success: true,
     error: null,
     latency_ms: durationSeconds * 1000,
+    turn_kind: "voice",
   });
 
   return json({ ok: true });

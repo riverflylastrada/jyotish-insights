@@ -42,8 +42,11 @@ export async function streamFromEdge(
 
   if (!resp.ok || !resp.body) {
     let msg = 'Failed to start stream';
-    try { const j = await resp.json(); if (j?.error) msg = j.error; } catch { /* ignore */ }
-    throw new Error(msg);
+    let cap = false;
+    try { const j = await resp.json(); if (j?.error) msg = j.error; if (j?.capExceeded) cap = true; } catch { /* ignore */ }
+    const err = new Error(msg) as Error & { capExceeded?: boolean };
+    if (cap) err.capExceeded = true;
+    throw err;
   }
 
   const reader = resp.body.getReader();

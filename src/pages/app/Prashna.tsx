@@ -321,6 +321,11 @@ export default function Prashna() {
     setRunning(true);
     resetDebate();
 
+    // One turn_id for the whole horary tribunal so the weekly cap counts it as
+    // a single "debate" event (not one per guru).
+    const turnId = crypto.randomUUID();
+    let capMessage: string | null = null;
+
     const MAX_RETRIES = 2;
     const MIN_READING_LENGTH = 200;
 
@@ -335,7 +340,7 @@ export default function Prashna() {
           setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: '' } }));
 
           const result = await streamFromEdge(
-            { mode: 'guru', guru: g.key, question: questionText, chart: chartData, prashnaMode: true },
+            { mode: 'guru', guru: g.key, question: questionText, chart: chartData, prashnaMode: true, turnId, turnKind: 'debate' },
             (t) => setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: t } })),
           );
 
@@ -353,6 +358,11 @@ export default function Prashna() {
           setStates((s) => ({ ...s, [g.key]: { status: 'done', text: result.text } }));
           return { success: true, key: g.key, name: g.name, text: result.text };
         } catch (e) {
+          if ((e as { capExceeded?: boolean })?.capExceeded) {
+            capMessage = e instanceof Error ? e.message : 'Weekly limit reached';
+            setStates((s) => ({ ...s, [g.key]: { status: 'idle', text: '' } }));
+            return { success: false, key: g.key, name: g.name, error: 'cap' };
+          }
           attempts++;
           if (attempts > MAX_RETRIES) {
             const msg = e instanceof Error ? e.message : 'Reading failed';
@@ -365,6 +375,13 @@ export default function Prashna() {
     });
 
     const results = await Promise.all(promises);
+
+    if (capMessage) {
+      resetDebate();
+      toast.error(capMessage, { duration: 8000 });
+      setRunning(false);
+      return;
+    }
 
     const successfulReadings = results.filter((r) => r.success).map((r) => ({ guru: r.name, text: r.text as string }));
     const failedGurus = results.filter((r) => !r.success).map((r) => r.name);
@@ -381,6 +398,8 @@ export default function Prashna() {
           chart: chartData,
           priorReadings: successfulReadings,
           prashnaMode: true,
+          turnId,
+          turnKind: 'debate',
         };
         if (failedGurus.length > 0) verdictPayload.missingVoices = failedGurus;
 

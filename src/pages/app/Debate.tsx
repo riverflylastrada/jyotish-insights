@@ -68,8 +68,11 @@ async function streamFromEdge(
 
   if (!resp.ok || !resp.body) {
     let msg = 'Failed to start stream';
-    try { const j = await resp.json(); if (j?.error) msg = j.error; } catch { /* ignore */ }
-    throw new Error(msg);
+    let cap = false;
+    try { const j = await resp.json(); if (j?.error) msg = j.error; if (j?.capExceeded) cap = true; } catch { /* ignore */ }
+    const err = new Error(msg) as Error & { capExceeded?: boolean };
+    if (cap) err.capExceeded = true;
+    throw err;
   }
 
   const reader = resp.body.getReader();
@@ -204,6 +207,12 @@ export default function Debate() {
 
     const compiledHistory = compileChatHistory(turns);
 
+    // One turn_id for the whole tribunal submission so the weekly usage cap
+    // counts this as a single "debate" (not one per guru). turnKind 'debate'
+    // makes it count against the stricter debates-per-week tier.
+    const turnId = crypto.randomUUID();
+    let capMessage: string | null = null;
+
     const MAX_RETRIES = 2;
     const MIN_READING_LENGTH = 200;
 
@@ -219,7 +228,7 @@ export default function Debate() {
           setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: '' } }));
 
           const result = await streamFromEdge(
-            { mode: 'guru', guru: g.key, question: activeQuestion, chart, chatHistory: compiledHistory },
+            { mode: 'guru', guru: g.key, question: activeQuestion, chart, chatHistory: compiledHistory, turnId, turnKind: 'debate' },
             (t) => setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: t } })),
           );
 
@@ -239,6 +248,13 @@ export default function Debate() {
           setStates((s) => ({ ...s, [g.key]: { status: 'done', text: result.text } }));
           return { success: true, key: g.key, name: g.name, text: result.text };
         } catch (e) {
+          // Weekly cap: don't retry, don't show a per-guru error — surface one
+          // clear message after the fan-out settles.
+          if ((e as { capExceeded?: boolean })?.capExceeded) {
+            capMessage = e instanceof Error ? e.message : 'Weekly limit reached';
+            setStates((s) => ({ ...s, [g.key]: { status: 'idle', text: '' } }));
+            return { success: false, key: g.key, name: g.name, error: 'cap' };
+          }
           attempts++;
           if (attempts > MAX_RETRIES) {
             const msg = e instanceof Error ? e.message : 'Reading failed';
@@ -251,6 +267,14 @@ export default function Debate() {
     });
 
     const results = await Promise.all(promises);
+
+    // Weekly debate cap hit → one clear message, no verdict, no error cards.
+    if (capMessage) {
+      reset();
+      toast.error(capMessage, { duration: 8000 });
+      setRunning(false);
+      return;
+    }
 
     const successfulReadings = results
       .filter((r) => r.success)
@@ -272,6 +296,8 @@ export default function Debate() {
           chart,
           priorReadings: successfulReadings,
           chatHistory: compiledHistory,
+          turnId,
+          turnKind: 'debate',
         };
         if (failedGurus.length > 0) {
           verdictPayload.missingVoices = failedGurus;

@@ -3,6 +3,7 @@ import { buildChartDossier } from "./dossier.ts";
 import { calculateTransits } from "../calculate-kundli/engine.ts";
 import { validateAutoInsightsJson } from "./validate_auto_insights.ts";
 import { GROUNDING_INSTRUCTION, PRASHNA_GROUNDING } from "./grounding.ts";
+import { checkWeeklyCap, type TurnKind } from "../_shared/usageCap.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -236,9 +237,35 @@ Deno.serve(async (req) => {
     const language = typeof body.language === "string" ? body.language : null;
     const chartId = typeof body.chartId === "string" ? body.chartId : (chart?.id ?? null);
 
+    // Usage-cap tagging: one user submission = one turn_id (a tribunal fans out
+    // to ~9 calls that all share it). turn_kind classifies the event so the
+    // expensive multi-guru debate can be capped separately from single asks.
+    const turnId: string = (typeof body.turnId === "string" && AI_USAGE_UUID_RE.test(body.turnId))
+      ? body.turnId
+      : crypto.randomUUID();
+    const rawKind = typeof body.turnKind === "string" ? body.turnKind : "";
+    const turnKind: TurnKind =
+      (rawKind === "debate" || rawKind === "single" || rawKind === "auto" || rawKind === "voice")
+        ? rawKind
+        : (mode === "auto-insights" ? "auto" : mode === "verdict" ? "debate" : "single");
+
     // Resolve caller identity (best-effort, non-blocking for the response)
     const userIdPromise = resolveUserId(req);
     const requestStart = Date.now();
+
+    // ─── Weekly usage cap (pre-flight) ─────────────────────────────────────────
+    // Block before doing any LLM work if the caller is over their weekly limit.
+    // Best-effort: checkWeeklyCap returns allowed on any infra failure.
+    {
+      const callerId = await userIdPromise;
+      const cap = await checkWeeklyCap(callerId, turnKind, turnId);
+      if (!cap.allowed) {
+        return new Response(
+          JSON.stringify({ error: cap.message, capReason: cap.reason, capExceeded: true }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     // Compute live transits and build full chart dossier
     const now = new Date();
@@ -300,6 +327,7 @@ Deno.serve(async (req) => {
             chart_id: chartId, question: null, model, provider: provider ?? "unknown",
             prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
             language, success: false, error: `LLM ${r.status}`, latency_ms: Date.now() - callStart,
+            turn_id: turnId, turn_kind: turnKind,
           });
           throw new Error(`LLM ${r.status}`);
         }
@@ -320,6 +348,7 @@ Deno.serve(async (req) => {
           prompt_tokens: pt, completion_tokens: ct, total_tokens: usage.total_tokens ?? pt + ct,
           cost_usd: computeCost(effectivePricing, model, pt, ct),
           language, success: true, error: null, latency_ms: Date.now() - callStart,
+          turn_id: turnId, turn_kind: turnKind,
         });
 
         return { parsed: JSON.parse(cleaned), usage };
@@ -417,6 +446,7 @@ Deno.serve(async (req) => {
         provider: provider ?? "unknown",
         prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
         language, success: false, error: "rate_limit_429", latency_ms: Date.now() - streamCallStart,
+        turn_id: turnId, turn_kind: turnKind,
       });
       return new Response(JSON.stringify({ error: "AI provider rate limit — please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -430,6 +460,7 @@ Deno.serve(async (req) => {
         provider: provider ?? "unknown",
         prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cost_usd: 0,
         language, success: false, error: `gateway_${resp.status}`, latency_ms: Date.now() - streamCallStart,
+        turn_id: turnId, turn_kind: turnKind,
       });
       return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -471,6 +502,7 @@ Deno.serve(async (req) => {
           prompt_tokens: pt, completion_tokens: ct, total_tokens: usageData?.total_tokens ?? pt + ct,
           cost_usd: computeCost(effectivePricing, model, pt, ct),
           language, success: true, error: null, latency_ms: Date.now() - streamCallStart,
+          turn_id: turnId, turn_kind: turnKind,
         });
       } catch (e) {
         console.warn("ai_usage stream log error:", e);

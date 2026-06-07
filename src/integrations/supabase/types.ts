@@ -34,6 +34,8 @@ export type Database = {
           success: boolean
           error: string | null
           latency_ms: number | null
+          turn_id: string | null
+          turn_kind: string | null
         }
         Insert: {
           id?: string
@@ -54,6 +56,8 @@ export type Database = {
           success?: boolean
           error?: string | null
           latency_ms?: number | null
+          turn_id?: string | null
+          turn_kind?: string | null
         }
         Update: {
           id?: string
@@ -74,6 +78,8 @@ export type Database = {
           success?: boolean
           error?: string | null
           latency_ms?: number | null
+          turn_id?: string | null
+          turn_kind?: string | null
         }
         Relationships: []
       }
