@@ -47,8 +47,8 @@ SET search_path = public
 AS $$
   SELECT
     COUNT(DISTINCT COALESCE(turn_id::text, id::text))::int AS questions_used,
-    COUNT(DISTINCT COALESCE(turn_id::text, id::text))
-      FILTER (WHERE turn_kind = 'debate')::int            AS debates_used
+    (COUNT(DISTINCT COALESCE(turn_id::text, id::text))
+      FILTER (WHERE turn_kind = 'debate'))::int            AS debates_used
   FROM public.ai_usage
   WHERE user_id = p_user
     AND created_at >= p_since
