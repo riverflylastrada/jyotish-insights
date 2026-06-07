@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Loader2, DollarSign, Cpu, MessageSquare, Users,
   Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Download, AlertTriangle,
+  Download, AlertTriangle, ShieldCheck, ShieldOff,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -78,6 +79,14 @@ export default function AdminUsage() {
   const [usdToInr, setUsdToInr] = useState(USD_TO_INR_DEFAULT);
   const [monthlyBudgetUsd, setMonthlyBudgetUsd] = useState<number | null>(null);
 
+  // Weekly usage cap config (app_settings, category 'usage_limits')
+  const [capEnabled, setCapEnabled] = useState(true);
+  const [capQuestions, setCapQuestions] = useState('25');
+  const [capDebates, setCapDebates] = useState('3');
+  const [allowlist, setAllowlist] = useState<string[]>([]);
+  const [savingCap, setSavingCap] = useState(false);
+  const [exemptBusy, setExemptBusy] = useState<string | null>(null);
+
   // Recent table filters
   const [search, setSearch] = useState('');
   const [dateRange, setDateRange] = useState<'7d' | '30d' | 'all'>('30d');
@@ -99,7 +108,10 @@ export default function AdminUsage() {
         // `profiles` select is blocked by RLS to the admin's OWN row, which left
         // every other user showing a raw user_id in the tables below.
         supabase.rpc('admin_get_users'),
-        supabase.from('app_settings').select('key, value').in('key', ['inr_per_usd', 'monthly_budget_usd']),
+        supabase.from('app_settings').select('key, value').in('key', [
+          'inr_per_usd', 'monthly_budget_usd',
+          'usage_cap_enabled', 'usage_weekly_cap_questions', 'usage_weekly_cap_debates', 'usage_cap_allowlist',
+        ]),
       ]);
       if (usageRes.error) { setError(usageRes.error.message); setLoading(false); return; }
       setRows((usageRes.data ?? []) as AiUsageRow[]);
@@ -112,6 +124,12 @@ export default function AdminUsage() {
         if (s.key === 'monthly_budget_usd' && s.value) {
           const v = parseFloat(s.value as string);
           if (Number.isFinite(v) && v > 0) setMonthlyBudgetUsd(v);
+        }
+        if (s.key === 'usage_cap_enabled') setCapEnabled(String(s.value).toLowerCase() === 'true');
+        if (s.key === 'usage_weekly_cap_questions' && s.value) setCapQuestions(String(s.value));
+        if (s.key === 'usage_weekly_cap_debates' && s.value) setCapDebates(String(s.value));
+        if (s.key === 'usage_cap_allowlist' && s.value) {
+          try { const a = JSON.parse(String(s.value)); if (Array.isArray(a)) setAllowlist(a.map(String)); } catch { /* ignore */ }
         }
       }
       setLoading(false);
@@ -128,6 +146,37 @@ export default function AdminUsage() {
     }
     return m;
   }, [profiles]);
+
+  // ─── Weekly cap config writes (app_settings; admin write policy) ────────────
+
+  const saveCap = async () => {
+    setSavingCap(true);
+    const q = Math.max(0, parseInt(capQuestions, 10) || 0);
+    const d = Math.max(0, parseInt(capDebates, 10) || 0);
+    const { error: e } = await supabase.from('app_settings').upsert([
+      { key: 'usage_cap_enabled', value: capEnabled ? 'true' : 'false', category: 'usage_limits' },
+      { key: 'usage_weekly_cap_questions', value: String(q), category: 'usage_limits' },
+      { key: 'usage_weekly_cap_debates', value: String(d), category: 'usage_limits' },
+    ], { onConflict: 'key' });
+    setSavingCap(false);
+    if (e) { toast.error('Could not save cap: ' + e.message); return; }
+    setCapQuestions(String(q)); setCapDebates(String(d));
+    toast.success('Weekly cap saved — takes effect immediately.');
+  };
+
+  const toggleExempt = async (uid: string) => {
+    if (!uid || uid === 'anonymous') return;
+    setExemptBusy(uid);
+    const next = allowlist.includes(uid) ? allowlist.filter(x => x !== uid) : [...allowlist, uid];
+    const { error: e } = await supabase.from('app_settings').upsert(
+      { key: 'usage_cap_allowlist', value: JSON.stringify(next), category: 'usage_limits' },
+      { onConflict: 'key' },
+    );
+    setExemptBusy(null);
+    if (e) { toast.error('Could not update exemption: ' + e.message); return; }
+    setAllowlist(next);
+    toast.success(next.includes(uid) ? 'User exempted from the cap.' : 'Exemption removed.');
+  };
 
   // ─── Summary stats ────────────────────────────────────────────────────────
 
@@ -392,6 +441,42 @@ export default function AdminUsage() {
         </div>
       </div>
 
+      {/* Weekly usage cap */}
+      <div className="mt-8 rounded-md border border-hairline-subtle bg-surface p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-h3 text-text-primary">Weekly Usage Cap</h2>
+            <p className="mt-1 text-xs text-text-muted">
+              Per-user rolling-7-day limits, enforced before each AI call. Admins and exempt users below bypass it.
+              Temporary guardrail until paid plans launch — takes effect immediately, no deploy.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={capEnabled} onChange={e => setCapEnabled(e.target.checked)} className="h-4 w-4" />
+            <span className={capEnabled ? 'text-text-primary' : 'text-text-muted'}>{capEnabled ? 'Enabled' : 'Disabled'}</span>
+          </label>
+        </div>
+        <div className="mt-4 flex flex-wrap items-end gap-4">
+          <label className="text-xs text-text-muted">
+            Questions / user / week
+            <input type="number" min={0} value={capQuestions} onChange={e => setCapQuestions(e.target.value)}
+              className="mt-1 block w-32 rounded border border-hairline-subtle bg-canvas px-2 py-1 font-mono text-sm text-text-primary" />
+          </label>
+          <label className="text-xs text-text-muted">
+            Full debates / user / week
+            <input type="number" min={0} value={capDebates} onChange={e => setCapDebates(e.target.value)}
+              className="mt-1 block w-32 rounded border border-hairline-subtle bg-canvas px-2 py-1 font-mono text-sm text-text-primary" />
+          </label>
+          <button onClick={saveCap} disabled={savingCap}
+            className="rounded bg-brand-maroon px-3 py-1.5 text-sm text-white hover:opacity-90 disabled:opacity-50">
+            {savingCap ? 'Saving…' : 'Save cap'}
+          </button>
+          <span className="text-xs text-text-muted">
+            {allowlist.length} user{allowlist.length === 1 ? '' : 's'} exempt
+          </span>
+        </div>
+      </div>
+
       {/* Top users */}
       <div className="mt-8">
         <h2 className="font-display text-h3 text-text-primary">Top Users</h2>
@@ -409,10 +494,14 @@ export default function AdminUsage() {
                 <th className="cursor-pointer px-4 py-3 text-right" onClick={() => toggleSort('cost')}>
                   Cost <SortIcon col="cost" />
                 </th>
+                <th className="px-4 py-3 text-right">Cap</th>
               </tr>
             </thead>
             <tbody>
-              {topUsersPage.map(u => (
+              {topUsersPage.map(u => {
+                const isAnon = !u.uid || u.uid === 'anonymous';
+                const exempt = allowlist.includes(u.uid);
+                return (
                 <tr key={u.uid} className="border-b border-hairline-subtle last:border-0">
                   <td className="px-4 py-3">
                     {u.name ? <span>{u.name}</span> : <span className="font-mono text-xs text-text-muted">{truncate(u.uid, 12)}</span>}
@@ -420,8 +509,28 @@ export default function AdminUsage() {
                   <td className="px-4 py-3 text-right font-mono">{u.questions}</td>
                   <td className="px-4 py-3 text-right font-mono">{u.tokens.toLocaleString()}</td>
                   <td className="px-4 py-3 text-right font-mono">{fmtCost(u.cost)}</td>
+                  <td className="px-4 py-3 text-right">
+                    {isAnon ? (
+                      <span className="text-xs text-text-muted">—</span>
+                    ) : (
+                      <button
+                        onClick={() => toggleExempt(u.uid)}
+                        disabled={exemptBusy === u.uid}
+                        title={exempt ? 'Remove cap exemption' : 'Exempt this user from the weekly cap'}
+                        className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs disabled:opacity-50 ${
+                          exempt
+                            ? 'border-brand-saffron/40 bg-brand-saffron/10 text-brand-maroon'
+                            : 'border-hairline-subtle text-text-muted hover:text-text-primary'
+                        }`}
+                      >
+                        {exempt ? <ShieldCheck className="h-3 w-3" /> : <ShieldOff className="h-3 w-3" />}
+                        {exempt ? 'Exempt' : 'Limited'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {topUsers.length > PAGE_SIZE && (

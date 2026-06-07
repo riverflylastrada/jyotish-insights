@@ -68,8 +68,9 @@ export function FocusedGuruAnswer({ chartId, topic, subject, cachedFull, variant
     }
     setStatus('streaming');
     try {
+      // Single-guru ask: one turn_id, counts as one (cheap) question.
       const result = await streamFromEdge(
-        { mode: 'guru', guru: guru.key, question: focusedQuestion(topic, subject), chart },
+        { mode: 'guru', guru: guru.key, question: focusedQuestion(topic, subject), chart, turnId: crypto.randomUUID(), turnKind: 'single' },
         (t) => setText(t),
       );
       setText(result.text);
