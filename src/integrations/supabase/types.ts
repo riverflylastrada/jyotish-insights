@@ -127,6 +127,7 @@ export type Database = {
           name: string
           share_token: string
           snapshot: Json | null
+          auto_insights: Json | null
           updated_at: string
           user_id: string
         }
@@ -137,6 +138,7 @@ export type Database = {
           name: string
           share_token?: string
           snapshot?: Json | null
+          auto_insights?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -147,6 +149,7 @@ export type Database = {
           name?: string
           share_token?: string
           snapshot?: Json | null
+          auto_insights?: Json | null
           updated_at?: string
           user_id?: string
         }
