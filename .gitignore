@@ -36,3 +36,12 @@ android/capacitor-cordova-android-plugins/build
 
 # Capacitor asset generation working directory (source SVGs in resources/)
 icons
+
+# Android signing — NEVER commit keystores or signed bundles/apks
+*.jks
+*.keystore
+*.aab
+*.apk
+keystore.properties
+android/app/upload-keystore.jks
+google-services.json

@@ -1,0 +1,80 @@
+name: Android Release (AAB)
+
+# Builds a SIGNED Android App Bundle (.aab) for Play Store upload — no Android
+# Studio needed. Run it from the Actions tab (Run workflow) with a version name.
+# The signed .aab is published as a downloadable artifact.
+#
+# One-time setup — add these repo secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64    base64 of your upload keystore (.jks)
+#   ANDROID_KEYSTORE_PASSWORD  keystore password
+#   ANDROID_KEY_ALIAS          key alias
+#   ANDROID_KEY_PASSWORD       key password
+# Generate the keystore once and BACK IT UP (losing it can block future updates):
+#   keytool -genkeypair -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 \
+#     -validity 10000 -alias upload
+#   base64 -i upload-keystore.jks | pbcopy   # paste into ANDROID_KEYSTORE_BASE64
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: "Version name shown to users (e.g. 1.0.0)"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: read
+
+jobs:
+  build-aab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync Capacitor (android)
+        run: npx cap sync android
+
+      - name: Decode upload keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$GITHUB_WORKSPACE/android/app/upload-keystore.jks"
+
+      - name: Build signed AAB
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ github.workspace }}/android/app/upload-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew bundleRelease \
+            -PversionNameOverride="${{ inputs.versionName }}" \
+            -PversionCodeOverride=${{ github.run_number }}
+
+      - name: Remove keystore from runner
+        if: always()
+        run: rm -f "$GITHUB_WORKSPACE/android/app/upload-keystore.jks"
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: acharya-jyotish-${{ inputs.versionName }}-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error

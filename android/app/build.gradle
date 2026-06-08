@@ -7,8 +7,10 @@ android {
         applicationId "com.acharyajyotish.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI passes -PversionCodeOverride / -PversionNameOverride so each Play
+        // upload gets a strictly-increasing versionCode without editing this file.
+        versionCode project.hasProperty("versionCodeOverride") ? project.versionCodeOverride.toInteger() : 1
+        versionName project.hasProperty("versionNameOverride") ? project.versionNameOverride : "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +18,27 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release signing is configured ONLY from environment variables (CI), so the
+    // keystore is never committed. Local debug builds need none of this; if the
+    // env vars are absent the release build is simply left unsigned.
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("ANDROID_KEYSTORE_FILE")
+            if (ksPath) {
+                storeFile file(ksPath)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (System.getenv("ANDROID_KEYSTORE_FILE")) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
