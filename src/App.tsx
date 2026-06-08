@@ -57,6 +57,7 @@ const VoiceGuruPage = lazy(() => import("./pages/app/VoiceGuruPage"));
 const Mundane = lazy(() => import("./pages/Mundane"));
 const Panchang = lazy(() => import("./pages/Panchang"));
 const Eclipses = lazy(() => import("./pages/Eclipses"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 const SaturnTransits = lazy(() => import("./pages/app/SaturnTransits"));
 const SarvatobhadraChakra = lazy(() => import("./pages/app/SarvatobhadraChakra"));
 const KalachakraChakra = lazy(() => import("./pages/app/KalachakraChakra"));
@@ -84,6 +85,7 @@ const App = () => (
             <Route path="/mundane" element={<Mundane />} />
             <Route path="/panchang" element={<Panchang />} />
             <Route path="/eclipses" element={<Eclipses />} />
+            <Route path="/privacy" element={<Privacy />} />
 
             <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
               <Route index element={<Dashboard />} />
