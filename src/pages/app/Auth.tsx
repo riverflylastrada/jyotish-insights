@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { Seo } from '@/components/Seo';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 import { useSession } from '@/hooks/useSession';
@@ -60,6 +61,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
 
   return (
     <div className="min-h-screen bg-canvas">
+      <Seo
+        title={mode === 'login' ? 'Sign in — Acharya Jyotish' : 'Create your account — Acharya Jyotish'}
+        description="Sign in to Acharya Jyotish to generate and analyse your Vedic birth chart."
+        canonical={mode === 'login' ? '/login' : '/signup'}
+        noindex
+      />
       <div className="mx-auto max-w-md px-6 py-20">
         <Link to="/" className="font-display text-h3 text-brand-maroon">Acharya Jyotish</Link>
         <div className="mt-10 rounded-md border border-hairline-subtle bg-surface p-8 shadow-sm">

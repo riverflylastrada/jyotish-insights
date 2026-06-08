@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Seo } from '@/components/Seo';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -425,9 +426,11 @@ export default function Mundane() {
 
   return (
     <div className="min-h-screen bg-canvas text-text-primary">
-      {/* SEO meta is set via index.html and document.title */}
-      <title>Mundane Astrology — Acharya Jyotish | लौकिक ज्योतिष</title>
-      <meta name="description" content="Explore mundane (world) astrology charts — national, solar ingress, eclipse, and event charts with Vedic house significations. Free, no login required." />
+      <Seo
+        title="Mundane Astrology — National, Ingress & Event Charts | Acharya Jyotish"
+        description="Explore mundane (world) astrology charts — national, solar ingress, eclipse, and event charts with Vedic house significations. Free, no login required. लौकिक ज्योतिष।"
+        canonical="/mundane"
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-hairline-subtle bg-canvas/85 backdrop-blur">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Seo } from '@/components/Seo';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -449,8 +450,11 @@ export default function Panchang() {
 
   return (
     <div className="min-h-screen bg-canvas text-text-primary">
-      <title>{`आज का पंचांग — ${dateFormatted} | Acharya Jyotish`}</title>
-      <meta name="description" content={`Daily Panchang for ${dateFormatted}: Tithi, Nakshatra, Yoga, Karana, Rahu Kaal and more. आज का पंचांग — तिथि, नक्षत्र, योग, करण, राहु काल।`} />
+      <Seo
+        title={`आज का पंचांग — Today's Panchang, ${dateFormatted} | Acharya Jyotish`}
+        description={`Free daily Panchang for ${dateFormatted}: tithi, nakshatra, yoga, karana, rahu kaal, sunrise & sunset — accurate sidereal calculations. आज का पंचांग — तिथि, नक्षत्र, योग, करण, राहु काल।`}
+        canonical="/panchang"
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-hairline-subtle bg-canvas/85 backdrop-blur">
