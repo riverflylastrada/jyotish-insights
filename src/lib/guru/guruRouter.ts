@@ -22,6 +22,7 @@ export type GuruTopic =
   | 'house'    // A single bhava in the chart     → Parashara (BPHS)
   | 'varga'    // Divisional charts D1–D60        → Parashara (BPHS)
   | 'planet'   // A single planet in the chart    → Parashara (BPHS)
+  | 'nakshatra'// Nakshatra / lunar mansion        → Varahamihira (Samhita / lunar lore)
   | 'general'; // Anything else                   → Parashara (BPHS)
 
 export const GURU_FOR_TOPIC: Record<GuruTopic, GuruKey> = {
@@ -34,6 +35,7 @@ export const GURU_FOR_TOPIC: Record<GuruTopic, GuruKey> = {
   house: 'parashara',
   varga: 'parashara',
   planet: 'parashara',
+  nakshatra: 'varahamihira',
   general: 'parashara',
 };
 
@@ -64,6 +66,8 @@ export function focusedQuestion(topic: GuruTopic, subject: string): string {
       return `Focus only on ${subject} in this chart — the sign on it, its lord and where that lord sits, any occupants and aspects, and the concrete life areas it governs for the native. 2–3 short paragraphs, no preamble.`;
     case 'varga':
       return `Focus only on ${subject} in this chart's divisional (varga) analysis — what the placement reveals about that life area. 2–3 short paragraphs, no preamble.`;
+    case 'nakshatra':
+      return `Focus only on ${subject}. Read this nakshatra for the native — its nature, ruling planet and presiding deity, the gana/yoni/nadi temperament, and the concrete tendencies it lends to character, career and relationships. 2–3 short paragraphs, no preamble.`;
     case 'planet':
     case 'general':
     default:
