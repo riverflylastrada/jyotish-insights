@@ -60,6 +60,7 @@ const Eclipses = lazy(() => import("./pages/Eclipses"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const DeleteAccount = lazy(() => import("./pages/DeleteAccount"));
 const SaturnTransits = lazy(() => import("./pages/app/SaturnTransits"));
+const Nakshatras = lazy(() => import("./pages/app/Nakshatras"));
 const SarvatobhadraChakra = lazy(() => import("./pages/app/SarvatobhadraChakra"));
 const KalachakraChakra = lazy(() => import("./pages/app/KalachakraChakra"));
 const TripatakiChakra = lazy(() => import("./pages/app/TripatakiChakra"));
@@ -101,6 +102,7 @@ const App = () => (
               <Route path="chart/:id/dashas" element={<Dashas />} />
               <Route path="chart/:id/doshas" element={<Doshas />} />
               <Route path="chart/:id/yogas" element={<Yogas />} />
+              <Route path="chart/:id/nakshatras" element={<Nakshatras />} />
               <Route path="chart/:id/ashtakvarga" element={<Ashtakavarga />} />
               <Route path="chart/:id/ashtakavarga" element={<Ashtakavarga />} />
               <Route path="chart/:id/transits" element={<Transits />} />

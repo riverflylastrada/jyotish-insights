@@ -239,6 +239,7 @@ export default function ChartDetail() {
           ['dashas', 'Dashas'],
           ['doshas', 'Doshas'],
           ['yogas', 'Yogas'],
+          ['nakshatras', 'Nakshatras'],
           ['ashtakavarga', 'Ashtakavarga'],
           ['transits', 'Transits'],
           ['saturn-transits', 'Saturn Transits'],

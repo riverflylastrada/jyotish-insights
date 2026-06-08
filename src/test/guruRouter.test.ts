@@ -13,6 +13,7 @@ describe('guruRouter', () => {
     expect(guruForTopic('house')).toBe('parashara');
     expect(guruForTopic('varga')).toBe('parashara');
     expect(guruForTopic('planet')).toBe('parashara');
+    expect(guruForTopic('nakshatra')).toBe('varahamihira');
     expect(guruForTopic('general')).toBe('parashara');
   });
 
@@ -23,7 +24,7 @@ describe('guruRouter', () => {
   });
 
   it('focusedQuestion names the subject and stays scoped (no full-chart sprawl)', () => {
-    const topics: GuruTopic[] = ['dasha', 'transit', 'kp', 'jaimini', 'yoga', 'dosha', 'house', 'varga', 'planet', 'general'];
+    const topics: GuruTopic[] = ['dasha', 'transit', 'kp', 'jaimini', 'yoga', 'dosha', 'house', 'varga', 'planet', 'nakshatra', 'general'];
     for (const t of topics) {
       const q = focusedQuestion(t, 'Jupiter');
       expect(q).toContain('Jupiter');
