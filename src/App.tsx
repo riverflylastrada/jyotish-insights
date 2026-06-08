@@ -58,6 +58,7 @@ const Mundane = lazy(() => import("./pages/Mundane"));
 const Panchang = lazy(() => import("./pages/Panchang"));
 const Eclipses = lazy(() => import("./pages/Eclipses"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const DeleteAccount = lazy(() => import("./pages/DeleteAccount"));
 const SaturnTransits = lazy(() => import("./pages/app/SaturnTransits"));
 const SarvatobhadraChakra = lazy(() => import("./pages/app/SarvatobhadraChakra"));
 const KalachakraChakra = lazy(() => import("./pages/app/KalachakraChakra"));
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/panchang" element={<Panchang />} />
             <Route path="/eclipses" element={<Eclipses />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/delete-account" element={<DeleteAccount />} />
 
             <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
               <Route index element={<Dashboard />} />
