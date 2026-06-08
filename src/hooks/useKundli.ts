@@ -43,11 +43,19 @@ export function useKundli(chartId: string, details: BirthDetails = DEMO_BIRTH) {
       if (isUuid(chartId)) {
         const { data, error } = await supabase
           .from('charts')
-          .select('birth_details,snapshot')
+          .select('birth_details,snapshot,auto_insights')
           .eq('id', chartId)
           .maybeSingle();
         if (error) throw error;
-        if (isSnapshotFresh(data?.snapshot)) return data.snapshot as unknown as KundliData;
+        // Auto-insights live in their own column so they survive snapshot
+        // regeneration (engine version bumps). Merge them into whichever base
+        // chart we return; fall back to a legacy copy stored inside an older
+        // snapshot. This is what stops the same chart re-paying for insights.
+        const withInsights = (k: KundliData): KundliData => {
+          const insights = (data?.auto_insights ?? k.autoInsights) as unknown as KundliData['autoInsights'];
+          return insights ? { ...k, autoInsights: insights } : k;
+        };
+        if (isSnapshotFresh(data?.snapshot)) return withInsights(data.snapshot as unknown as KundliData);
         // No snapshot, or a stale one from an older engine version: regenerate
         // and cache the fresh snapshot back to the DB (best-effort, don't block).
         const fresh = await getAstroProvider().generateKundli((data?.birth_details as unknown as BirthDetails) ?? details);
@@ -60,10 +68,10 @@ export function useKundli(chartId: string, details: BirthDetails = DEMO_BIRTH) {
             `[useKundli] Recalculated snapshot is v${fresh.snapshotVersion ?? 0} but the app expects v${CURRENT_SNAPSHOT_VERSION}. ` +
               `The deployed calculate-kundli edge function is stale — redeploy it (\`supabase functions deploy calculate-kundli\`).`,
           );
-          return fresh;
+          return withInsights(fresh);
         }
         void supabase.from('charts').update({ snapshot: fresh as unknown as never }).eq('id', chartId);
-        return fresh;
+        return withInsights(fresh);
       }
       // Demo / fallback. Also serves the landing-page sample report
       // (/app/chart/demo?share=demo): the non-UUID id and token skip both

@@ -39,8 +39,6 @@ export function useAutoInsights(chartId: string | undefined) {
         if (resp.error || !insights || insights.error) return;
         if (cancelled) return;
 
-        const merged = { ...data, autoInsights: insights } as KundliData;
-
         // Update every cached variant of this chart's query in place.
         queryClient.setQueriesData<KundliData>(
           {
@@ -52,10 +50,12 @@ export function useAutoInsights(chartId: string | undefined) {
           (prev) => (prev ? ({ ...prev, autoInsights: insights } as KundliData) : prev),
         );
 
-        // Persist back to the saved snapshot so it's cached next visit (best-effort).
+        // Persist to the dedicated auto_insights column (NOT the snapshot) so a
+        // later engine-version bump can't wipe them and force a costly re-run.
+        // Each chart pays for auto-insights exactly once. (best-effort)
         void supabase
           .from('charts')
-          .update({ snapshot: merged as unknown as never })
+          .update({ auto_insights: insights as unknown as never })
           .eq('id', chartId);
       } catch {
         // Best-effort enrichment — never surface as an error.
