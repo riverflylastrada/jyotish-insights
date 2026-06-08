@@ -1,4 +1,10 @@
 -- ============================================================
+-- NOTE: versioned 20260607 (not 20260606) on purpose. It originally shared the
+-- version 20260606 with 20260606_daily_email.sql, and Supabase keys applied
+-- migrations by that version (unique PK) — so `supabase db push` failed on every
+-- merge with "duplicate key ... (version)=(20260606) already exists", which is why
+-- migrations had to be applied by hand. Keep this version unique.
+--
 -- Admin "Learn Content" authoring pipeline — config seeds.
 -- The learn-content edge function reads these to draft articles (LLM) and
 -- publish them to the learn.acharyajyotish.com repo via the GitHub API.
