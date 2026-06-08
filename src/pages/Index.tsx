@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, BookOpen, ScrollText, Scale, Sparkles, GitBranch, Calendar } from 'lucide-react';
 import { SiteFooter } from '@/components/layout/SiteFooter';
+import { Seo } from '@/components/Seo';
 
 const fadeUp = { initial: { opacity: 0, y: 8 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } };
 
@@ -61,6 +62,11 @@ const reportPanels = [
 const Index = () => {
   return (
     <div className="min-h-screen bg-canvas text-text-primary">
+      <Seo
+        title="Acharya Jyotish — Free Kundli & Vedic Astrology by Eight Gurus"
+        description="Generate a free, accurate Kundli and let eight classical Jyotish schools — Parashari, Jaimini, KP, Phaladeepika, Saravali — debate your chart, synthesised by a Master Acharya."
+        canonical="/"
+      />
       {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-hairline-subtle bg-canvas/85 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">

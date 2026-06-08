@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Seo } from '@/components/Seo';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -276,8 +277,11 @@ export default function Eclipses() {
 
   return (
     <div className="min-h-screen bg-canvas text-text-primary">
-      <title>{`Eclipses · ग्रहण — ${dateFormatted} | Acharya Jyotish`}</title>
-      <meta name="description" content={`Upcoming solar and lunar eclipses from ${dateFormatted}: type, sidereal sign, nakshatra, visibility. सूर्य ग्रहण एवं चन्द्र ग्रहण — तिथि, राशि, नक्षत्र, दृश्यता।`} />
+      <Seo
+        title={`Solar & Lunar Eclipses (ग्रहण) ${dateFormatted} — Dates & Astrology | Acharya Jyotish`}
+        description={`Upcoming solar and lunar eclipses from ${dateFormatted}: type, sidereal sign, nakshatra, timing & visibility. सूर्य ग्रहण एवं चन्द्र ग्रहण — तिथि, राशि, नक्षत्र, दृश्यता।`}
+        canonical="/eclipses"
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-hairline-subtle bg-canvas/85 backdrop-blur">
