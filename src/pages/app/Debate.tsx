@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useChartLink } from '@/hooks/useChartLink';
-import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square, Trash2, Mic, History } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square, Trash2, Mic, History, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebateStore, type DebateTurn } from '@/stores/useDebateStore';
 import { useKundli } from '@/hooks/useKundli';
 import { saveReading } from '@/hooks/useSavedReadings';
 import { SavedReadingsList } from '@/components/guru/SavedReadingsList';
+import { usePlanGate } from '@/hooks/usePlanGate';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -168,8 +169,13 @@ export default function Debate() {
   const { data: chart } = useKundli(id);
   const { question, setQuestion, followUp, setFollowUp, addToHistory, turns, addTurn, clearTurns } = useDebateStore();
   const [running, setRunning] = useState(false);
+  // Convening all eight Gurus (the tribunal) is a Premium consultation; the free
+  // default is a single Guru of the user's choice. usePlanGate is a stub that
+  // returns true today, so the tribunal stays usable until Razorpay flips it.
+  const canTribunal = usePlanGate('guru_tribunal');
   const [selectedKeys, setSelectedKeys] = useState<Record<GuruKey, boolean>>(() =>
-    Object.fromEntries(GURUS.map((g) => [g.key, true])) as Record<GuruKey, boolean>,
+    // Default: only the first Guru selected (single, cheap ask).
+    Object.fromEntries(GURUS.map((g, i) => [g.key, i === 0])) as Record<GuruKey, boolean>,
   );
   const [states, setStates] = useState<Record<GuruKey, GuruState>>(() =>
     Object.fromEntries(GURUS.map((g) => [g.key, { status: 'idle', text: '' }])) as Record<GuruKey, GuruState>,
@@ -177,6 +183,26 @@ export default function Debate() {
   const [verdict, setVerdict] = useState<{ status: 'idle' | 'thinking' | 'streaming' | 'done' | 'error'; text: string; error?: string }>({ status: 'idle', text: '' });
 
   const activeGurus = GURUS.filter((g) => selectedKeys[g.key]);
+  const isTribunal = activeGurus.length > 1;
+
+  // Toggle a Guru. Free tier = single-select (picking one replaces the choice);
+  // Premium = multi-select to build a custom panel.
+  const pickGuru = (key: GuruKey) => {
+    if (canTribunal) {
+      setSelectedKeys((prev) => ({ ...prev, [key]: !prev[key] }));
+    } else {
+      setSelectedKeys(Object.fromEntries(GURUS.map((g) => [g.key, g.key === key])) as Record<GuruKey, boolean>);
+    }
+  };
+
+  // Convene all eight (Premium). Locked → nudge; unlocked → select all.
+  const conveneTribunal = () => {
+    if (!canTribunal) {
+      toast('Convening all eight Gurus is a Premium consultation — coming soon.', { icon: '👑' });
+      return;
+    }
+    setSelectedKeys(Object.fromEntries(GURUS.map((g) => [g.key, true])) as Record<GuruKey, boolean>);
+  };
 
   // Playback mode
   const [playbackMode, setPlaybackMode] = useState(false);
@@ -199,9 +225,13 @@ export default function Debate() {
       return;
     }
     if (activeGurus.length === 0) {
-      toast.error('Please select at least one Guru to convene the tribunal.');
+      toast.error('Please select at least one Guru.');
       return;
     }
+
+    // One Guru = a single grounded ask (no Acharya verdict, counts as the cheap
+    // 'single' tier). Two or more = the full tribunal + verdict ('debate' tier).
+    const isSingle = activeGurus.length === 1;
 
     setRunning(true);
     setPlaybackMode(false);
@@ -209,9 +239,8 @@ export default function Debate() {
 
     const compiledHistory = compileChatHistory(turns);
 
-    // One turn_id for the whole tribunal submission so the weekly usage cap
-    // counts this as a single "debate" (not one per guru). turnKind 'debate'
-    // makes it count against the stricter debates-per-week tier.
+    // One turn_id for the whole submission so the weekly usage cap counts it as a
+    // single event. turnKind classifies it: 'single' (one Guru) vs 'debate' (panel).
     const turnId = crypto.randomUUID();
     let capMessage: string | null = null;
 
@@ -230,7 +259,7 @@ export default function Debate() {
           setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: '' } }));
 
           const result = await streamFromEdge(
-            { mode: 'guru', guru: g.key, question: activeQuestion, chart, chatHistory: compiledHistory, turnId, turnKind: 'debate' },
+            { mode: 'guru', guru: g.key, question: activeQuestion, chart, chatHistory: compiledHistory, turnId, turnKind: isSingle ? 'single' : 'debate' },
             (t) => setStates((s) => ({ ...s, [g.key]: { status: 'streaming', text: t } })),
           );
 
@@ -286,7 +315,17 @@ export default function Debate() {
       .filter((r) => !r.success)
       .map((r) => r.name);
 
-    if (successfulReadings.length > 0) {
+    if (successfulReadings.length > 0 && isSingle) {
+      // Single Guru — no Acharya verdict needed. Record + persist as a 'single'.
+      addTurn({ question: activeQuestion, readings: successfulReadings, verdict: '' });
+      void saveReading({
+        chartId: id,
+        kind: 'single',
+        gurus: results.filter((r) => r.success).map((r) => r.key),
+        question: activeQuestion,
+        answer: { readings: successfulReadings },
+      });
+    } else if (successfulReadings.length > 0) {
       try {
         setVerdict({ status: 'thinking', text: '' });
         await new Promise((r) => setTimeout(r, 400));
@@ -381,11 +420,19 @@ export default function Debate() {
           <Mic className="h-4 w-4" /> Switch to Voice Mode
         </Link>
       </div>
-      <div className="mt-3 text-eyebrow text-brand-saffron">Tribunal · Selected voices, one verdict</div>
-      <h1 className="mt-1 font-display text-h1 text-text-primary">The Guru Debate</h1>
+      <div className="mt-3 text-eyebrow text-brand-saffron">Ask a Guru</div>
+      <h1 className="mt-1 font-display text-h1 text-text-primary">Consult a Guru</h1>
       <p className="mt-2 max-w-2xl text-body text-text-secondary">
-        Pose a single, focused question. Choose your custom panel of classical and modern Gurus to read the chart in their own idiom; the Acharya synthesises their insights into a final judgment.
+        Pose a focused question and choose a Guru to read this chart in their own idiom. Want the full council? Convene all eight Gurus and the Acharya's verdict — a Premium consultation.
       </p>
+
+      {/* Method: Natal reading (this page) vs Prashna / horary (its own flow) */}
+      <div className="mt-5 inline-flex rounded-sm border border-hairline-subtle bg-surface p-1 text-sm">
+        <span className="rounded-sm bg-brand-maroon px-3 py-1.5 font-medium text-primary-foreground">Natal reading</span>
+        <Link to="/app/prashna" className="rounded-sm px-3 py-1.5 text-text-tertiary hover:text-text-primary">
+          Prashna · horary →
+        </Link>
+      </div>
 
       {/* Past readings for this chart — persisted, survives refresh, re-readable */}
       {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) && (
@@ -401,26 +448,21 @@ export default function Debate() {
 
       {/* Guru Selection Panel */}
       <div className="mt-6 rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-text-tertiary">Select Astrological Gurus</h3>
-            <p className="text-xs text-text-muted">Choose which traditions and lineages should join this debate</p>
+            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-text-tertiary">
+              {canTribunal ? 'Choose your Guru(s)' : 'Choose your Guru'}
+            </h3>
+            <p className="text-xs text-text-muted">
+              {canTribunal ? 'Pick one, or build a panel — the Acharya synthesises a verdict' : 'Pick one tradition to read this chart'}
+            </p>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedKeys(Object.fromEntries(GURUS.map(g => [g.key, true])) as Record<GuruKey, boolean>)}
-              className="text-xs text-brand-saffron hover:underline"
-            >
-              Select All
-            </button>
-            <span className="text-xs text-text-muted">|</span>
-            <button
-              onClick={() => setSelectedKeys(Object.fromEntries(GURUS.map(g => [g.key, false])) as Record<GuruKey, boolean>)}
-              className="text-xs text-text-tertiary hover:underline"
-            >
-              Clear All
-            </button>
-          </div>
+          <button
+            onClick={conveneTribunal}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-sm border border-brand-gold/40 px-2.5 py-1.5 text-xs font-medium text-brand-gold hover:bg-brand-gold/10"
+          >
+            <Crown className="h-3.5 w-3.5" /> Convene all 8 · Premium
+          </button>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -430,7 +472,7 @@ export default function Debate() {
               <button
                 key={g.key}
                 disabled={running}
-                onClick={() => setSelectedKeys(prev => ({ ...prev, [g.key]: !prev[g.key] }))}
+                onClick={() => pickGuru(g.key)}
                 className={`flex items-center gap-3 rounded-sm border px-3 py-2.5 text-left transition-all hover:bg-elevated ${
                   isSelected
                     ? 'border-brand-saffron/40 bg-brand-saffron/5 shadow-sm'
@@ -481,8 +523,10 @@ export default function Debate() {
             disabled={running || !question.trim()}
             className="inline-flex items-center gap-2 rounded-sm bg-brand-maroon px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
           >
-            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
-            {running ? 'Debate in session\u2026' : 'Convene the Tribunal'}
+            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : (isTribunal ? <Gavel className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />)}
+            {running
+              ? (isTribunal ? 'Debate in session\u2026' : 'Consulting\u2026')
+              : (isTribunal ? 'Convene the Tribunal' : `Ask ${activeGurus[0]?.name.split(' ').pop() ?? 'the Guru'}`)}
           </button>
         </div>
       </div>      {/* Historical Debates Feed (Scrollable Trial Log) */}
