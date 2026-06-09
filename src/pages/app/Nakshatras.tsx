@@ -5,7 +5,7 @@ import { useChartLink } from '@/hooks/useChartLink';
 import { useKundli } from '@/hooks/useKundli';
 import { FocusedGuruAnswer } from '@/components/research/FocusedGuruAnswer';
 import { PLANET_LABELS, type PlanetPosition, type PlanetName } from '@/lib/astro/types';
-import { nakshatraInfo, type NakshatraInfo } from '@/lib/astro/nakshatraData';
+import { nakshatraInfo, padaInfo, type NakshatraInfo } from '@/lib/astro/nakshatraData';
 
 /** Fixed display order: Lagna first, then the grahas. */
 const PLANET_ORDER: PlanetName[] = [
@@ -76,20 +76,37 @@ export default function Nakshatras() {
 
           {moonInfo ? (
             <>
-              <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
+              <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
                 <Field label="Ruling lord" value={moonInfo.lord} />
                 <Field label="Deity" value={moonInfo.deity} deva={moonInfo.deityDeva} />
                 <Field label="Symbol" value={moonInfo.symbol} />
                 <Field label="Gana" value={moonInfo.gana} />
                 <Field label="Yoni" value={moonInfo.yoni} />
                 <Field label="Nadi" value={moonInfo.nadi} />
+                <Field label="Guna" value={moonInfo.guna} />
+                <Field label="Element" value={moonInfo.element} />
               </div>
+
+              {/* Shakti — the nakshatra's defining power */}
+              <div className="mt-4">
+                <div className="text-eyebrow text-text-tertiary">Shakti · the nakshatra's power</div>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {moonInfo.shakti} <span className="font-mono text-xs text-text-tertiary">· {moonInfo.shaktiName}</span>
+                </p>
+              </div>
+
+              {/* Janma pada — computed navamsa placement of the Moon */}
+              <PadaBlock nakshatra={moon.nakshatra} pada={moon.nakshatraPada} />
 
               <p className="mt-5 text-sm leading-relaxed text-text-secondary">{moonInfo.traits}</p>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <ChipRow label="Strengths" items={moonInfo.strengths} tone="positive" />
                 <ChipRow label="Tendencies to watch" items={moonInfo.challenges} tone="neutral" />
+              </div>
+
+              <div className="mt-4">
+                <ChipRow label="Career & vocation" items={moonInfo.career} tone="neutral" />
               </div>
             </>
           ) : (
@@ -147,14 +164,17 @@ function PlacementCard({ p, id, info, isOpen, toggle }: {
         <div className="border-t border-hairline-subtle px-5 py-4 space-y-4">
           {info ? (
             <>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
                 <Field label="Lord" value={info.lord} />
                 <Field label="Deity" value={info.deity} deva={info.deityDeva} />
                 <Field label="Symbol" value={info.symbol} />
                 <Field label="Gana" value={info.gana} />
                 <Field label="Yoni" value={info.yoni} />
                 <Field label="Nadi" value={info.nadi} />
+                <Field label="Guna" value={info.guna} />
+                <Field label="Element" value={info.element} />
               </div>
+              <PadaBlock nakshatra={p.nakshatra} pada={p.nakshatraPada} />
               <p className="text-sm leading-relaxed text-text-secondary">{info.traits}</p>
             </>
           ) : (
@@ -164,6 +184,21 @@ function PlacementCard({ p, id, info, isOpen, toggle }: {
         </div>
       )}
     </article>
+  );
+}
+
+/** Computed navamsa (pada) placement — the technical heart of a nakshatra reading. */
+function PadaBlock({ nakshatra, pada }: { nakshatra: string; pada: 1 | 2 | 3 | 4 }) {
+  const pi = padaInfo(nakshatra, pada);
+  if (!pi) return null;
+  return (
+    <div className="mt-4 rounded-sm border border-hairline-subtle bg-elevated px-4 py-3">
+      <div className="text-eyebrow text-text-tertiary">Pada {pi.pada} · navamsa placement</div>
+      <p className="mt-1 text-sm text-text-secondary">
+        Falls in the <span className="text-text-primary">{pi.navamsaSign}</span> navamsa, sub-ruled by{' '}
+        <span className="text-text-primary">{pi.lord}</span> — emphasising {pi.emphasis}.
+      </p>
+    </div>
   );
 }
 

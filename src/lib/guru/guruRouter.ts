@@ -67,7 +67,7 @@ export function focusedQuestion(topic: GuruTopic, subject: string): string {
     case 'varga':
       return `Focus only on ${subject} in this chart's divisional (varga) analysis — what the placement reveals about that life area. 2–3 short paragraphs, no preamble.`;
     case 'nakshatra':
-      return `Focus only on ${subject}. Read this nakshatra for the native — its nature, ruling planet and presiding deity, the gana/yoni/nadi temperament, and the concrete tendencies it lends to character, career and relationships. 2–3 short paragraphs, no preamble.`;
+      return `Focus only on ${subject}. Give an in-depth nakshatra reading for this native: its ruling planet, presiding deity and shakti (defining power); the gana, yoni and nadi temperament; the pada (the navamsa quarter the planet occupies) and what that sub-lord adds; and the concrete tendencies it lends to character, career and relationships. Close with one practical remedy. 3–4 short paragraphs, no preamble.`;
     case 'planet':
     case 'general':
     default:

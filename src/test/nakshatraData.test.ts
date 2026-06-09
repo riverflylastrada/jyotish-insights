@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NAKSHATRA_INFO, NAKSHATRA_ORDER, nakshatraInfo } from '@/lib/astro/nakshatraData';
+import { NAKSHATRA_INFO, NAKSHATRA_ORDER, nakshatraInfo, padaInfo } from '@/lib/astro/nakshatraData';
 
 /**
  * The data file is keyed by the exact names the calculation engine emits
@@ -36,6 +36,11 @@ describe('nakshatraData', () => {
       expect(info.deity).toBeTruthy();
       expect(['Deva', 'Manushya', 'Rakshasa']).toContain(info.gana);
       expect(['Aadi', 'Madhya', 'Antya']).toContain(info.nadi);
+      expect(['Sattva', 'Rajas', 'Tamas']).toContain(info.guna);
+      expect(info.element).toBeTruthy();
+      expect(info.shaktiName).toBeTruthy();
+      expect(info.shakti).toBeTruthy();
+      expect(info.career.length).toBeGreaterThan(0);
       expect(info.strengths.length).toBeGreaterThan(0);
       expect(info.challenges.length).toBeGreaterThan(0);
     }
@@ -44,5 +49,16 @@ describe('nakshatraData', () => {
   it('nakshatraInfo() resolves a known name and misses gracefully', () => {
     expect(nakshatraInfo('Rohini')?.lord).toBe('Moon');
     expect(nakshatraInfo('Not A Nakshatra')).toBeUndefined();
+  });
+
+  it('padaInfo() computes navamsa placement deterministically', () => {
+    // Ashwini P1 = Mesha navamsa (Mars); P4 = Karka (Moon).
+    expect(padaInfo('Ashwini', 1)).toMatchObject({ navamsaSign: 'Mesha', lord: 'Mars' });
+    expect(padaInfo('Ashwini', 4)).toMatchObject({ navamsaSign: 'Karka', lord: 'Moon' });
+    // Krittika P1 = Dhanu navamsa (Jupiter) — classic checkpoint.
+    expect(padaInfo('Krittika', 1)).toMatchObject({ navamsaSign: 'Dhanu', lord: 'Jupiter' });
+    // Revati P4 = the 108th and final navamsa = Meena (Jupiter).
+    expect(padaInfo('Revati', 4)).toMatchObject({ navamsaSign: 'Meena', lord: 'Jupiter' });
+    expect(padaInfo('Not A Nakshatra', 1)).toBeUndefined();
   });
 });
