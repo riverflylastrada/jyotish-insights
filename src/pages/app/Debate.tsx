@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useChartLink } from '@/hooks/useChartLink';
-import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square, Trash2, Mic } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Loader2, Gavel, Sparkles, Play, Square, Trash2, Mic, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebateStore, type DebateTurn } from '@/stores/useDebateStore';
 import { useKundli } from '@/hooks/useKundli';
+import { saveReading } from '@/hooks/useSavedReadings';
+import { SavedReadingsList } from '@/components/guru/SavedReadingsList';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -328,6 +330,15 @@ export default function Debate() {
           readings: successfulReadings,
           verdict: verdictResult.text
         });
+
+        // Persist to the DB so it survives a refresh and shows in My Readings.
+        void saveReading({
+          chartId: id,
+          kind: 'debate',
+          gurus: results.filter((r) => r.success).map((r) => r.key),
+          question: activeQuestion,
+          answer: { readings: successfulReadings, verdict: verdictResult.text },
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Verdict failed';
         setVerdict({ status: 'error', text: '', error: msg });
@@ -375,6 +386,18 @@ export default function Debate() {
       <p className="mt-2 max-w-2xl text-body text-text-secondary">
         Pose a single, focused question. Choose your custom panel of classical and modern Gurus to read the chart in their own idiom; the Acharya synthesises their insights into a final judgment.
       </p>
+
+      {/* Past readings for this chart — persisted, survives refresh, re-readable */}
+      {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) && (
+        <details className="mt-6 rounded-md border border-hairline-subtle bg-surface">
+          <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium text-text-primary">
+            <History className="h-4 w-4 text-brand-maroon" /> Past readings for this chart
+          </summary>
+          <div className="border-t border-hairline-subtle p-3">
+            <SavedReadingsList chartId={id} emptyHint="No saved readings for this chart yet — ask a question below." />
+          </div>
+        </details>
+      )}
 
       {/* Guru Selection Panel */}
       <div className="mt-6 rounded-md border border-hairline-subtle bg-surface p-6 shadow-sm">

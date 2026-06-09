@@ -1,5 +1,5 @@
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Library, PlusCircle, Mic, Settings } from 'lucide-react';
+import { LayoutDashboard, Library, PlusCircle, Mic, ScrollText, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { chartTypes, CHART_PREFIXES } from '@/components/layout/navConfig';
 import {
@@ -74,6 +74,11 @@ export function MobileTabBar() {
         <NavLink to="/app/voice" className={navTabClass}>
           <Mic className="h-5 w-5" />
           <span>Voice</span>
+        </NavLink>
+
+        <NavLink to="/app/readings" className={navTabClass}>
+          <ScrollText className="h-5 w-5" />
+          <span>Readings</span>
         </NavLink>
 
         <NavLink to="/app/settings" className={navTabClass}>
