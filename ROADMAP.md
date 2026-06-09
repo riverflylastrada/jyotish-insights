@@ -64,6 +64,28 @@ Product gap: monetization.
 
 ## Recently shipped ✅
 
+- ✅ **Free self-service tools (public, bilingual EN + हिन्दी) — Rashifal,
+  Numerology, Tarot, Baby Names.** Four no-auth, deterministic (**no-LLM**) pages
+  that close the content/utility gap vs leading India apps
+  (AstroTalk / AstroSage / Astroyogi) while staying self-service — no marketplace,
+  no commerce. **Rashifal** ([rashifal.ts](src/lib/astro/rashifal.ts),
+  [Rashifal.tsx](src/pages/Rashifal.tsx), `/rashifal`) — daily Chandra-gochar +
+  monthly Surya-gochar readings for all 12 signs, favourability per Phaladeepika
+  Ch. 26 (`panchangLite` gains `moonRashiIndex`/`sunRashiIndex`). **Numerology**
+  ([numerology.ts](src/lib/numerology.ts), `/numerology`) — Pythagorean core numbers
+  (masters preserved) + graha/lucky attributes. **Baby Names**
+  ([babyNameData.ts](src/lib/astro/babyNameData.ts), `/baby-names`) — 108
+  nakshatra-pada akshara map + curated bilingual name pool + a new time-aware
+  `computeMoonNakshatra()` helper. **Tarot** ([tarot.ts](src/lib/tarot.ts),
+  `/tarot`) — full 78-card deck (22 authored Majors + 56 composed Minors), seeded
+  daily card + 3-card spread. Bilingual via a new **lightweight route-prefix i18n
+  layer** ([locale.ts](src/lib/i18n/locale.ts)) — EN at the bare path, हिन्दी at
+  `/hi`, with `hreflang` + `<html lang>` in [Seo.tsx](src/components/Seo.tsx); 8 new
+  sitemap URLs. Pure frontend — no engine change, no snapshot bump. Tests for
+  numerology / babyNameData / tarot. (PR #155.) Backend follow-ups (deferred):
+  chart-grounded **personalised AI Rashifal** (`mode:"rashifal"` +
+  `charts.rashifal_cache`) and **pro astrologer tools** (clients CRM, white-label
+  PDF, `is_astrologer`).
 - ✅ **Lal Kitab house-based remedies** ([lalKitab.ts](src/lib/astro/lalKitab.ts),
   [LalKitab.tsx](src/pages/app/LalKitab.tsx), route `/app/chart/:id/lal-kitab`,
   reached from ChartDetail → Output) — a dedicated, chart-driven Lal Kitab page.
@@ -690,16 +712,25 @@ polish, accessibility pass, loading/empty/error states, and visual consistency.
 
 ## Long-term
 
-- ⬜ **Pan-India language launch** (14 languages, 97% population coverage):
+- 🟡 **Pan-India language launch** (14 languages, 97% population coverage):
+  - **Foundation shipped (PR #155):** a lightweight route-prefix i18n layer
+    ([locale.ts](src/lib/i18n/locale.ts)) — EN at the bare path, हिन्दी at `/hi`,
+    with per-locale canonical + `hreflang` in [Seo.tsx](src/components/Seo.tsx).
+    The new **public** pages (Rashifal, Numerology, Tarot, Baby Names) ship
+    bilingual EN + हिन्दी on it. Chosen over `react-i18next` for now to match the
+    repo's existing inline-Devanagari convention and avoid desyncing the three
+    committed lockfiles; the full-app track can layer a heavier framework on top.
+  - **Next:** translate the existing **public** pages (Panchang, Mundane, Eclipses,
+    landing) onto the same layer, then progressively the in-app `/app/*` pages.
   - **Phase 1:** Hindi, Marathi (Devanagari — font loaded), Tamil, Telugu,
     Bengali — 75% of India.
   - **Phase 2:** Gujarati, Kannada, Malayalam, Odia, Punjabi — 88%.
   - **Phase 3:** Assamese, Urdu (requires RTL support) — 95%.
   - **Phase 4:** Nepali, Konkani (Devanagari) — 97%.
-  - Architecture: `react-i18next` + namespace-separated locale files
-    (`common.json`, `astro.json`, `readings.json`, `landing.json`).
-    Language-prefixed URLs (`/hi/app/chart/123`). Dynamic font loading per
-    script (Noto Sans family via Google Fonts).
+  - Architecture: language-prefixed URLs (`/hi/...`, already live for public
+    pages). For full-app coverage, namespace-separated locale files
+    (`common.json`, `astro.json`, `readings.json`, `landing.json`) + dynamic font
+    loading per script (Noto Sans family).
   - Astrology term translations MUST be reviewed by a Jyotish domain expert
     per language (not generic AI translation). Budget: ₹5K–15K per language.
   - Guru Debate: add `"Respond in ${userLanguage}"` to guru system prompts.
