@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import type { Locale, LocaleAlternate } from '@/lib/i18n/locale';
+import { HREFLANG } from '@/lib/i18n/locale';
 
 /**
  * Per-route <head> manager for the public (crawlable) pages.
@@ -27,6 +29,10 @@ interface SeoProps {
   type?: 'website' | 'article';
   /** Keep this page out of the index (e.g. auth screens). */
   noindex?: boolean;
+  /** Active page locale — sets <html lang> + og:locale. */
+  locale?: Locale;
+  /** hreflang alternates (use alternatesFor(basePath) from lib/i18n/locale). */
+  alternates?: LocaleAlternate[];
 }
 
 function upsertMeta(attr: 'name' | 'property', key: string, content: string) {
@@ -49,13 +55,32 @@ function upsertLink(rel: string, href: string) {
   el.setAttribute('href', href);
 }
 
-export function Seo({ title, description, canonical, image, type = 'website', noindex = false }: SeoProps) {
+/** Replace all <link rel="alternate" hreflang=...> tags managed by Seo. */
+function syncHreflang(alternates: LocaleAlternate[]) {
+  // Remove the ones we previously added so stale variants don't linger on nav.
+  document.head
+    .querySelectorAll('link[rel="alternate"][data-seo-hreflang]')
+    .forEach((el) => el.remove());
+  for (const alt of alternates) {
+    const el = document.createElement('link');
+    el.setAttribute('rel', 'alternate');
+    el.setAttribute('hreflang', alt.hreflang);
+    el.setAttribute('href', alt.href.startsWith('http') ? alt.href : `${SITE}${alt.href}`);
+    el.setAttribute('data-seo-hreflang', '');
+    document.head.appendChild(el);
+  }
+}
+
+export function Seo({ title, description, canonical, image, type = 'website', noindex = false, locale = 'en', alternates }: SeoProps) {
   useEffect(() => {
     const path = canonical ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
     const url = path.startsWith('http') ? path : `${SITE}${path}`;
     const img = image ?? DEFAULT_IMAGE;
 
     document.title = title;
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = locale === 'hi' ? 'hi' : 'en';
+    }
     upsertMeta('name', 'description', description);
     upsertLink('canonical', url);
 
@@ -64,6 +89,7 @@ export function Seo({ title, description, canonical, image, type = 'website', no
     upsertMeta('property', 'og:type', type);
     upsertMeta('property', 'og:url', url);
     upsertMeta('property', 'og:image', img);
+    upsertMeta('property', 'og:locale', HREFLANG[locale].replace('-', '_'));
 
     upsertMeta('name', 'twitter:card', 'summary_large_image');
     upsertMeta('name', 'twitter:title', title);
@@ -71,7 +97,9 @@ export function Seo({ title, description, canonical, image, type = 'website', no
     upsertMeta('name', 'twitter:image', img);
 
     upsertMeta('name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow');
-  }, [title, description, canonical, image, type, noindex]);
+
+    syncHreflang(noindex ? [] : (alternates ?? []));
+  }, [title, description, canonical, image, type, noindex, locale, alternates]);
 
   return null;
 }

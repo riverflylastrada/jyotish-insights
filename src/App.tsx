@@ -57,6 +57,10 @@ const AdminLearnContent = lazy(() => import("./pages/admin/AdminLearnContent"));
 const VoiceGuruPage = lazy(() => import("./pages/app/VoiceGuruPage"));
 const Mundane = lazy(() => import("./pages/Mundane"));
 const Panchang = lazy(() => import("./pages/Panchang"));
+const Rashifal = lazy(() => import("./pages/Rashifal"));
+const Numerology = lazy(() => import("./pages/Numerology"));
+const BabyNames = lazy(() => import("./pages/BabyNames"));
+const Tarot = lazy(() => import("./pages/Tarot"));
 const Eclipses = lazy(() => import("./pages/Eclipses"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const DeleteAccount = lazy(() => import("./pages/DeleteAccount"));
@@ -87,6 +91,14 @@ const App = () => (
             <Route path="/signup" element={<AuthPage mode="signup" />} />
             <Route path="/mundane" element={<Mundane />} />
             <Route path="/panchang" element={<Panchang />} />
+            <Route path="/rashifal" element={<Rashifal />} />
+            <Route path="/hi/rashifal" element={<Rashifal />} />
+            <Route path="/numerology" element={<Numerology />} />
+            <Route path="/hi/numerology" element={<Numerology />} />
+            <Route path="/baby-names" element={<BabyNames />} />
+            <Route path="/hi/baby-names" element={<BabyNames />} />
+            <Route path="/tarot" element={<Tarot />} />
+            <Route path="/hi/tarot" element={<Tarot />} />
             <Route path="/eclipses" element={<Eclipses />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/delete-account" element={<DeleteAccount />} />

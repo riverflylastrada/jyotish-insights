@@ -128,6 +128,10 @@ export interface DayPanchang {
   varaHi: string;
   varaIndex: number;
   karana: string;
+  /** Sidereal Moon rashi 0..11 (0 = Mesha/Aries). Basis for daily Chandra-gochar rashifal. */
+  moonRashiIndex: number;
+  /** Sidereal Sun rashi 0..11 (0 = Mesha/Aries). Basis for monthly Surya-gochar rashifal. */
+  sunRashiIndex: number;
   sunriseMin: number;
   sunsetMin: number;
 }
@@ -148,6 +152,7 @@ export function computeDayPanchang(
   const moonTrop = moonLongitude(T);
   const aya = lahiriAyanamsa(jdNoon);
   const moonSid = norm360(moonTrop - aya);
+  const sunSid = norm360(sunTrop - aya);
 
   // Tithi
   const elong = norm360(moonTrop - sunTrop);
@@ -213,8 +218,52 @@ export function computeDayPanchang(
     varaHi: weekday.hi,
     varaIndex: varaIdx,
     karana,
+    moonRashiIndex: Math.floor(moonSid / 30) % 12,
+    sunRashiIndex: Math.floor(sunSid / 30) % 12,
     sunriseMin: jdToLocalMin(Jrise),
     sunsetMin: jdToLocalMin(Jset),
+  };
+}
+
+// ── Moon nakshatra + pada at a specific moment ──────────────────────
+
+export interface MoonNakshatra {
+  nakshatraIndex: number;   // 0..26
+  nakshatra: string;        // English name
+  nakshatraHi: string;      // Devanagari name
+  pada: number;             // 1..4
+  rashiIndex: number;       // 0..11 (0 = Mesha/Aries)
+}
+
+/**
+ * Sidereal Moon nakshatra + pada for a given local date & time. Location-
+ * independent (the Moon's longitude is global; only sign/nakshatra-change
+ * *moments* shift slightly by timezone). Used for baby-name suggestions, where
+ * the birth moment's nakshatra-pada fixes the auspicious naming syllables.
+ */
+export function computeMoonNakshatra(
+  dateStr: string,
+  timeStr: string,
+  tzOffsetHours: number,
+): MoonNakshatra {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [hh = 0, mm = 0] = (timeStr || '00:00').split(':').map(Number);
+  const localHour = (hh || 0) + (mm || 0) / 60;
+  const jd = julianDay(y, m, d, localHour - tzOffsetHours);
+  const T = julianCenturies(jd);
+  const moonSid = norm360(moonLongitude(T) - lahiriAyanamsa(jd));
+
+  const nakSize = 360 / 27;            // 13°20′
+  const nakIndex = Math.floor(moonSid / nakSize) % 27;
+  const pada = Math.floor((moonSid % nakSize) / (nakSize / 4)) + 1;
+  const nak = NAKSHATRA_NAMES[nakIndex];
+
+  return {
+    nakshatraIndex: nakIndex,
+    nakshatra: nak,
+    nakshatraHi: NAKSHATRA_HI[nak] ?? nak,
+    pada,
+    rashiIndex: Math.floor(moonSid / 30) % 12,
   };
 }
 
