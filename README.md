@@ -140,8 +140,31 @@ API is required.
   Books, 2013) with per-house citations. Deterministic; no LLM.
 - **Reports** — printable, citation-backed HTML/PDF dossier of the full chart.
 
+### Free self-service tools (public, bilingual EN + हिन्दी)
+No-auth, deterministic tools (**no LLM**) that grow the top of the funnel and serve
+casual users — each available in English at the bare path and in Hindi at a `/hi`
+route prefix, with `hreflang` alternates emitted by [Seo.tsx](src/components/Seo.tsx):
+- **Rashifal (राशिफल)** — daily & monthly horoscope for all 12 moon-signs, computed
+  from the **real transit (gochar)** of the Moon (daily, Chandra gochar) and Sun
+  (monthly, Surya gochar), favourability per *Phaladeepika* Ch. 26 — not generic
+  blurbs. Routes `/rashifal`, `/hi/rashifal`
+  ([rashifal.ts](src/lib/astro/rashifal.ts)).
+- **Numerology (अंक ज्योतिष)** — Pythagorean Life Path / Destiny / Soul Urge /
+  Personality numbers (master numbers preserved) with the associated graha and lucky
+  colour/day. `/numerology` ([numerology.ts](src/lib/numerology.ts)).
+- **Baby Names (नामकरण)** — the auspicious naming syllable (akshara) from the birth
+  Moon's nakshatra-pada (108-cell map) plus matching bilingual name suggestions.
+  `/baby-names` ([babyNameData.ts](src/lib/astro/babyNameData.ts)).
+- **Tarot** — a full 78-card Rider–Waite deck with a deterministic (seeded) Card of
+  the Day and a three-card past–present–future spread. `/tarot`
+  ([tarot.ts](src/lib/tarot.ts)).
+
 ### Platform
 - **Email/password auth** via Supabase, with per-user profiles and preferences.
+- **Bilingual public pages** (EN + हिन्दी) via a lightweight route-prefix i18n layer
+  ([src/lib/i18n/locale.ts](src/lib/i18n/locale.ts)) — Hindi at `/hi/...`, with
+  per-locale canonical + `hreflang`. Full in-app (`/app/*`) translation is the
+  planned next i18n track.
 - **Chart library** — save, open, share, and delete charts.
 - **Public share pages** — share a chart read-only via a secret share token.
 - **Installable PWA (mobile app)** — add Acharya Jyotish to the home screen and
@@ -544,7 +567,10 @@ See [ROADMAP.md](ROADMAP.md) for planned work. **The Interactive Research Lab
 is feature-complete** — all five phases shipped, alongside all four
 **Specialized Kundli types** (Prashna, Twins, Business, public Mundane), the
 **Voice AI Guru** (live ElevenLabs conversation grounded on the chart dossier),
-and an **installable PWA** with offline chart viewing. Up next: **Razorpay
+an **installable PWA** with offline chart viewing, and a set of **free bilingual
+self-service tools** (Rashifal, Numerology, Tarot, Baby Names) on a new
+route-prefix i18n foundation. Up next: **chart-grounded personalised AI Rashifal**
+and **pro astrologer tools** (client CRM + white-label reports), **Razorpay
 billing + plan gating**, a **pan-India multi-language launch**, the remaining
 voice personas (Phases 2–3) + tool-calling flow, and the remaining engine items
 (divisional expansion to 23+ vargas).
