@@ -7,12 +7,14 @@ import {
   HelpCircle,
   Building2,
   GitCompareArrows,
+  ScrollText,
 } from 'lucide-react';
 
 /** Top-level destinations shared by the desktop header and the mobile tab bar. */
 export const primaryNav = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/app/library', label: 'Library', icon: Library },
+  { to: '/app/readings', label: 'Readings', icon: ScrollText },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -4,6 +4,7 @@ import { MessageSquare, Sparkles, Loader2, Users } from 'lucide-react';
 import { useChartLink } from '@/hooks/useChartLink';
 import { useKundli } from '@/hooks/useKundli';
 import { streamFromEdge } from '@/lib/guru/streamGuruDebate';
+import { saveReading } from '@/hooks/useSavedReadings';
 import { GURU_BY_KEY } from '@/lib/guru/guruRoster';
 import { guruForTopic, focusedQuestion, type GuruTopic } from '@/lib/guru/guruRouter';
 
@@ -69,12 +70,23 @@ export function FocusedGuruAnswer({ chartId, topic, subject, cachedFull, variant
     setStatus('streaming');
     try {
       // Single-guru ask: one turn_id, counts as one (cheap) question.
+      const askedQuestion = focusedQuestion(topic, subject);
       const result = await streamFromEdge(
-        { mode: 'guru', guru: guru.key, question: focusedQuestion(topic, subject), chart, turnId: crypto.randomUUID(), turnKind: 'single' },
+        { mode: 'guru', guru: guru.key, question: askedQuestion, chart, turnId: crypto.randomUUID(), turnKind: 'single' },
         (t) => setText(t),
       );
       setText(result.text);
       setStatus('done');
+
+      // Persist this live single-guru ask so it survives a refresh and appears
+      // in My Readings. (Cached/free re-reads above are not saved — no new Q&A.)
+      void saveReading({
+        chartId,
+        kind: 'single',
+        gurus: [guru.key],
+        question: askedQuestion,
+        answer: { readings: [{ guru: guru.name, text: result.text }] },
+      });
     } catch (e) {
       setStatus('error');
       setError(e instanceof Error ? e.message : 'The Guru was unable to answer.');

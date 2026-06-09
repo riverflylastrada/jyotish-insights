@@ -8,6 +8,7 @@ import { KundliChart } from '@/components/kundli/KundliChart';
 import { useChartStore } from '@/stores/useChartStore';
 import { toast } from '@/components/ui/sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { saveReading } from '@/hooks/useSavedReadings';
 import type { KundliData, KpData, BirthDetails } from '@/lib/astro/types';
 
 // ─── Guru definitions (same as Debate.tsx) ─────────────────────────────────
@@ -425,6 +426,16 @@ export default function Prashna() {
           readings: successfulReadings,
           verdict: verdictResult.text,
         }]);
+
+        // Persist the horary judgment (a moment-chart has no saved natal id, so
+        // chartId is null) — survives a refresh and appears in My Readings.
+        void saveReading({
+          chartId: null,
+          kind: 'prashna',
+          gurus: results.filter((r) => r.success).map((r) => r.key),
+          question: questionText,
+          answer: { readings: successfulReadings, verdict: verdictResult.text },
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Verdict failed';
         setVerdict({ status: 'error', text: '', error: msg });

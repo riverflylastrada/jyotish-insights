@@ -83,6 +83,39 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_readings: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string
+          chart_id: string | null
+          kind: string
+          gurus: string[]
+          question: string
+          answer: Json
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id: string
+          chart_id?: string | null
+          kind?: string
+          gurus?: string[]
+          question: string
+          answer?: Json
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string
+          chart_id?: string | null
+          kind?: string
+          gurus?: string[]
+          question?: string
+          answer?: Json
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string
