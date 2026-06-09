@@ -33,7 +33,10 @@ export function useAutoInsights(chartId: string | undefined) {
     (async () => {
       try {
         const resp = await supabase.functions.invoke('guru-debate', {
-          body: { mode: 'auto-insights', question: 'auto-insights', chart: data, turnId: crypto.randomUUID(), turnKind: 'auto' },
+          // chartId lets the server check the persisted cache *before* spending a
+          // token and write insights back itself — closing the same-chart
+          // double-charge race that no client-side guard can (refresh / 2nd tab).
+          body: { mode: 'auto-insights', question: 'auto-insights', chart: data, chartId, turnId: crypto.randomUUID(), turnKind: 'auto' },
         });
         const insights = resp.data;
         if (resp.error || !insights || insights.error) return;

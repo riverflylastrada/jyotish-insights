@@ -301,6 +301,35 @@ Deno.serve(async (req) => {
 
     // ─── AUTO-INSIGHTS mode: non-streaming JSON ───────────────────────────────────
     if (mode === "auto-insights") {
+      // Server-authoritative cache check. The client persists insights only AFTER
+      // the ~25s LLM round-trip, and its in-memory guards (the `attempted` Set and
+      // `data.autoInsights`) don't survive a refresh or a second tab/device — so two
+      // views of the SAME chart inside that window used to BOTH generate and BOTH
+      // charge (~$0.05 each). Re-read the persisted column here, before spending a
+      // token, so a chart is billed for auto-insights exactly once.
+      if (chartId && AI_USAGE_UUID_RE.test(chartId)) {
+        try {
+          const sbUrl = Deno.env.get("SUPABASE_URL") ?? "";
+          const sbKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+          if (sbUrl && sbKey) {
+            const { data: existing } = await createClient(sbUrl, sbKey)
+              .from("charts")
+              .select("auto_insights")
+              .eq("id", chartId)
+              .maybeSingle();
+            const cached = existing?.auto_insights as Record<string, unknown> | null | undefined;
+            if (cached && typeof cached === "object" && Object.keys(cached).length > 0) {
+              // Cache hit → return without an LLM call or a usage charge.
+              return new Response(JSON.stringify(cached), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("auto-insights cache check failed, generating fresh:", e);
+        }
+      }
+
       const aiMessages = [
         { role: "system", content: AUTO_INSIGHTS_SYSTEM_PROMPT },
         { role: "user", content: `Produce the auto-insights JSON for this chart.\n\n${dossier}` },
@@ -378,11 +407,34 @@ Deno.serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({
+      const payload = {
         generatedAt: new Date().toISOString(),
         model,
-        ...parsed,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        ...(parsed as Record<string, unknown>),
+      };
+
+      // Persist server-side (service-role) the moment generation succeeds, so the
+      // cache is authoritative and immediate — no longer dependent on the client's
+      // best-effort write landing before the next view. Together with the cache
+      // check above, this closes the same-chart double-charge race for good.
+      if (chartId && AI_USAGE_UUID_RE.test(chartId)) {
+        try {
+          const sbUrl = Deno.env.get("SUPABASE_URL") ?? "";
+          const sbKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+          if (sbUrl && sbKey) {
+            await createClient(sbUrl, sbKey)
+              .from("charts")
+              .update({ auto_insights: payload })
+              .eq("id", chartId);
+          }
+        } catch (e) {
+          console.warn("auto-insights persist failed (client will retry):", e);
+        }
+      }
+
+      return new Response(JSON.stringify(payload), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ─── Existing guru / verdict modes ─────────────────────────────────────────
