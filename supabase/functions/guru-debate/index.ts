@@ -418,7 +418,7 @@ Deno.serve(async (req) => {
       const payload = {
         generatedAt: new Date().toISOString(),
         model,
-        ...(coerced as Record<string, unknown>),
+        ...coerced,
       };
 
       // Persist server-side (service-role) the moment generation succeeds, so the
