@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildChartDossier } from "./dossier.ts";
 import { calculateTransits } from "../calculate-kundli/engine.ts";
-import { validateAutoInsightsJson } from "./validate_auto_insights.ts";
+import { validateAutoInsightsJson, coerceAutoInsights } from "./validate_auto_insights.ts";
 import { GROUNDING_INSTRUCTION, PRASHNA_GROUNDING } from "./grounding.ts";
 import { checkWeeklyCap, type TurnKind } from "../_shared/usageCap.ts";
 
@@ -343,7 +343,10 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             model,
             stream: false,
-            max_tokens: 8000,
+            // 16k (was 8k): the full payload — 9 planets × {brief,full} + 12 houses
+            // + dashas/yogas/doshas — can run long; a truncated response failed
+            // validation and triggered a second, billed call.
+            max_tokens: 16000,
             messages: aiMessages,
             response_format: { type: "json_object" },
           }),
@@ -383,14 +386,19 @@ Deno.serve(async (req) => {
         return { parsed: JSON.parse(cleaned), usage };
       };
 
-      let parsed: unknown;
+      // Generate, then COERCE the result into the expected shape rather than
+      // retrying when a single key is missing. The previous "retry on validation
+      // failure" made a second, billed LLM call for ~⅓ of charts (a missing
+      // planet/house is common); auto-insights is best-effort enrichment, so we
+      // accept a near-complete response and fill the gaps. A retry now fires only
+      // on a HARD failure — the LLM call itself erroring, or output so malformed
+      // that `planets`/`houses` aren't even objects.
+      let coerced = null as ReturnType<typeof coerceAutoInsights>;
       try {
-        const result = await doCall();
-        parsed = result.parsed;
-        if (!validateAutoInsightsJson(parsed)) {
-          console.warn("auto-insights: schema mismatch on first attempt, retrying");
-          const retry = await doCall();
-          parsed = retry.parsed;
+        coerced = coerceAutoInsights((await doCall()).parsed);
+        if (!coerced) {
+          console.warn("auto-insights: unusable shape on first attempt, retrying once");
+          coerced = coerceAutoInsights((await doCall()).parsed);
         }
       } catch (e) {
         console.error("auto-insights LLM call failed:", e);
@@ -400,7 +408,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      if (!validateAutoInsightsJson(parsed)) {
+      if (!coerced || !validateAutoInsightsJson(coerced)) {
         return new Response(JSON.stringify({ error: "auto-insights schema validation failed" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -410,7 +418,7 @@ Deno.serve(async (req) => {
       const payload = {
         generatedAt: new Date().toISOString(),
         model,
-        ...(parsed as Record<string, unknown>),
+        ...(coerced as Record<string, unknown>),
       };
 
       // Persist server-side (service-role) the moment generation succeeds, so the

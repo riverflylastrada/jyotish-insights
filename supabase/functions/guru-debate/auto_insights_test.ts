@@ -7,7 +7,7 @@
 import {
   assertEquals,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { validateAutoInsightsJson } from "./validate_auto_insights.ts";
+import { validateAutoInsightsJson, coerceAutoInsights } from "./validate_auto_insights.ts";
 
 // ─── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -126,4 +126,62 @@ Deno.test("auto-insights: rejects missing doshas", () => {
   const p = makeValidPayload();
   delete (p as Record<string, unknown>).doshas;
   assertEquals(validateAutoInsightsJson(p), false);
+});
+
+// ─── coerceAutoInsights (accept-and-fill instead of a billed retry) ──────────
+
+Deno.test("coerce: a fully valid payload passes validation unchanged in shape", () => {
+  const c = coerceAutoInsights(makeValidPayload());
+  assertEquals(c !== null && validateAutoInsightsJson(c), true);
+  assertEquals(c!.planets.sun.brief, "sun brief");
+  assertEquals(c!.houses["12"], "House 12 theme");
+});
+
+Deno.test("coerce: fills a missing planet so the result validates (no retry)", () => {
+  const p = makeValidPayload();
+  delete (p.planets as Record<string, unknown>).ketu;
+  const c = coerceAutoInsights(p);
+  assertEquals(c !== null && validateAutoInsightsJson(c), true);
+  assertEquals(c!.planets.ketu, { brief: "", full: "" });
+});
+
+Deno.test("coerce: fills a missing house so the result validates (no retry)", () => {
+  const p = makeValidPayload();
+  delete (p.houses as Record<string, unknown>)["12"];
+  const c = coerceAutoInsights(p);
+  assertEquals(c !== null && validateAutoInsightsJson(c), true);
+  assertEquals(c!.houses["12"], "");
+});
+
+Deno.test("coerce: a planet missing brief is filled, not dropped", () => {
+  const p = makeValidPayload();
+  (p.planets as Record<string, unknown>).sun = { full: "only full" };
+  const c = coerceAutoInsights(p);
+  assertEquals(c !== null && validateAutoInsightsJson(c), true);
+  assertEquals(c!.planets.sun, { brief: "", full: "only full" });
+});
+
+Deno.test("coerce: drops malformed dasha entries instead of failing", () => {
+  const p = makeValidPayload();
+  p.dashas.push({ system: "vimshottari", level: "maha", lord: "sun", period: "2039-2045" } as any);
+  const c = coerceAutoInsights(p);
+  assertEquals(c !== null && validateAutoInsightsJson(c), true);
+  assertEquals(c!.dashas.length, 2); // the incomplete 3rd entry is filtered out
+});
+
+Deno.test("coerce: missing yogas/doshas default to empty maps", () => {
+  const p = makeValidPayload();
+  delete (p as Record<string, unknown>).yogas;
+  delete (p as Record<string, unknown>).doshas;
+  const c = coerceAutoInsights(p);
+  assertEquals(c !== null && validateAutoInsightsJson(c), true);
+  assertEquals(c!.yogas, {});
+  assertEquals(c!.doshas, {});
+});
+
+Deno.test("coerce: returns null on structurally unusable output (retry warranted)", () => {
+  assertEquals(coerceAutoInsights(null), null);
+  assertEquals(coerceAutoInsights("nonsense"), null);
+  assertEquals(coerceAutoInsights({ planets: "not-an-object", houses: {} }), null);
+  assertEquals(coerceAutoInsights({ planets: {}, houses: "nope" }), null);
 });
