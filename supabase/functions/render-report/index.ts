@@ -25,6 +25,9 @@ function buildHtml(chart: any): string {
   const yogas = (chart.yogas ?? []).filter((y: any) => y.isPresent);
   const doshas = (chart.doshas ?? []).filter((d: any) => d.isPresent);
   const sarva = chart.ashtakavarga?.sarva ?? [];
+  // `sarva` is indexed by SIGN (sarva[0]=Mesha … sarva[11]=Meena), so rotate by
+  // the ascendant to label each bindu against the house that holds that sign.
+  const ascSign = chart.ascendant?.signNumber ?? 1;
   const signs = ["Mesha","Vrishabha","Mithuna","Karka","Simha","Kanya","Tula","Vrischika","Dhanu","Makara","Kumbha","Meena"];
 
   return `<!doctype html>
@@ -184,9 +187,10 @@ ${sarva.length ? `
   <table>
     <thead><tr><th>House</th><th>Sign</th><th style="text-align:right;">Bindus</th></tr></thead>
     <tbody>
-    ${sarva.map((b: number, i: number) => `
-      <tr><td class="mono">H${i+1}</td><td>${escape(signs[i])}</td><td class="mono" style="text-align:right;">${escape(b)}</td></tr>
-    `).join("")}
+    ${Array.from({ length: 12 }, (_, h) => {
+      const signIdx = (ascSign - 1 + h) % 12;
+      return `<tr><td class="mono">H${h + 1}</td><td>${escape(signs[signIdx])}</td><td class="mono" style="text-align:right;">${escape(sarva[signIdx] ?? 0)}</td></tr>`;
+    }).join("")}
     </tbody>
   </table>
 </section>

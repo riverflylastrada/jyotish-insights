@@ -34,9 +34,10 @@ export function computeDayPanchang(
   const jd = julianDay(y, m, d, utHour, 0, 0);
   const trop = tropicalPositions(jd, lat, lon, "mean"); // nodeType irrelevant for sun/moon
   const aya = ayanamsa(ayaKey, jd);
+  const sunSid = toSidereal(trop.sun, aya);
   const moonSid = toSidereal(trop.moon, aya);
   const { sunrise, sunset } = sunriseSunset(jd, lat, lon); // UT "HH:MM"
-  const p = computePanchang(trop.sun, trop.moon, moonSid, jd, sunrise, sunset);
+  const p = computePanchang(trop.sun, trop.moon, sunSid, moonSid, jd, sunrise, sunset);
   return {
     ...p,
     sunrise: shiftHHMM(p.sunrise, tzOffsetHours),

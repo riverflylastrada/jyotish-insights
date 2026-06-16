@@ -66,7 +66,7 @@ export const AMITABH_BACHCHAN: BirthDetails = {
  * to 6 decimal places so the golden baseline is portable.
  *
  * Removed fields: id, generatedAt, autoInsights, raw.
- * Kept: snapshotVersion (it's the constant 24 — freezing it is desirable).
+ * Kept: snapshotVersion (it's the current engine constant — freezing it is desirable).
  */
 export function normalize(k: unknown): unknown {
   // JSON round-trip produces a plain object we can safely manipulate

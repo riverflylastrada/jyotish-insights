@@ -440,25 +440,38 @@ function sectionDoshas(chart: any): string {
   return lines.join("\n");
 }
 
-function sectionAshtakavarga(chart: any): string {
+function sectionAshtakavarga(chart: any, ascSign: number): string {
   const av = chart?.ashtakavarga;
   if (!av) return "";
 
-  // SAV (Sarvashtakavarga) — aggregate per house
+  // SAV (Sarvashtakavarga). NOTE: `sarva` is indexed by SIGN (rashi), not by
+  // house — sav[0]=Aries … sav[11]=Pisces. Rotate by the ascendant so each
+  // bindu is reported against the HOUSE that actually holds that sign (house h
+  // holds sign (ascSign-1+h-1) mod 12), matching the chart UI. Labelling the
+  // raw array as H1..H12 mis-reports every house unless the Lagna is Aries.
   const sav = av.sarva ?? av.sarvashtakavarga;
   if (!sav || !Array.isArray(sav)) return "";
+  if (!ascSign) return "";
+
+  const byHouse = Array.from({ length: 12 }, (_, h) => {
+    const signIdx = (ascSign - 1 + h) % 12; // h is 0-indexed → house h+1
+    return { house: h + 1, signIdx, bindus: sav[signIdx] ?? 0 };
+  });
 
   const lines = [`═══ ASHTAKAVARGA ═══`];
-  const perHouse = sav.map((val: number, i: number) => `H${i + 1}=${val}`).join(" ");
+  const perHouse = byHouse
+    .map((x) => `H${x.house}(${signName(x.signIdx + 1)})=${x.bindus}`)
+    .join(" ");
   lines.push(`SAV (Sarvashtakavarga) per house: ${perHouse}`);
 
-  let maxIdx = 0, minIdx = 0;
-  for (let i = 1; i < sav.length; i++) {
-    if (sav[i] > sav[maxIdx]) maxIdx = i;
-    if (sav[i] < sav[minIdx]) minIdx = i;
+  let maxI = 0, minI = 0;
+  for (let i = 1; i < byHouse.length; i++) {
+    if (byHouse[i].bindus > byHouse[maxI].bindus) maxI = i;
+    if (byHouse[i].bindus < byHouse[minI].bindus) minI = i;
   }
-  lines.push(`Highest: House ${maxIdx + 1} (${sav[maxIdx]} bindus)`);
-  lines.push(`Lowest: House ${minIdx + 1} (${sav[minIdx]} bindus)`);
+  const hi = byHouse[maxI], lo = byHouse[minI];
+  lines.push(`Highest: House ${hi.house} ${signName(hi.signIdx + 1)} (${hi.bindus} bindus)`);
+  lines.push(`Lowest: House ${lo.house} ${signName(lo.signIdx + 1)} (${lo.bindus} bindus)`);
 
   return lines.join("\n");
 }
@@ -899,7 +912,7 @@ export function buildChartDossier(chart: any, transits: any[], now: Date, client
     sectionKalachakraDasha(chart),
     sectionYogas(chart),
     sectionDoshas(chart),
-    sectionAshtakavarga(chart),
+    sectionAshtakavarga(chart, ascSign),
     sectionShadbala(chart),
     sectionShadbalaExtras(chart),
     sectionBhavaBala(chart),
