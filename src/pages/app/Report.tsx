@@ -72,6 +72,9 @@ export default function Report() {
   const presentYogas = data.yogas.filter(y => y.isPresent);
   const presentDoshas = data.doshas.filter(d => d.isPresent);
   const sarvaTotal = data.ashtakavarga.sarva.reduce((a,b)=>a+b,0);
+  // `sarva` is indexed by sign (sarva[0]=Aries … sarva[11]=Pisces); rotate by
+  // the ascendant so each row's House label matches the sign it actually holds.
+  const ascSign = data.ascendant.signNumber || 1;
 
   return (
     <div className="bg-canvas">
@@ -254,13 +257,16 @@ export default function Report() {
               <tr><th className="py-2">House</th><th>Sign</th><th className="text-right">Bindus</th></tr>
             </thead>
             <tbody className="divide-y divide-hairline-subtle">
-              {data.ashtakavarga.sarva.map((b, i) => (
-                <tr key={i}>
-                  <td className="py-2 font-mono">H{i+1}</td>
-                  <td>{SIGN_NAMES[i]}</td>
-                  <td className="text-right font-mono">{b}</td>
-                </tr>
-              ))}
+              {Array.from({ length: 12 }, (_, h) => {
+                const signIdx = (ascSign - 1 + h) % 12;
+                return (
+                  <tr key={h}>
+                    <td className="py-2 font-mono">H{h+1}</td>
+                    <td>{SIGN_NAMES[signIdx]}</td>
+                    <td className="text-right font-mono">{data.ashtakavarga.sarva[signIdx]}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </section>

@@ -506,6 +506,17 @@ Deno.test("dossier contains Ashtakavarga data", () => {
   assertStringIncludes(d, "SAV");
 });
 
+Deno.test("dossier maps Ashtakavarga bindus by house, not by raw sign index", () => {
+  // sarva is sign-indexed: [Mesha=25, Vrishabha=29, …, Meena=37]. Lagna is
+  // Scorpio (sign 8), so H1 holds Scorpio (sarva[7]=24) and H2 holds Dhanu
+  // (sarva[8]=27). The highest SAV (37, Meena) is the 5th house and the lowest
+  // (22, Mithuna) the 8th — NOT H12/H3 as raw-index labelling would report.
+  const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
+  assertStringIncludes(d, "H2(Dhanu)=27");
+  assertStringIncludes(d, "Highest: House 5 Meena (37 bindus)");
+  assertStringIncludes(d, "Lowest: House 8 Mithuna (22 bindus)");
+});
+
 Deno.test("dossier contains Shadbala data with six-source breakdown", () => {
   const d = buildChartDossier(sampleChart, sampleTransits, fixedNow);
   assertStringIncludes(d, "SHADBALA");

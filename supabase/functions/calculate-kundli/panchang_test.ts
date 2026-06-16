@@ -3,12 +3,13 @@
  *
  * Reference:
  *  - Drik Panchang (drikpanchang.com) for 23 Aug 1983: Shukla Purnima, Tuesday,
- *    Dhanishtha, Shula yoga (for New Delhi; panchang five-limbs valid across
+ *    Dhanishtha, Atiganda yoga (for New Delhi; panchang five-limbs valid across
  *    Indian timezones at the given moment).
  *  - AstroSage.com celebrity kundli for Amitabh (11 Oct 1942, Sunday).
  *  - Standard panchang computation: Tithi = (Moon − Sun)/12°, Vara from weekday,
- *    Nakshatra = Moon's sidereal nakshatra, Yoga = (Sun+Moon)/13°20',
- *    Karana = half-tithi.
+ *    Nakshatra = Moon's sidereal nakshatra, Yoga = (sidereal Sun + sidereal
+ *    Moon)/13°20', Karana = half-tithi. Yoga is nirayana (sidereal) — the same
+ *    longitudes as nakshatra, not tropical.
  *
  * Run with: deno test supabase/functions/calculate-kundli/panchang_test.ts
  */
@@ -71,6 +72,26 @@ const RAJIV: BirthDetails = {
   nodeType: "mean" as NodeType,
 };
 
+// Regression chart for the nirayana-yoga fix: an astrologer reported that for
+// this birth our panchang showed Vyatipata, but the correct (sidereal) nitya
+// yoga is Harshana. The old code summed *tropical* Sun+Moon, shifting the result
+// forward by ~2× ayanamsa (≈3 yogas: Harshana → Vajra → Siddhi → Vyatipata).
+const RAMJI: BirthDetails = {
+  fullName: "Ramji Desai",
+  dateOfBirth: "1952-11-25",
+  timeOfBirth: "06:01:43",
+  placeOfBirth: {
+    name: "Ahmedabad, India",
+    latitude: 23.0225,
+    longitude: 72.5714,
+    timezone: "Asia/Kolkata",
+    timezoneOffset: 5.5,
+  },
+  ayanamsa: "lahiri",
+  houseSystem: "whole_sign",
+  nodeType: "mean" as NodeType,
+};
+
 // ─── Dev Chart: 23 Aug 1983, Tuesday ────────────────────────────────────────
 
 Deno.test("panchang: Dev Chart — Tithi is Shukla Paksha Purnima", async () => {
@@ -92,10 +113,12 @@ Deno.test("panchang: Dev Chart — Nakshatra is Dhanishtha", async () => {
   assertEquals(k.panchang.nakshatra, "Dhanishtha");
 });
 
-Deno.test("panchang: Dev Chart — Yoga is Shula", async () => {
-  // Drik Panchang (23 Aug 1983): Shula yoga. Yoga = (Sun trop + Moon trop) / 13°20'.
+Deno.test("panchang: Dev Chart — Yoga is Atiganda", async () => {
+  // Drik Panchang (23 Aug 1983, New Delhi): Shobhana upto 09:29 AM, then
+  // Atiganda for the rest of the day. Birth is 15:35, so the prevailing nitya
+  // yoga is Atiganda. Yoga uses sidereal Sun + sidereal Moon (nirayana).
   const k = await calculateKundli(DEV_CHART);
-  assertEquals(k.panchang.yoga, "Shula");
+  assertEquals(k.panchang.yoga, "Atiganda");
 });
 
 Deno.test("panchang: Dev Chart — Karana is Bava", async () => {
@@ -124,9 +147,12 @@ Deno.test("panchang: Amitabh — Tithi is Shukla Paksha Dwitiya", async () => {
   assertEquals(k.panchang.tithi, "Shukla Paksha Dwitiya");
 });
 
-Deno.test("panchang: Amitabh — Yoga is Saubhagya", async () => {
+Deno.test("panchang: Amitabh — Yoga is Vishkambha", async () => {
+  // Drik Panchang (11 Oct 1942, Allahabad): Vaidhriti upto 08:34 AM, then
+  // Vishkambha for the rest of the day. Birth is 16:00, so the prevailing
+  // nitya yoga is Vishkambha. Yoga uses sidereal Sun + sidereal Moon (nirayana).
   const k = await calculateKundli(AMITABH);
-  assertEquals(k.panchang.yoga, "Saubhagya");
+  assertEquals(k.panchang.yoga, "Vishkambha");
 });
 
 Deno.test("panchang: Amitabh — Karana is Balava", async () => {
@@ -151,6 +177,16 @@ Deno.test("panchang: Rajiv — Nakshatra is Purva Phalguni", async () => {
 Deno.test("panchang: Rajiv — Tithi is Shukla Paksha Dwitiya", async () => {
   const k = await calculateKundli(RAJIV);
   assertEquals(k.panchang.tithi, "Shukla Paksha Dwitiya");
+});
+
+// ─── Ramji: 25 Nov 1952 — nirayana-yoga regression ──────────────────────────
+
+Deno.test("panchang: Ramji — Yoga is Harshana (sidereal, not tropical Vyatipata)", async () => {
+  // Drik Panchang (25 Nov 1952, Ahmedabad): Harshana upto 10:58 PM. Birth is
+  // 06:01:43, so the nitya yoga is Harshana. Summing tropical longitudes (the
+  // old bug) gave Vyatipata — wrong by ~3 yogas. Guards against regressing to it.
+  const k = await calculateKundli(RAMJI);
+  assertEquals(k.panchang.yoga, "Harshana");
 });
 
 // ─── Structural tests ───────────────────────────────────────────────────────

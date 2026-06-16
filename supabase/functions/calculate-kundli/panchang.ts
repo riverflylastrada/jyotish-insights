@@ -20,7 +20,7 @@ export interface PanchangData {
 }
 
 export function computePanchang(
-  sunTrop: number, moonTrop: number, moonSid: number,
+  sunTrop: number, moonTrop: number, sunSid: number, moonSid: number,
   jd: number, sunrise: string, sunset: string,
 ): PanchangData {
   // Tithi: elongation of Moon from Sun in steps of 12°
@@ -37,8 +37,10 @@ export function computePanchang(
   const nIdx = nakshatraIndex(moonSid);
   const nakshatra = NAKSHATRA_NAMES[nIdx];
 
-  // Yoga (panchang): (sunTrop + moonTrop) mod 360 / (360/27)
-  const yogaAngle = norm360(sunTrop + moonTrop);
+  // Yoga (nitya yoga): sum of the *sidereal* (nirayana) Sun + Moon longitudes,
+  // in steps of 13°20′. Hindu panchang yoga is nirayana — using tropical
+  // longitudes shifts the result forward by ~2× ayanamsa (≈3 yogas).
+  const yogaAngle = norm360(sunSid + moonSid);
   const yogaIdx = Math.floor(yogaAngle / (360 / 27));
   const yoga = PANCHANG_YOGA_NAMES[yogaIdx % 27];
 
