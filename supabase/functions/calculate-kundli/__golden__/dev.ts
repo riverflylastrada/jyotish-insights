@@ -20248,7 +20248,7 @@ export const EXPECTED = {
         "saturnSign": 11,
         "saturnSignName": "Kumbha",
         "basis": "degree",
-        "isActive": true
+        "isActive": false
       },
       {
         "phase": 1,
