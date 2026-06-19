@@ -54,6 +54,8 @@ const AdminLlmConfig = lazy(() => import("./pages/admin/AdminLlmConfig"));
 const AdminVoice = lazy(() => import("./pages/admin/AdminVoice"));
 const AdminUsage = lazy(() => import("./pages/admin/AdminUsage"));
 const AdminLearnContent = lazy(() => import("./pages/admin/AdminLearnContent"));
+const AdminSocialBot = lazy(() => import("./pages/admin/AdminSocialBot"));
+const AdminTweetScheduler = lazy(() => import("./pages/admin/AdminTweetScheduler"));
 const VoiceGuruPage = lazy(() => import("./pages/app/VoiceGuruPage"));
 const Mundane = lazy(() => import("./pages/Mundane"));
 const Panchang = lazy(() => import("./pages/Panchang"));
@@ -153,6 +155,8 @@ const App = () => (
               <Route path="voice" element={<AdminVoice />} />
               <Route path="usage" element={<AdminUsage />} />
               <Route path="learn-content" element={<AdminLearnContent />} />
+              <Route path="social-bot" element={<AdminSocialBot />} />
+              <Route path="tweet-scheduler" element={<AdminTweetScheduler />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
