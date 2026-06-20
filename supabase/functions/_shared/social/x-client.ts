@@ -7,7 +7,12 @@
  * "add X credentials" reason and skip (never silently fail).
  */
 
-import { TwitterApi } from "https://esm.sh/twitter-api-v2@1.18.2";
+// twitter-api-v2 ships Node-flavoured .d.ts that reference @types/node, which the
+// CI edge-functions job (no node_modules) can't resolve. `?no-dts` drops esm.sh's
+// types header and the local shim (via @deno-types) supplies minimal `any` types,
+// so `deno check` never touches the library's types. The real JS runs at runtime.
+// @deno-types="./twitter_shim.d.ts"
+import { TwitterApi } from "https://esm.sh/twitter-api-v2@1.18.2?no-dts";
 
 export class MissingCredentialsError extends Error {
   constructor(message = "X (Twitter) credentials are not set — add them in Admin → API Keys.") {
@@ -62,7 +67,7 @@ export async function hasXCreds(sb: any): Promise<boolean> {
   }
 }
 
-export function makeClient(creds: XCreds): TwitterApi {
+export function makeClient(creds: XCreds) {
   return new TwitterApi({
     appKey: creds.apiKey,
     appSecret: creds.apiSecret,
@@ -71,20 +76,23 @@ export function makeClient(creds: XCreds): TwitterApi {
   });
 }
 
-export async function postTweet(client: TwitterApi, text: string): Promise<{ id: string }> {
+/** The (untyped) twitter-api-v2 client instance. */
+export type XClient = ReturnType<typeof makeClient>;
+
+export async function postTweet(client: XClient, text: string): Promise<{ id: string }> {
   const res = await client.v2.tweet(text);
   return { id: res.data.id };
 }
 
 /** Post a chain — each part replies to the previous (handled by tweetThread). */
-export async function postThread(client: TwitterApi, parts: string[]): Promise<{ ids: string[] }> {
+export async function postThread(client: XClient, parts: string[]): Promise<{ ids: string[] }> {
   if (parts.length === 1) return { ids: [(await postTweet(client, parts[0])).id] };
   const res = await client.v2.tweetThread(parts);
   // deno-lint-ignore no-explicit-any
   return { ids: (res as any[]).map((r) => r.data.id) };
 }
 
-export async function getMetrics(client: TwitterApi, id: string): Promise<{ impressions: number; likes: number }> {
+export async function getMetrics(client: XClient, id: string): Promise<{ impressions: number; likes: number }> {
   const r = await client.v2.singleTweet(id, { "tweet.fields": ["public_metrics"] });
   // deno-lint-ignore no-explicit-any
   const pm = ((r.data as any)?.public_metrics ?? {}) as Record<string, number>;
