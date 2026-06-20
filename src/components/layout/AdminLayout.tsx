@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Key, Bot, ArrowLeft, Mic, BarChart3, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Key, Bot, ArrowLeft, Mic, BarChart3, FileText, Share2, CalendarClock } from 'lucide-react';
 
 const adminNav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -10,6 +10,8 @@ const adminNav = [
   { to: '/admin/voice', label: 'Voice', icon: Mic },
   { to: '/admin/usage', label: 'AI Usage', icon: BarChart3 },
   { to: '/admin/learn-content', label: 'Learn Content', icon: FileText },
+  { to: '/admin/social-bot', label: 'Social Bot', icon: Share2 },
+  { to: '/admin/tweet-scheduler', label: 'Tweet Scheduler', icon: CalendarClock },
 ];
 
 export function AdminLayout() {

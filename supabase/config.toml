@@ -29,6 +29,27 @@ verify_jwt = false
 # Admin-only authoring pipeline (gateway requires a valid JWT; the function
 # additionally checks profiles.role = 'admin').
 verify_jwt = true
+
+# ── Social Bot + Tweet Scheduler ────────────────────────────────────────────
+# Admin-triggered functions: gateway requires a valid JWT; each also checks
+# profiles.role = 'admin' internally (mirrors learn-content).
+[functions.social-generate]
+verify_jwt = true
+
+[functions.social-generate-week]
+verify_jwt = true
+
+[functions.social-post-now]
+verify_jwt = true
+
+[functions.social-fetch-metrics]
+verify_jwt = true
+
+[functions.social-scheduler-tick]
+# Invoked every 15 min by .github/workflows/social-scheduler-tick.yml (no JWT) and
+# by the admin "Run Scheduler Now" button. Self-guards via flags + caps; posts only
+# when twitter is enabled and X credentials are set.
+verify_jwt = false
 # Schedule: daily at 02:00 UTC via Supabase cron (pg_cron):
 #   select cron.schedule('transit-scan-daily', '0 2 * * *',
 #     $$select net.http_post(

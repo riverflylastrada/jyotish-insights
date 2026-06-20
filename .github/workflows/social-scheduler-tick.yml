@@ -1,0 +1,38 @@
+name: Social scheduler tick
+
+# Invokes the `social-scheduler-tick` edge function every 15 minutes. The function
+# itself respects the feature flags (TWEET_SCHEDULER_ENABLED / SOCIAL_BOT_TWITTER_
+# ENABLED), the social_settings.twitter_enabled toggle, and the daily/hourly caps —
+# so a plain POST is safe and idempotent. Nothing posts until X credentials are set
+# (Admin → API Keys) AND Platform Enabled is turned on.
+#
+# `social-scheduler-tick` is verify_jwt = false (see supabase/config.toml); it
+# authenticates to the DB with its own SUPABASE_SERVICE_ROLE_KEY and reads the X
+# credentials from app_settings. Mirrors .github/workflows/daily-email.yml and
+# reuses the existing SUPABASE_PROJECT_REF secret — no new secret required.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # every 15 minutes
+  workflow_dispatch: {}     # manual "Run workflow" to test on demand
+
+jobs:
+  tick:
+    # Only the canonical repo runs the job — skip the push-mirror fork so it
+    # doesn't double-post (or fail for lack of the secret).
+    if: github.repository == 'Viewofmind/jyotish-insights'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke social-scheduler-tick
+        env:
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::SUPABASE_PROJECT_REF secret is not set — cannot resolve the function URL." >&2
+            exit 1
+          fi
+          URL="https://${PROJECT_REF}.supabase.co/functions/v1/social-scheduler-tick"
+          echo "POST $URL"
+          # -f: non-2xx is a failure; print the {due,posted,failed} summary.
+          curl -fsS -X POST "$URL" -H 'Content-Type: application/json' -d '{}' | tee /tmp/social-tick.json
+          echo
