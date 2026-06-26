@@ -119,10 +119,10 @@ type RawPositions = ReturnType<typeof tropicalPositions>;
 let activeCache: Map<number, RawPositions> | null = null;
 
 function tropicalAt(jd: number): RawPositions {
-  if (!activeCache) return tropicalPositions(jd, 0, 0, 'true');
+  if (!activeCache) return tropicalPositions(jd, 0, 0, 'mean');
   const hit = activeCache.get(jd);
   if (hit) return hit;
-  const computed = tropicalPositions(jd, 0, 0, 'true');
+  const computed = tropicalPositions(jd, 0, 0, 'mean');
   activeCache.set(jd, computed);
   return computed;
 }
