@@ -117,7 +117,12 @@ export async function calculateKundli(details: BirthDetails) {
   const lon = details.placeOfBirth.longitude;
 
   // Tropical positions
-  const nodeType = details.nodeType ?? 'true';
+  // Rahu/Ketu use the MEAN node by default — the standard Vedic (Parashari/KP)
+  // convention used by mainstream software (AstroSage, ProKerala, Drik Panchang).
+  // The true node oscillates ±~1.5° and can place Rahu on the wrong side of a sign
+  // cusp vs every other Vedic chart. Eclipse geometry still uses the true node
+  // (see eclipse.ts). Overridable per chart via details.nodeType.
+  const nodeType = details.nodeType ?? 'mean';
   const trop = tropicalPositions(jd, lat, lon, nodeType);
 
   // Ayanamsa
@@ -336,7 +341,7 @@ export async function calculateKundli(details: BirthDetails) {
     // Engine output version. Bump when the snapshot shape gains new data
     // (e.g. new sections). Keep in sync with CURRENT_SNAPSHOT_VERSION in
     // src/lib/astro/types.ts — saved charts below this version auto-recalculate.
-    snapshotVersion: 25,
+    snapshotVersion: 26,
     birthDetails: details,
     generatedAt: new Date().toISOString(),
     ascendant: d1Planets[0], // ascendant entry
@@ -423,7 +428,7 @@ export function calculateTransits(details: BirthDetails) {
     now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(),
   );
   const T = julianCenturies(jd);
-  const nodeType = details.nodeType ?? 'true';
+  const nodeType = details.nodeType ?? 'mean'; // mean node — see calculateKundli
   const trop = tropicalPositions(jd, details.placeOfBirth.latitude, details.placeOfBirth.longitude, nodeType);
   const aya = ayanamsa(details.ayanamsa, jd);
   const ascSid = toSidereal(trop.ascendant, aya);
@@ -476,7 +481,7 @@ export function planetSignExitDate(
   let lastInSignJd: number | null = null;
   for (let d = 0; d <= horizonDays; d += stepDays) {
     const jd = startJd + d;
-    const lon = (tropicalPositions(jd, 0, 0, 'true') as unknown as Record<string, number>)[planetKey];
+    const lon = (tropicalPositions(jd, 0, 0, 'mean') as unknown as Record<string, number>)[planetKey];
     if (lon === undefined) return null;
     const sid = toSidereal(lon, ayanamsa(ayanamsaKey, jd));
     if (signNumber(sid) === targetSign) lastInSignJd = jd;

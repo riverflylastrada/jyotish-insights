@@ -421,7 +421,7 @@ export function computeVarshphal(
   // Determine natal ascendant sign (for Muntha)
   const lat = details.placeOfBirth.latitude;
   const lon = details.placeOfBirth.longitude;
-  const nodeType = (details as { nodeType?: NodeType }).nodeType ?? "true";
+  const nodeType = (details as { nodeType?: NodeType }).nodeType ?? "mean"; // mean node — match natal chart convention
   const natalTrop = tropicalPositions(birthJd, lat, lon, nodeType);
   const natalAscSid = toSidereal(natalTrop.ascendant, birthAya);
   const natalAscSign = signNumber(natalAscSid);
