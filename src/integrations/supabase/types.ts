@@ -14,144 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_usage: {
-        Row: {
-          id: string
-          created_at: string
-          user_id: string | null
-          function: string | null
-          mode: string | null
-          guru: string | null
-          chart_id: string | null
-          question: string | null
-          model: string | null
-          provider: string | null
-          prompt_tokens: number
-          completion_tokens: number
-          total_tokens: number
-          cost_usd: number
-          language: string | null
-          success: boolean
-          error: string | null
-          latency_ms: number | null
-          turn_id: string | null
-          turn_kind: string | null
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          user_id?: string | null
-          function?: string | null
-          mode?: string | null
-          guru?: string | null
-          chart_id?: string | null
-          question?: string | null
-          model?: string | null
-          provider?: string | null
-          prompt_tokens?: number
-          completion_tokens?: number
-          total_tokens?: number
-          cost_usd?: number
-          language?: string | null
-          success?: boolean
-          error?: string | null
-          latency_ms?: number | null
-          turn_id?: string | null
-          turn_kind?: string | null
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          user_id?: string | null
-          function?: string | null
-          mode?: string | null
-          guru?: string | null
-          chart_id?: string | null
-          question?: string | null
-          model?: string | null
-          provider?: string | null
-          prompt_tokens?: number
-          completion_tokens?: number
-          total_tokens?: number
-          cost_usd?: number
-          language?: string | null
-          success?: boolean
-          error?: string | null
-          latency_ms?: number | null
-          turn_id?: string | null
-          turn_kind?: string | null
-        }
-        Relationships: []
-      }
-      saved_readings: {
-        Row: {
-          id: string
-          created_at: string
-          user_id: string
-          chart_id: string | null
-          kind: string
-          gurus: string[]
-          question: string
-          answer: Json
-        }
-        Insert: {
-          id?: string
-          created_at?: string
-          user_id: string
-          chart_id?: string | null
-          kind?: string
-          gurus?: string[]
-          question: string
-          answer?: Json
-        }
-        Update: {
-          id?: string
-          created_at?: string
-          user_id?: string
-          chart_id?: string | null
-          kind?: string
-          gurus?: string[]
-          question?: string
-          answer?: Json
-        }
-        Relationships: []
-      }
-      app_settings: {
-        Row: {
-          id: string
-          key: string
-          value: string | null
-          category: string
-          label: string | null
-          description: string | null
-          is_secret: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          key: string
-          value?: string | null
-          category?: string
-          label?: string | null
-          description?: string | null
-          is_secret?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          key?: string
-          value?: string | null
-          category?: string
-          label?: string | null
-          description?: string | null
-          is_secret?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       charts: {
         Row: {
           birth_details: Json
@@ -160,7 +22,6 @@ export type Database = {
           name: string
           share_token: string
           snapshot: Json | null
-          auto_insights: Json | null
           updated_at: string
           user_id: string
         }
@@ -171,7 +32,6 @@ export type Database = {
           name: string
           share_token?: string
           snapshot?: Json | null
-          auto_insights?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -182,7 +42,6 @@ export type Database = {
           name?: string
           share_token?: string
           snapshot?: Json | null
-          auto_insights?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -193,18 +52,9 @@ export type Database = {
           ayanamsa: string
           chart_style: string
           created_at: string
-          current_lat: number | null
-          current_lon: number | null
-          current_place_name: string | null
-          current_timezone: string | null
-          default_chart_id: string | null
           display_name: string | null
           house_system: string
           id: string
-          role: string
-          transit_alerts_enabled: boolean
-          transit_alerts_categories: string[]
-          email_daily_enabled: boolean
           updated_at: string
           user_id: string
         }
@@ -212,18 +62,9 @@ export type Database = {
           ayanamsa?: string
           chart_style?: string
           created_at?: string
-          current_lat?: number | null
-          current_lon?: number | null
-          current_place_name?: string | null
-          current_timezone?: string | null
-          default_chart_id?: string | null
           display_name?: string | null
           house_system?: string
           id?: string
-          role?: string
-          transit_alerts_enabled?: boolean
-          transit_alerts_categories?: string[]
-          email_daily_enabled?: boolean
           updated_at?: string
           user_id: string
         }
@@ -231,71 +72,11 @@ export type Database = {
           ayanamsa?: string
           chart_style?: string
           created_at?: string
-          current_lat?: number | null
-          current_lon?: number | null
-          current_place_name?: string | null
-          current_timezone?: string | null
-          default_chart_id?: string | null
           display_name?: string | null
           house_system?: string
           id?: string
-          role?: string
-          transit_alerts_enabled?: boolean
-          transit_alerts_categories?: string[]
-          email_daily_enabled?: boolean
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      transit_alerts: {
-        Row: {
-          id: string
-          chart_id: string
-          user_id: string
-          event_key: string
-          type: string
-          severity: string
-          starts: string
-          ends: string | null
-          title: string
-          description: string
-          citation: string | null
-          affected_houses: number[] | null
-          read_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          chart_id: string
-          user_id: string
-          event_key: string
-          type: string
-          severity: string
-          starts: string
-          ends?: string | null
-          title: string
-          description: string
-          citation?: string | null
-          affected_houses?: number[] | null
-          read_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          chart_id?: string
-          user_id?: string
-          event_key?: string
-          type?: string
-          severity?: string
-          starts?: string
-          ends?: string | null
-          title?: string
-          description?: string
-          citation?: string | null
-          affected_houses?: number[] | null
-          read_at?: string | null
-          created_at?: string
         }
         Relationships: []
       }
@@ -304,25 +85,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_get_stats: {
-        Args: Record<string, never>
-        Returns: Json
-      }
-      admin_get_users: {
-        Args: Record<string, never>
-        Returns: {
-          user_id: string
-          email: string
-          display_name: string | null
-          role: string
-          ayanamsa: string
-          chart_style: string
-          house_system: string
-          charts_count: number
-          created_at: string
-          last_sign_in_at: string | null
-        }[]
-      }
       get_chart_by_share_token: {
         Args: { _token: string }
         Returns: {
