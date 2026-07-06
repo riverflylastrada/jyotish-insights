@@ -7,10 +7,10 @@
 @layer base {
   :root {
     /* Backgrounds */
-    --bg-canvas: 40 33% 97%;
+    --bg-canvas: 39 60% 97%;      /* #fdfaf4 warm ivory */
     --bg-surface: 0 0% 100%;
-    --bg-elevated: 40 25% 94%;
-    --bg-muted: 40 22% 91%;
+    --bg-elevated: 33 100% 92%;   /* #ffedd5 soft peach */
+    --bg-muted: 33 85% 88%;
 
     /* Text */
     --text-primary: 20 13% 9%;
@@ -19,10 +19,10 @@
     --text-muted: 35 17% 67%;
 
     /* Brand */
-    --brand-saffron: 28 64% 48%;
-    --brand-saffron-hover: 31 70% 39%;
-    --brand-maroon: 351 55% 27%;
-    --brand-gold: 40 51% 48%;
+    --brand-saffron: 21 90% 48%;       /* #ea580c deep orange */
+    --brand-saffron-hover: 17 84% 34%; /* #9a3412 burnt */
+    --brand-maroon: 17 84% 34%;        /* #9a3412 */
+    --brand-gold: 25 95% 53%;
 
     /* Semantic */
     --semantic-positive: 154 41% 30%;
@@ -31,9 +31,9 @@
     --semantic-info: 213 35% 37%;
 
     /* Borders */
-    --border-subtle: 40 28% 87%;
-    --border-default: 38 28% 80%;
-    --border-strong: 35 17% 67%;
+    --border-subtle: 33 60% 88%;
+    --border-default: 30 50% 80%;
+    --border-strong: 25 40% 65%;
 
     /* Planets */
     --planet-sun: 28 64% 48%;
